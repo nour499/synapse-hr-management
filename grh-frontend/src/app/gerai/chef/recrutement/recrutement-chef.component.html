@@ -1,0 +1,289 @@
+<div class="rec-page">
+
+  <!-- ── Header ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-user-search"></i></div>
+      <div>
+        <h1 class="page-title">Demandes de recrutement</h1>
+        <p class="page-sub">Soumettez vos besoins en recrutement — l'équipe RH prendra en charge la suite</p>
+      </div>
+    </div>
+    <button class="btn-primary" (click)="openForm()">
+      <i class="ti ti-plus"></i> Nouvelle demande
+    </button>
+  </div>
+
+  <!-- ── KPI strip ─────────────────────────────────── -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <i class="ti ti-clipboard-list kpi-ico kpi-violet"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.total }}</span><span class="kpi-lbl">Total demandes</span></div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-clock kpi-ico kpi-amber"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.enAttente }}</span><span class="kpi-lbl">En attente</span></div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-circle-check kpi-ico kpi-green"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.approuvee }}</span><span class="kpi-lbl">Approuvées</span></div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-circle-x kpi-ico kpi-red"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.rejetee }}</span><span class="kpi-lbl">Rejetées</span></div>
+    </div>
+  </div>
+
+  <!-- ── Liste ─────────────────────────────────────── -->
+  @if (loading) {
+    <div class="loading-wrap">
+      <div class="spinner-border" style="color:#6366F1"></div>
+      <p>Chargement…</p>
+    </div>
+  } @else if (demandes.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-user-search"></i></div>
+      <h3>Aucune demande soumise</h3>
+      <p>Créez votre première demande de recrutement.</p>
+      <button class="btn-primary" (click)="openForm()"><i class="ti ti-plus"></i> Nouvelle demande</button>
+    </div>
+  } @else {
+    <div class="cards-grid">
+      @for (d of demandes; track d.id) {
+        <div class="rec-card" [class.card-pending]="d.statut === 'EN_ATTENTE'"
+             (click)="openDetail(d)">
+          <div class="card-top">
+            <div class="card-title-row">
+              <span class="card-titre">{{ d.titrePoste }}</span>
+              <span class="urgence-badge"
+                    [class.urg-normale]="d.urgence === 'NORMALE'"
+                    [class.urg-urgente]="d.urgence === 'URGENTE'"
+                    [class.urg-critique]="d.urgence === 'CRITIQUE'">
+                <i class="ti ti-flame"></i> {{ urgenceLabels[d.urgence] }}
+              </span>
+            </div>
+            <div class="card-meta">
+              <span><i class="ti ti-building"></i> {{ d.departement }}</span>
+              <span><i class="ti ti-users"></i> {{ d.nombrePostes }} poste{{ d.nombrePostes > 1 ? 's' : '' }}</span>
+              <span><i class="ti ti-calendar"></i> {{ d.dateDemande | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+
+          <div class="card-badges">
+            <span class="role-pill">{{ roleLabels[d.role] }}</span>
+            <span class="type-pill">{{ typeLabels[d.typeContrat] }}</span>
+          </div>
+
+          <p class="card-justif">{{ d.justification }}</p>
+
+          <div class="card-footer">
+            <span class="statut-badge"
+                  [class.s-attente]="d.statut === 'EN_ATTENTE'"
+                  [class.s-approuvee]="d.statut === 'APPROUVEE' || d.statut === 'CONVERTIE'"
+                  [class.s-rejetee]="d.statut === 'REJETEE'">
+              <span class="s-dot"></span>{{ statutLabels[d.statut] }}
+            </span>
+            @if (d.statut === 'EN_ATTENTE') {
+              <button class="btn-cancel" title="Annuler la demande"
+                      (click)="$event.stopPropagation(); cancelRequest(d)">
+                <i class="ti ti-x"></i> Annuler
+              </button>
+            }
+            @if (d.statut === 'CONVERTIE') {
+              <span class="job-chip"><i class="ti ti-external-link"></i> Offre publiée</span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     FORM MODAL
+══════════════════════════════════════════════════════ -->
+@if (showForm) {
+  <div class="modal-overlay" (click)="closeForm()"></div>
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon"><i class="ti ti-user-search"></i></div>
+        <div>
+          <h2 class="modal-title">Nouvelle demande de recrutement</h2>
+          <p class="modal-sub">La RH sera notifiée et traitera votre demande</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeForm()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="modal-body">
+
+      <!-- Titre + Département -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Titre du poste <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-briefcase input-icon"></i>
+            <input type="text" class="field-input with-icon" formControlName="titrePoste"
+                   [class.has-error]="hasError('titrePoste')" placeholder="ex: Développeur Angular" />
+          </div>
+          @if (hasError('titrePoste')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Titre requis</small>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label">Département <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-building input-icon"></i>
+            <input type="text" class="field-input with-icon" formControlName="departement"
+                   [class.has-error]="hasError('departement')" placeholder="ex: Informatique" />
+          </div>
+          @if (hasError('departement')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Département requis</small>
+          }
+        </div>
+      </div>
+
+      <!-- Niveau + Postes + Type -->
+      <div class="form-row-3">
+        <div class="field-group">
+          <label class="field-label">Niveau <span class="req">*</span></label>
+          <select class="field-input" formControlName="role">
+            @for (r of allRoles; track r) { <option [value]="r">{{ roleLabels[r] }}</option> }
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Postes <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-users input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="nombrePostes" min="1"
+                   [class.has-error]="hasError('nombrePostes')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Contrat <span class="req">*</span></label>
+          <select class="field-input" formControlName="typeContrat">
+            @for (t of allTypes; track t) { <option [value]="t">{{ typeLabels[t] }}</option> }
+          </select>
+        </div>
+      </div>
+
+      <!-- Urgence -->
+      <div class="field-group">
+        <label class="field-label">Niveau d'urgence <span class="req">*</span></label>
+        <div class="urgence-group">
+          @for (u of allUrgences; track u) {
+            <label class="urgence-opt"
+                   [class.sel-normale]="form.get('urgence')?.value === u && u === 'NORMALE'"
+                   [class.sel-urgente]="form.get('urgence')?.value === u && u === 'URGENTE'"
+                   [class.sel-critique]="form.get('urgence')?.value === u && u === 'CRITIQUE'"
+                   [class.selected]="form.get('urgence')?.value === u">
+              <input type="radio" formControlName="urgence" [value]="u" hidden />
+              <i class="ti ti-flame"></i> {{ urgenceLabels[u] }}
+            </label>
+          }
+        </div>
+      </div>
+
+      <!-- Justification -->
+      <div class="field-group">
+        <label class="field-label">Justification <span class="req">*</span></label>
+        <textarea class="field-input" rows="4" formControlName="justification"
+                  [class.has-error]="hasError('justification')"
+                  placeholder="Expliquez le besoin, la charge de travail, l'impact sur l'équipe…"></textarea>
+        @if (hasError('justification')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Justification requise (20 caractères min)</small>
+        }
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-send"></i> }
+          Soumettre à la RH
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     DETAIL DRAWER
+══════════════════════════════════════════════════════ -->
+@if (detailItem) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon"><i class="ti ti-user-search"></i></div>
+        <div>
+          <h2 class="drawer-title">{{ detailItem.titrePoste }}</h2>
+          <p class="drawer-sub">{{ detailItem.departement }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-info-circle"></i> Détails</div>
+        <div class="detail-grid">
+          <div class="detail-item"><span class="di-label">Niveau</span><span class="di-val">{{ roleLabels[detailItem.role] }}</span></div>
+          <div class="detail-item"><span class="di-label">Postes</span><span class="di-val">{{ detailItem.nombrePostes }}</span></div>
+          <div class="detail-item"><span class="di-label">Contrat</span><span class="di-val">{{ typeLabels[detailItem.typeContrat] }}</span></div>
+          <div class="detail-item"><span class="di-label">Urgence</span>
+            <span class="urgence-badge" [class.urg-normale]="detailItem.urgence === 'NORMALE'"
+                  [class.urg-urgente]="detailItem.urgence === 'URGENTE'"
+                  [class.urg-critique]="detailItem.urgence === 'CRITIQUE'">
+              <i class="ti ti-flame"></i>{{ urgenceLabels[detailItem.urgence] }}
+            </span>
+          </div>
+          <div class="detail-item"><span class="di-label">Soumis le</span><span class="di-val">{{ detailItem.dateDemande | date:'dd/MM/yyyy' }}</span></div>
+          <div class="detail-item"><span class="di-label">Statut</span>
+            <span class="statut-badge"
+                  [class.s-attente]="detailItem.statut === 'EN_ATTENTE'"
+                  [class.s-approuvee]="detailItem.statut === 'APPROUVEE' || detailItem.statut === 'CONVERTIE'"
+                  [class.s-rejetee]="detailItem.statut === 'REJETEE'">
+              <span class="s-dot"></span>{{ statutLabels[detailItem.statut] }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-message"></i> Justification</div>
+        <p class="detail-text">{{ detailItem.justification }}</p>
+      </div>
+      @if (detailItem.commentaireRh) {
+        <div class="detail-section">
+          <div class="ds-head"><i class="ti ti-message-dots"></i> Réponse RH</div>
+          <div class="rh-comment">
+            <i class="ti ti-user-check"></i>
+            <div>
+              @if (detailItem.traiteePar) {
+                <p class="rh-by">
+                  {{ detailItem.traiteePar }}
+                  @if (detailItem.dateTraitement) { · {{ detailItem.dateTraitement | date:'dd/MM/yyyy' }} }
+                </p>
+              }
+              <p class="rh-msg">{{ detailItem.commentaireRh }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn-secondary" (click)="closeDetail()">Fermer</button>
+    </div>
+  </div>
+}

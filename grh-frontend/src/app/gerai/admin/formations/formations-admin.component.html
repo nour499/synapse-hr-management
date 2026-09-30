@@ -1,0 +1,395 @@
+<div class="formations-admin-page">
+
+  <!-- ══ Header ══ -->
+  <div class="page-header">
+    <div>
+      <h2><i class="ti ti-school"></i> Gestion des Formations</h2>
+      <p>Validation RH, planification et suivi des formations de l'entreprise</p>
+    </div>
+  </div>
+
+  <!-- ══ Stats ══ -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <i class="ti ti-files"></i>
+      <div><strong>{{ stats.total }}</strong><span>Total</span></div>
+    </div>
+    <div class="stat-card warn" (click)="onFilter('APPROUVE_CHEF')">
+      <i class="ti ti-hourglass"></i>
+      <div><strong>{{ stats.aValiderRH }}</strong><span>À valider RH</span></div>
+    </div>
+    <div class="stat-card purple" (click)="onFilter('APPROUVE_RH')">
+      <i class="ti ti-calendar-plus"></i>
+      <div><strong>{{ stats.planifiees }}</strong><span>À planifier</span></div>
+    </div>
+    <div class="stat-card orange" (click)="onFilter('EN_COURS')">
+      <i class="ti ti-player-play"></i>
+      <div><strong>{{ stats.enCours }}</strong><span>En cours</span></div>
+    </div>
+    <div class="stat-card green" (click)="onFilter('COMPLETEE')">
+      <i class="ti ti-trophy"></i>
+      <div><strong>{{ stats.completees }}</strong><span>Complétées</span></div>
+    </div>
+  </div>
+
+  <!-- ══ Filters ══ -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input placeholder="Rechercher par titre, employé, organisme…"
+             (input)="onSearch($any($event.target).value)">
+    </div>
+    <select class="filter-select" (change)="onFilter($any($event.target).value)">
+      @for (opt of filterOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- ══ Table ══ -->
+  @if (loading) {
+    <div class="spinner-wrap"><div class="spinner"></div></div>
+  } @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <i class="ti ti-book-off"></i>
+      <p>Aucune formation trouvée</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Formation</th>
+            <th>Type / Mode</th>
+            <th>Durée</th>
+            <th>Coût</th>
+            <th>Date demande</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of filtered; track f.id) {
+            <tr (click)="openDetail(f)">
+              <td>
+                <div class="employe-cell">
+                  <div class="avatar">{{ f.employePrenom[0] }}{{ f.employeNom[0] }}</div>
+                  <div>
+                    <strong>{{ f.employePrenom }} {{ f.employeNom }}</strong>
+                    <small>{{ f.departement }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="titre-cell">
+                  <span>{{ f.titre }}</span>
+                  <small>{{ f.organisme }}</small>
+                </div>
+              </td>
+              <td>
+                <div class="tags-col">
+                  <span class="tag-type">{{ typeLabels[f.type] }}</span>
+                  <span class="tag-mode">{{ modeLabels[f.mode] }}</span>
+                </div>
+              </td>
+              <td>{{ f.dureeJours }}j</td>
+              <td>{{ f.coutEstime ? (f.coutEstime | number) + ' MAD' : '—' }}</td>
+              <td>{{ f.dateDemande | date:'dd/MM/yy' }}</td>
+              <td>
+                <span class="statut-chip"
+                  [style.background]="statutColors[f.statut] + '20'"
+                  [style.color]="statutColors[f.statut]">
+                  {{ statutLabels[f.statut] }}
+                </span>
+              </td>
+              <td (click)="$event.stopPropagation()">
+                <div class="action-btns" role="group" [attr.aria-label]="'Actions pour ' + f.titre">
+                  @if (canRhDecide(f)) {
+                    <button class="btn-action primary" (click)="openRhDecision(f)"
+                            aria-label="Décision RH pour {{ f.titre }}" title="Décision RH">
+                      <i class="ti ti-gavel" aria-hidden="true"></i>
+                    </button>
+                  }
+                  @if (canPlanifier(f)) {
+                    <button class="btn-action indigo" (click)="openPlanifier(f)"
+                            aria-label="Planifier {{ f.titre }}" title="Planifier">
+                      <i class="ti ti-calendar-event" aria-hidden="true"></i>
+                    </button>
+                  }
+                  @if (canDemarrer(f)) {
+                    <button class="btn-action orange" (click)="demarrer(f)"
+                            aria-label="Démarrer {{ f.titre }}" title="Démarrer">
+                      <i class="ti ti-player-play" aria-hidden="true"></i>
+                    </button>
+                  }
+                  @if (canCompleter(f)) {
+                    <button class="btn-action green" (click)="openCompleter(f)"
+                            aria-label="Marquer {{ f.titre }} comme complétée" title="Compléter">
+                      <i class="ti ti-trophy" aria-hidden="true"></i>
+                    </button>
+                  }
+                  @if (canAnnuler(f)) {
+                    <button class="btn-action danger" (click)="annuler(f)"
+                            aria-label="Annuler {{ f.titre }}" title="Annuler">
+                      <i class="ti ti-ban" aria-hidden="true"></i>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ══ DRAWER ══ -->
+  @if (selected) {
+    <div class="drawer-overlay" (click)="closeDrawer()" aria-hidden="true"></div>
+    <div class="drawer"
+         role="dialog"
+         aria-modal="true"
+         [attr.aria-label]="selected.titre"
+         tabindex="-1"
+         (keydown)="handleDrawerKeydown($event)">
+      <div class="drawer-header">
+        <h3>
+          @if (drawerMode === 'detail')      { <i class="ti ti-info-circle"></i> Détail }
+          @if (drawerMode === 'rh-decision') { <i class="ti ti-gavel"></i> Décision RH }
+          @if (drawerMode === 'planifier')   { <i class="ti ti-calendar-event"></i> Planifier }
+          @if (drawerMode === 'completer')   { <i class="ti ti-trophy"></i> Compléter }
+        </h3>
+        <button class="btn-icon" (click)="closeDrawer()" aria-label="Fermer le panneau">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="drawer-body">
+
+        <!-- Formation titre + statut -->
+        <div class="selected-header">
+          <h4>{{ selected.titre }}</h4>
+          <div class="meta-line">
+            <span><i class="ti ti-user"></i> {{ selected.employePrenom }} {{ selected.employeNom }}</span>
+            <span><i class="ti ti-building"></i> {{ selected.organisme }}</span>
+          </div>
+          <span class="statut-big"
+            [style.background]="statutColors[selected.statut] + '15'"
+            [style.color]="statutColors[selected.statut]">
+            {{ statutLabels[selected.statut] }}
+          </span>
+        </div>
+
+        <!-- ── MODE DETAIL ── -->
+        @if (drawerMode === 'detail') {
+          <!-- Stepper -->
+          <div class="stepper">
+            @for (step of formationSteps; track step.statut; let i = $index) {
+              <div class="stepper-item"
+                [class.done]="stepIndex(selected.statut) > i"
+                [class.current]="stepIndex(selected.statut) === i">
+                <div class="stepper-circle">
+                  @if (stepIndex(selected.statut) > i) {
+                    <i class="ti ti-check"></i>
+                  } @else { {{ i + 1 }} }
+                </div>
+                <span>{{ step.label }}</span>
+              </div>
+              @if (i < formationSteps.length - 1) {
+                <div class="stepper-line" [class.done]="stepIndex(selected.statut) > i"></div>
+              }
+            }
+          </div>
+
+          <div class="info-grid">
+            <div class="info-row"><span>Type</span><strong>{{ typeLabels[selected.type] }}</strong></div>
+            <div class="info-row"><span>Mode</span><strong>{{ modeLabels[selected.mode] }}</strong></div>
+            <div class="info-row"><span>Durée</span><strong>{{ selected.dureeJours }} jour(s)</strong></div>
+            @if (selected.coutEstime) {
+              <div class="info-row"><span>Coût estimé</span><strong>{{ selected.coutEstime | number }} MAD</strong></div>
+            }
+            @if (selected.lieu) {
+              <div class="info-row"><span>Lieu</span><strong>{{ selected.lieu }}</strong></div>
+            }
+            @if (selected.dateDebutSouhaitee) {
+              <div class="info-row"><span>Période souhaitée</span>
+                <strong>{{ selected.dateDebutSouhaitee | date:'dd/MM/yyyy' }} → {{ selected.dateFinSouhaitee | date:'dd/MM/yyyy' }}</strong>
+              </div>
+            }
+            @if (selected.dateDebutReelle) {
+              <div class="info-row"><span>Période réelle</span>
+                <strong>{{ selected.dateDebutReelle | date:'dd/MM/yyyy' }} → {{ selected.dateFinReelle | date:'dd/MM/yyyy' }}</strong>
+              </div>
+            }
+          </div>
+
+          <div class="info-section">
+            <label>Objectifs</label>
+            <p>{{ selected.objectifs }}</p>
+          </div>
+
+          @if (selected.competencesVisees?.length) {
+            <div class="tags-wrap">
+              @for (c of selected.competencesVisees; track c) {
+                <span class="tag">{{ c }}</span>
+              }
+            </div>
+          }
+
+          @if (selected.commentaireChef) {
+            <div class="feedback-box">
+              <div class="fb-header"><i class="ti ti-user-check"></i> Chef : {{ selected.chefNom }}</div>
+              <p>{{ selected.commentaireChef }}</p>
+              <small>{{ selected.dateTraitementChef | date:'dd/MM/yyyy' }}</small>
+            </div>
+          }
+
+          @if (selected.commentaireRh) {
+            <div class="feedback-box" [class.rejected]="selected.statut === 'REJETE_RH'">
+              <div class="fb-header"><i class="ti ti-building-community"></i> RH</div>
+              <p>{{ selected.commentaireRh }}</p>
+              <small>{{ selected.dateTraitementRh | date:'dd/MM/yyyy' }} · {{ selected.traiteeParRh }}</small>
+            </div>
+          }
+
+          @if (selected.statut === 'COMPLETEE') {
+            <div class="eval-box">
+              <div class="fb-header"><i class="ti ti-trophy"></i> Formation complétée</div>
+              @if (selected.certificatObtenu) { <p><i class="ti ti-certificate"></i> Certificat obtenu</p> }
+              @if (selected.evaluation) {
+                <div class="stars">
+                  @for (s of starArray(selected.evaluation); track $index) { <i class="ti ti-star-filled"></i> }
+                  <span>{{ selected.evaluation }}/5</span>
+                </div>
+              }
+              @if (selected.noteEvaluation) { <p class="note">{{ selected.noteEvaluation }}</p> }
+            </div>
+          }
+
+          <!-- Quick actions in detail mode -->
+          <div class="detail-actions">
+            @if (canRhDecide(selected)) {
+              <button class="btn-primary" (click)="openRhDecision(selected)">
+                <i class="ti ti-gavel"></i> Décision RH
+              </button>
+            }
+            @if (canPlanifier(selected)) {
+              <button class="btn-primary" (click)="openPlanifier(selected)">
+                <i class="ti ti-calendar-event"></i> Planifier
+              </button>
+            }
+            @if (canDemarrer(selected)) {
+              <button class="btn-primary" (click)="demarrer(selected)">
+                <i class="ti ti-player-play"></i> Démarrer
+              </button>
+            }
+            @if (canCompleter(selected)) {
+              <button class="btn-primary" (click)="openCompleter(selected)">
+                <i class="ti ti-trophy"></i> Compléter
+              </button>
+            }
+            @if (canAnnuler(selected)) {
+              <button class="btn-danger" (click)="annuler(selected)">
+                <i class="ti ti-ban"></i> Annuler
+              </button>
+            }
+          </div>
+        }
+
+        <!-- ── MODE RH DECISION ── -->
+        @if (drawerMode === 'rh-decision') {
+          <form [formGroup]="rhForm" (ngSubmit)="submitRhDecision()">
+            <div class="radio-group">
+              <label class="radio-card" [class.selected]="rhForm.get('decision')?.value === 'APPROUVE_RH'">
+                <input type="radio" formControlName="decision" value="APPROUVE_RH">
+                <i class="ti ti-circle-check"></i><span>Approuver</span>
+              </label>
+              <label class="radio-card reject" [class.selected]="rhForm.get('decision')?.value === 'REJETE_RH'">
+                <input type="radio" formControlName="decision" value="REJETE_RH">
+                <i class="ti ti-circle-x"></i><span>Rejeter</span>
+              </label>
+            </div>
+            <div class="field">
+              <label>Commentaire</label>
+              <textarea formControlName="commentaire" rows="4"
+                placeholder="Motivez votre décision (budget, priorité, timing…)"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-ghost" (click)="drawerMode = 'detail'; cdr.markForCheck()">Retour</button>
+              <button type="submit" class="btn-primary" [disabled]="submitting">
+                @if (submitting) { <span class="spinner-sm"></span> } @else { <i class="ti ti-send"></i> }
+                Confirmer
+              </button>
+            </div>
+          </form>
+        }
+
+        <!-- ── MODE PLANIFIER ── -->
+        @if (drawerMode === 'planifier') {
+          <form [formGroup]="planForm" (ngSubmit)="submitPlanifier()">
+            <div class="form-grid">
+              <div class="field">
+                <label>Date de début *</label>
+                <input type="date" formControlName="dateDebutReelle">
+              </div>
+              <div class="field">
+                <label>Date de fin *</label>
+                <input type="date" formControlName="dateFinReelle">
+              </div>
+              <div class="field full">
+                <label>Lieu de formation</label>
+                <input formControlName="lieu" placeholder="Adresse, ville, plateforme…">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-ghost" (click)="drawerMode = 'detail'; cdr.markForCheck()">Retour</button>
+              <button type="submit" class="btn-primary" [disabled]="submitting || planForm.invalid">
+                @if (submitting) { <span class="spinner-sm"></span> } @else { <i class="ti ti-calendar-check"></i> }
+                Planifier
+              </button>
+            </div>
+          </form>
+        }
+
+        <!-- ── MODE COMPLETER ── -->
+        @if (drawerMode === 'completer') {
+          <form [formGroup]="completerForm" (ngSubmit)="submitCompleter()">
+            <div class="field">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="certificatObtenu">
+                Certificat / attestation obtenu(e)
+              </label>
+            </div>
+            <div class="field">
+              <label>Note de satisfaction (1-5)</label>
+              <div class="star-picker">
+                @for (n of [1,2,3,4,5]; track n) {
+                  <button type="button" class="star-btn"
+                    [class.active]="(completerForm.get('evaluation')?.value ?? 0) >= n"
+                    (click)="completerForm.patchValue({ evaluation: n })">
+                    <i class="ti ti-star-filled"></i>
+                  </button>
+                }
+              </div>
+            </div>
+            <div class="field">
+              <label>Commentaire d'évaluation</label>
+              <textarea formControlName="noteEvaluation" rows="3"
+                placeholder="Retour sur la qualité de la formation…"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-ghost" (click)="drawerMode = 'detail'; cdr.markForCheck()">Retour</button>
+              <button type="submit" class="btn-primary" [disabled]="submitting">
+                @if (submitting) { <span class="spinner-sm"></span> } @else { <i class="ti ti-trophy"></i> }
+                Marquer complétée
+              </button>
+            </div>
+          </form>
+        }
+
+      </div>
+    </div>
+  }
+
+</div>

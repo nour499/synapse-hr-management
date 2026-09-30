@@ -1,0 +1,278 @@
+<div class="departs-page">
+
+  <!-- ── Header ──────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-door-exit"></i></div>
+      <div>
+        <h1 class="page-title">Départs employés</h1>
+        <p class="page-sub">Gérez les sorties, démissions et fins de contrat</p>
+      </div>
+    </div>
+    <button class="btn-add" (click)="openCreate()">
+      <i class="ti ti-plus"></i> Nouveau départ
+    </button>
+  </div>
+
+  <!-- ── KPI strip ────────────────────────────────────── -->
+  <div class="kpi-strip">
+    <button class="kpi-card" [class.active]="filterStatut === ''" (click)="setFilterStatut('')">
+      <span class="kpi-val">{{ departs.length }}</span>
+      <span class="kpi-lbl">Total</span>
+    </button>
+    <button class="kpi-card kpi-encours" [class.active]="filterStatut === 'EN_COURS'" (click)="setFilterStatut('EN_COURS')">
+      <span class="kpi-val">{{ countByStatut.EN_COURS }}</span>
+      <span class="kpi-lbl">En cours</span>
+    </button>
+    <button class="kpi-card kpi-valide" [class.active]="filterStatut === 'VALIDE'" (click)="setFilterStatut('VALIDE')">
+      <span class="kpi-val">{{ countByStatut.VALIDE }}</span>
+      <span class="kpi-lbl">Validés</span>
+    </button>
+    <button class="kpi-card kpi-annule" [class.active]="filterStatut === 'ANNULE'" (click)="setFilterStatut('ANNULE')">
+      <span class="kpi-val">{{ countByStatut.ANNULE }}</span>
+      <span class="kpi-lbl">Annulés</span>
+    </button>
+  </div>
+
+  <!-- ── Filters ──────────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher un employé, une raison…"
+             [value]="search" (input)="setSearch($any($event.target).value)" />
+    </div>
+    <select class="filter-select" [value]="filterType" (change)="setFilterType($any($event.target).value)">
+      <option value="">Tous les types</option>
+      @for (t of allTypes; track t) {
+        <option [value]="t">{{ typeLabels[t] }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- ── Table ────────────────────────────────────────── -->
+  @if (loading) {
+  <app-skeleton-rows [rows]="6" [cols]="3" [withAvatar]="true" />
+} @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-door-exit"></i></div>
+      <h3>Aucun départ trouvé</h3>
+      <p>Modifiez vos filtres ou ajoutez un premier départ.</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="departs-table">
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Date de départ</th>
+            <th>Type</th>
+            <th>Raison</th>
+            <th>Statut</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of paginated; track d.id) {
+            <tr>
+              <!-- Employé -->
+              <td>
+                <div class="emp-cell">
+                  @if (d.employePhoto) {
+                    <img [src]="d.employePhoto" class="emp-avatar" [alt]="d.employeNom" />
+                  } @else {
+                    <div class="emp-initials">{{ initiales(d.employeNom) }}</div>
+                  }
+                  <div class="emp-info">
+                    <span class="emp-name">{{ d.employeNom }}</span>
+                    @if (d.employePoste) { <span class="emp-poste">{{ d.employePoste }}</span> }
+                    @if (d.employeDept)  { <span class="emp-dept">{{ d.employeDept }}</span>  }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Date départ -->
+              <td>
+                <div class="date-cell">
+                  <i class="ti ti-calendar-event"></i>
+                  {{ d.dateDepart | date:'dd/MM/yyyy' }}
+                </div>
+              </td>
+
+              <!-- Type -->
+              <td>
+                <span class="type-badge" [style.background]="typeColors[d.typeDepart] + '18'"
+                      [style.color]="typeColors[d.typeDepart]">
+                  <i class="{{ typeIcons[d.typeDepart] }}"></i>
+                  {{ typeLabels[d.typeDepart] }}
+                </span>
+              </td>
+
+              <!-- Raison -->
+              <td>
+                <span class="raison-text" [title]="d.raison">{{ d.raison }}</span>
+              </td>
+
+              <!-- Statut -->
+              <td>
+                <span class="statut-badge"
+                      [class.s-encours]="d.statut === 'EN_COURS'"
+                      [class.s-valide]="d.statut === 'VALIDE'"
+                      [class.s-annule]="d.statut === 'ANNULE'">
+                  <span class="s-dot"></span>
+                  {{ statutLabels[d.statut] }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button class="btn-action btn-edit" title="Modifier" (click)="openEdit(d)">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <button class="btn-action btn-delete" title="Supprimer" (click)="askDelete(d)">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginator [total]="filtered.length" [pageSize]="pageSize" [page]="page" (pageChange)="page=$event" />
+    </div>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DRAWER — Créer / Modifier
+══════════════════════════════════════════════════════ -->
+@if (showModal) {
+  <div class="drawer-overlay" (click)="closeModal()"></div>
+  <div class="drawer-panel">
+
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon"><i class="ti ti-door-exit"></i></div>
+        <div>
+          <h2 class="drawer-title">{{ isEditMode ? 'Modifier le départ' : 'Nouveau départ' }}</h2>
+          <p class="drawer-sub">{{ isEditMode ? 'Mettre à jour les informations' : 'Enregistrer un départ employé' }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="drawer-body">
+
+      <!-- Employé -->
+      <div class="field-group">
+        <label class="field-label">Employé <span class="req">*</span></label>
+        <div class="input-icon-wrap">
+          <i class="ti ti-user input-icon"></i>
+          <select class="field-select with-icon" formControlName="employeId"
+                  [class.has-error]="hasError('employeId')">
+            <option [value]="null">— Sélectionner un employé —</option>
+            @for (e of employes; track e.id) {
+              <option [value]="e.id">{{ e.prenom }} {{ e.nom }}</option>
+            }
+          </select>
+        </div>
+        @if (hasError('employeId')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Employé requis</small>
+        }
+      </div>
+
+      <!-- Date de départ -->
+      <div class="field-group">
+        <label class="field-label">Date de départ <span class="req">*</span></label>
+        <div class="input-icon-wrap">
+          <i class="ti ti-calendar input-icon"></i>
+          <input type="date" class="field-input with-icon" formControlName="dateDepart"
+                 [class.has-error]="hasError('dateDepart')" />
+        </div>
+        @if (hasError('dateDepart')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Date requise</small>
+        }
+      </div>
+
+      <!-- Type de départ -->
+      <div class="field-group">
+        <label class="field-label">Type de départ <span class="req">*</span></label>
+        <div class="type-grid">
+          @for (t of allTypes; track t) {
+            <label class="type-opt" [class.selected]="form.get('typeDepart')?.value === t">
+              <input type="radio" formControlName="typeDepart" [value]="t" hidden />
+              <i class="{{ typeIcons[t] }}" [style.color]="typeColors[t]"></i>
+              <span>{{ typeLabels[t] }}</span>
+            </label>
+          }
+        </div>
+        @if (hasError('typeDepart')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Type requis</small>
+        }
+      </div>
+
+      <!-- Raison -->
+      <div class="field-group">
+        <label class="field-label">Raison <span class="req">*</span></label>
+        <textarea class="field-input" rows="3" formControlName="raison"
+                  [class.has-error]="hasError('raison')"
+                  placeholder="Décrivez la raison du départ…"></textarea>
+        @if (hasError('raison')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Raison requise (5 car. min.)</small>
+        }
+      </div>
+
+      <!-- Statut -->
+      <div class="field-group">
+        <label class="field-label">Statut <span class="req">*</span></label>
+        <div class="statut-group">
+          <label class="statut-opt s-opt-encours" [class.selected]="form.get('statut')?.value === 'EN_COURS'">
+            <input type="radio" formControlName="statut" value="EN_COURS" hidden />
+            <i class="ti ti-clock"></i><span>En cours</span>
+          </label>
+          <label class="statut-opt s-opt-valide" [class.selected]="form.get('statut')?.value === 'VALIDE'">
+            <input type="radio" formControlName="statut" value="VALIDE" hidden />
+            <i class="ti ti-circle-check"></i><span>Validé</span>
+          </label>
+          <label class="statut-opt s-opt-annule" [class.selected]="form.get('statut')?.value === 'ANNULE'">
+            <input type="radio" formControlName="statut" value="ANNULE" hidden />
+            <i class="ti ti-circle-x"></i><span>Annulé</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="field-group">
+        <label class="field-label">Notes <span class="opt-tag">optionnel</span></label>
+        <textarea class="field-input" rows="2" formControlName="notes"
+                  placeholder="Observations, commentaires…"></textarea>
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+
+      <div class="drawer-actions">
+        <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-save" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-device-floppy"></i> }
+          {{ isEditMode ? 'Enregistrer' : 'Créer' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     CONFIRM DELETE
+══════════════════════════════════════════════════════ -->
+<app-confirm-modal
+  [open]="deleteTarget !== null"
+  title="Supprimer ce départ ?"
+  [message]="deleteMessage"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()"
+/>

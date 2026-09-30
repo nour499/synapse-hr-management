@@ -1,0 +1,25 @@
+<a class="skip-link" href="#main-content">Aller au contenu principal</a>
+<header class="pc-header coded-header synapse-header" role="banner">
+  <div class="header-wrapper">
+
+    <!-- Logo -->
+    <div class="synapse-logo-container">
+      <img src="assets/images/SYNAPSE.png" alt="SYNAPSE RH — Accueil" class="synapse-logo" />
+    </div>
+
+    <!-- Desktop sidebar toggle -->
+    <button class="sidebar-toggle-btn"
+            (click)="navCollapse()"
+            [attr.aria-label]="navCollapsed ? 'Déplier le menu' : 'Réduire le menu'"
+            [attr.aria-expanded]="!navCollapsed">
+      <i class="ti ti-layout-sidebar"></i>
+    </button>
+
+    <!-- Mobile menu toggle -->
+    <app-nav-left (NavCollapsedMob)="navCollapseMob()" />
+
+    <!-- Notifications + Profil -->
+    <app-nav-right />
+
+  </div>
+</header>

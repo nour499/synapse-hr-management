@@ -1,0 +1,312 @@
+<div class="formations-page">
+
+  <!-- ══ Header ══ -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2><i class="ti ti-school"></i> Mes Formations</h2>
+      <p>Déposez vos demandes et suivez leur avancement</p>
+    </div>
+    <button class="btn-primary" (click)="openForm()">
+      <i class="ti ti-plus"></i> Nouvelle demande
+    </button>
+  </div>
+
+  <!-- ══ Tabs ══ -->
+  <div class="tabs">
+    <button [class.active]="activeTab === 'actives'" (click)="activeTab = 'actives'">
+      <i class="ti ti-list"></i> Mes demandes
+      @if (activeFormations.length > 0) { <span class="badge">{{ activeFormations.length }}</span> }
+    </button>
+    <button [class.active]="activeTab === 'historique'" (click)="activeTab = 'historique'">
+      <i class="ti ti-history"></i> Historique
+      @if (historicFormations.length > 0) { <span class="badge">{{ historicFormations.length }}</span> }
+    </button>
+  </div>
+
+  <!-- ══ MES DEMANDES (actives) ══ -->
+  @if (activeTab === 'actives') {
+    @if (loading) {
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    } @else if (activeFormations.length === 0) {
+      <div class="empty-state">
+        <i class="ti ti-book-off"></i>
+        <p>Aucune demande en cours</p>
+        <button class="btn-primary" (click)="openForm()">Déposer une demande</button>
+      </div>
+    } @else {
+      <div class="cards-grid">
+        @for (f of activeFormations; track f.id) {
+          <div class="formation-card" (click)="select(f)">
+            <div class="card-top">
+              <span class="type-badge">{{ typeLabels[f.type] }}</span>
+              <span class="statut-chip" [style.background]="statutColors[f.statut] + '20'" [style.color]="statutColors[f.statut]">
+                {{ statutLabels[f.statut] }}
+              </span>
+            </div>
+            <h4>{{ f.titre }}</h4>
+            <p class="organisme"><i class="ti ti-building"></i> {{ f.organisme }}</p>
+            <div class="meta-row">
+              <span><i class="ti ti-calendar"></i> {{ f.dateDemande | date:'dd/MM/yyyy' }}</span>
+              <span><i class="ti ti-clock"></i> {{ f.dureeJours }} j</span>
+              <span><i class="ti ti-map-pin"></i> {{ modeLabels[f.mode] }}</span>
+            </div>
+            <div class="mini-steps">
+              @for (step of formationSteps; track step.statut; let i = $index) {
+                <div class="step-dot"
+                  [class.done]="stepIndex(f.statut) > i"
+                  [class.current]="stepIndex(f.statut) === i"
+                  [title]="step.label">
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- ══ HISTORIQUE ══ -->
+  @if (activeTab === 'historique') {
+    @if (loading) {
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    } @else if (historicFormations.length === 0) {
+      <div class="empty-state">
+        <i class="ti ti-history"></i>
+        <p>Aucune formation dans l'historique</p>
+      </div>
+    } @else {
+      <div class="cards-grid">
+        @for (f of historicFormations; track f.id) {
+          <div class="formation-card historic" (click)="select(f)">
+            <div class="card-top">
+              <span class="type-badge">{{ typeLabels[f.type] }}</span>
+              <span class="statut-chip" [style.background]="statutColors[f.statut] + '20'" [style.color]="statutColors[f.statut]">
+                {{ statutLabels[f.statut] }}
+              </span>
+            </div>
+            <h4>{{ f.titre }}</h4>
+            <p class="organisme"><i class="ti ti-building"></i> {{ f.organisme }}</p>
+            @if (f.statut === 'COMPLETEE') {
+              <div class="stars">
+                @for (s of starArray(f.evaluation ?? 0); track $index) {
+                  <i class="ti ti-star-filled"></i>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- ══ FORM DRAWER ══ -->
+  @if (showForm) {
+    <div class="drawer-overlay" (click)="cancelForm()"></div>
+    <div class="drawer">
+      <div class="drawer-header">
+        <h3><i class="ti ti-file-plus"></i> Nouvelle demande de formation</h3>
+        <button class="btn-icon" (click)="cancelForm()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="drawer-body">
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <div class="form-grid">
+            <div class="field full">
+              <label>Intitulé de la formation *</label>
+              <input formControlName="titre" placeholder="Ex: Angular 17 – Signals & Control Flow">
+              @if (hasError('titre')) { <span class="err">Requis (min 5 caractères)</span> }
+            </div>
+
+            <div class="field">
+              <label>Organisme *</label>
+              <input formControlName="organisme" placeholder="Ex: Udemy, CEGOS, HEC…">
+              @if (hasError('organisme')) { <span class="err">Requis</span> }
+            </div>
+
+            <div class="field">
+              <label>Type</label>
+              <select formControlName="type">
+                @for (t of types; track t) { <option [value]="t">{{ typeLabels[t] }}</option> }
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Mode</label>
+              <select formControlName="mode">
+                @for (m of modes; track m) { <option [value]="m">{{ modeLabels[m] }}</option> }
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Durée (jours) *</label>
+              <input type="number" formControlName="dureeJours" min="1">
+              @if (hasError('dureeJours')) { <span class="err">Requis (min 1 jour)</span> }
+            </div>
+
+            <div class="field">
+              <label>Coût estimé (MAD)</label>
+              <input type="number" formControlName="coutEstime" min="0" placeholder="Optionnel">
+            </div>
+
+            <div class="field">
+              <label>Date de début souhaitée</label>
+              <input type="date" formControlName="dateDebutSouhaitee">
+            </div>
+
+            <div class="field">
+              <label>Date de fin souhaitée</label>
+              <input type="date" formControlName="dateFinSouhaitee">
+            </div>
+
+            <div class="field">
+              <label>Lieu (si présentiel)</label>
+              <input formControlName="lieu" placeholder="Ville, adresse…">
+            </div>
+
+            <div class="field">
+              <label>Compétences visées</label>
+              <input formControlName="competencesVisees" placeholder="Angular, Leadership… (séparées par virgule)">
+            </div>
+
+            <div class="field full">
+              <label>Objectifs pédagogiques *</label>
+              <textarea formControlName="objectifs" rows="4" placeholder="Décrivez ce que vous souhaitez apprendre et comment cela bénéficiera à votre poste…"></textarea>
+              @if (hasError('objectifs')) { <span class="err">Requis (min 20 caractères)</span> }
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" (click)="cancelForm()">Annuler</button>
+            <button type="submit" class="btn-primary" [disabled]="saving">
+              @if (saving) { <span class="spinner-sm"></span> } @else { <i class="ti ti-send"></i> }
+              Soumettre la demande
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ══ DETAIL DRAWER ══ -->
+  @if (selectedFormation) {
+    <div class="drawer-overlay" (click)="closeDetail()"></div>
+    <div class="drawer">
+      <div class="drawer-header">
+        <h3>{{ selectedFormation.titre }}</h3>
+        <button class="btn-icon" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+      </div>
+
+      <div class="drawer-body">
+        <!-- Statut badge -->
+        <div class="statut-big"
+          [style.background]="statutColors[selectedFormation.statut] + '15'"
+          [style.color]="statutColors[selectedFormation.statut]"
+          [style.border-color]="statutColors[selectedFormation.statut] + '40'">
+          {{ statutLabels[selectedFormation.statut] }}
+        </div>
+
+        <!-- Progress stepper -->
+        @if (isActive(selectedFormation)) {
+          <div class="stepper">
+            @for (step of formationSteps; track step.statut; let i = $index) {
+              <div class="stepper-item"
+                [class.done]="stepIndex(selectedFormation.statut) > i"
+                [class.current]="stepIndex(selectedFormation.statut) === i">
+                <div class="stepper-circle">
+                  @if (stepIndex(selectedFormation.statut) > i) {
+                    <i class="ti ti-check"></i>
+                  } @else {
+                    {{ i + 1 }}
+                  }
+                </div>
+                <span>{{ step.label }}</span>
+              </div>
+              @if (i < formationSteps.length - 1) {
+                <div class="stepper-line" [class.done]="stepIndex(selectedFormation.statut) > i"></div>
+              }
+            }
+          </div>
+        }
+
+        <!-- Infos -->
+        <div class="detail-grid">
+          <div class="detail-row"><span>Organisme</span><strong>{{ selectedFormation.organisme }}</strong></div>
+          <div class="detail-row"><span>Type</span><strong>{{ typeLabels[selectedFormation.type] }}</strong></div>
+          <div class="detail-row"><span>Mode</span><strong>{{ modeLabels[selectedFormation.mode] }}</strong></div>
+          <div class="detail-row"><span>Durée</span><strong>{{ selectedFormation.dureeJours }} jour(s)</strong></div>
+          @if (selectedFormation.coutEstime) {
+            <div class="detail-row"><span>Coût estimé</span><strong>{{ selectedFormation.coutEstime | number }} MAD</strong></div>
+          }
+          @if (selectedFormation.lieu) {
+            <div class="detail-row"><span>Lieu</span><strong>{{ selectedFormation.lieu }}</strong></div>
+          }
+          @if (selectedFormation.dateDebutSouhaitee) {
+            <div class="detail-row"><span>Période souhaitée</span>
+              <strong>{{ selectedFormation.dateDebutSouhaitee | date:'dd/MM/yyyy' }} → {{ selectedFormation.dateFinSouhaitee | date:'dd/MM/yyyy' }}</strong>
+            </div>
+          }
+          @if (selectedFormation.dateDebutReelle) {
+            <div class="detail-row"><span>Période réelle</span>
+              <strong>{{ selectedFormation.dateDebutReelle | date:'dd/MM/yyyy' }} → {{ selectedFormation.dateFinReelle | date:'dd/MM/yyyy' }}</strong>
+            </div>
+          }
+        </div>
+
+        <div class="detail-section">
+          <label>Objectifs</label>
+          <p>{{ selectedFormation.objectifs }}</p>
+        </div>
+
+        @if (selectedFormation.competencesVisees?.length) {
+          <div class="detail-section">
+            <label>Compétences visées</label>
+            <div class="tags">
+              @for (c of selectedFormation.competencesVisees; track c) {
+                <span class="tag">{{ c }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Feedback chef -->
+        @if (selectedFormation.commentaireChef) {
+          <div class="feedback-box" [class.rejected]="selectedFormation.statut === 'REJETE_CHEF'">
+            <div class="fb-header"><i class="ti ti-user-check"></i> Retour chef</div>
+            <p>{{ selectedFormation.commentaireChef }}</p>
+            <small>{{ selectedFormation.dateTraitementChef | date:'dd/MM/yyyy' }}</small>
+          </div>
+        }
+
+        <!-- Feedback RH -->
+        @if (selectedFormation.commentaireRh) {
+          <div class="feedback-box" [class.rejected]="selectedFormation.statut === 'REJETE_RH'">
+            <div class="fb-header"><i class="ti ti-building-community"></i> Retour RH</div>
+            <p>{{ selectedFormation.commentaireRh }}</p>
+            <small>{{ selectedFormation.dateTraitementRh | date:'dd/MM/yyyy' }} · {{ selectedFormation.traiteeParRh }}</small>
+          </div>
+        }
+
+        <!-- Évaluation post-formation -->
+        @if (selectedFormation.statut === 'COMPLETEE') {
+          <div class="eval-box">
+            <div class="fb-header"><i class="ti ti-trophy"></i> Formation complétée</div>
+            @if (selectedFormation.certificatObtenu) {
+              <p><i class="ti ti-certificate"></i> Certificat obtenu</p>
+            }
+            @if (selectedFormation.evaluation) {
+              <div class="stars">
+                @for (s of starArray(selectedFormation.evaluation); track $index) {
+                  <i class="ti ti-star-filled"></i>
+                }
+                <span>{{ selectedFormation.evaluation }}/5</span>
+              </div>
+            }
+            @if (selectedFormation.noteEvaluation) {
+              <p class="note">{{ selectedFormation.noteEvaluation }}</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+</div>

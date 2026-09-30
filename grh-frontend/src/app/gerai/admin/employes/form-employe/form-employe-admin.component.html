@@ -1,0 +1,429 @@
+<div class="form-page">
+
+  <!-- ── Page header ─────────────────────────────────── -->
+  <div class="page-header">
+    <button class="btn-back" (click)="cancel()">
+      <i class="ti ti-arrow-left"></i>
+    </button>
+    <div class="page-header-text">
+      <h1 class="page-title">
+        {{ isEdit ? 'Modifier l\'employé' : 'Ajouter un employé' }}
+      </h1>
+      <p class="page-sub">
+        {{ isEdit ? 'Mettez à jour les informations du collaborateur' : 'Créer un nouveau compte collaborateur' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Loading ────────────────────────────────────── -->
+  @if (loading) {
+    <div class="loading-wrap">
+      <div class="spinner-border" style="color:#3B82F6"></div>
+      <p>Chargement des données…</p>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+      <!-- ════════════════════════════════════════════
+           ROW 1 — Identité  +  Contact
+      ════════════════════════════════════════════════ -->
+      <div class="form-grid">
+
+        <!-- ── Identité ───────────────────────────── -->
+        <div class="form-card">
+          <div class="form-card-header">
+            <div class="fch-icon" style="background:#EFF6FF">
+              <i class="ti ti-user" style="color:#3B82F6"></i>
+            </div>
+            <span>Identité</span>
+          </div>
+
+          <!-- Prénom + Nom -->
+          <div class="form-row-2">
+            <div class="field-group">
+              <label class="field-label">Prénom <span class="req">*</span></label>
+              <input type="text" class="field-input" formControlName="prenom"
+                     placeholder="ex : Sami"
+                     [class.has-error]="hasError('prenom')" />
+              @if (hasError('prenom')) {
+                <small class="field-error">
+                  <i class="ti ti-alert-circle"></i> Prénom requis (2 car. min.)
+                </small>
+              }
+            </div>
+            <div class="field-group">
+              <label class="field-label">Nom <span class="req">*</span></label>
+              <input type="text" class="field-input" formControlName="nom"
+                     placeholder="ex : Ben Ali"
+                     [class.has-error]="hasError('nom')" />
+              @if (hasError('nom')) {
+                <small class="field-error">
+                  <i class="ti ti-alert-circle"></i> Nom requis (2 car. min.)
+                </small>
+              }
+            </div>
+          </div>
+
+          <!-- Genre -->
+          <div class="field-group">
+            <label class="field-label">Genre <span class="opt-tag">optionnel</span></label>
+            <div class="radio-group">
+              <label class="radio-option" [class.selected]="form.get('genre')?.value === 'M'">
+                <input type="radio" formControlName="genre" value="M" hidden />
+                <i class="ti ti-gender-male"></i>
+                <span>Masculin</span>
+              </label>
+              <label class="radio-option" [class.selected]="form.get('genre')?.value === 'F'">
+                <input type="radio" formControlName="genre" value="F" hidden />
+                <i class="ti ti-gender-female"></i>
+                <span>Féminin</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Date de naissance -->
+          <div class="field-group">
+            <label class="field-label">
+              Date de naissance <span class="opt-tag">optionnel</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-cake input-icon"></i>
+              <input type="date" class="field-input with-icon"
+                     formControlName="dateNaissance" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Contact ────────────────────────────── -->
+        <div class="form-card">
+          <div class="form-card-header">
+            <div class="fch-icon" style="background:#F0F9FF">
+              <i class="ti ti-address-book" style="color:#0284C7"></i>
+            </div>
+            <span>Contact</span>
+          </div>
+
+          <!-- Email -->
+          <div class="field-group">
+            <label class="field-label">Adresse e-mail <span class="req">*</span></label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-mail input-icon"></i>
+              <input type="email" class="field-input with-icon" formControlName="email"
+                     placeholder="prenom.nom@synapse.tn"
+                     [class.has-error]="hasError('email')" />
+            </div>
+            @if (hasError('email')) {
+              <small class="field-error">
+                <i class="ti ti-alert-circle"></i> Adresse e-mail invalide
+              </small>
+            }
+          </div>
+
+          <!-- Téléphone -->
+          <div class="field-group">
+            <label class="field-label">
+              Téléphone <span class="opt-tag">optionnel</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-phone input-icon"></i>
+              <input type="tel" class="field-input with-icon" formControlName="telephone"
+                     placeholder="+216 71 000 000"
+                     [class.has-error]="hasError('telephone')" />
+            </div>
+            <app-field-error [control]="form.get('telephone')"
+              [messages]="{ pattern: 'Numéro invalide (8 à 15 chiffres)' }" />
+          </div>
+
+          <!-- Adresse -->
+          <div class="field-group">
+            <label class="field-label">
+              Adresse <span class="opt-tag">optionnel</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-map-pin input-icon"></i>
+              <input type="text" class="field-input with-icon" formControlName="adresse"
+                     placeholder="ex : 12 Rue de la République, Tunis" />
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /row 1 -->
+
+      <!-- ════════════════════════════════════════════
+           ROW 2 — Professionnel  +  Travail & Rémunération
+      ════════════════════════════════════════════════ -->
+      <div class="form-grid">
+
+        <!-- ── Professionnel ──────────────────────── -->
+        <div class="form-card">
+          <div class="form-card-header">
+            <div class="fch-icon" style="background:#EEF2FF">
+              <i class="ti ti-briefcase" style="color:#6366F1"></i>
+            </div>
+            <span>Informations professionnelles</span>
+          </div>
+
+          <!-- Département + Poste -->
+          <div class="form-row-2">
+            <div class="field-group">
+              <label class="field-label">Département</label>
+              <div class="input-icon-wrap">
+                <i class="ti ti-building input-icon"></i>
+                <select class="field-select with-icon" formControlName="departement">
+                  <option value="">— Département —</option>
+                  @for (d of departments; track d) {
+                    <option [value]="d">{{ d }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Poste</label>
+              <div class="input-icon-wrap">
+                <i class="ti ti-id-badge input-icon"></i>
+                <select class="field-select with-icon" formControlName="poste">
+                  <option value="">— Poste —</option>
+                  @for (p of postes; track p) {
+                    <option [value]="p">{{ p }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Diplôme -->
+          <div class="field-group">
+            <label class="field-label">
+              Diplôme <span class="opt-tag">optionnel</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-school input-icon"></i>
+              <select class="field-select with-icon" formControlName="diplome">
+                <option value="">— Niveau d'études —</option>
+                @for (d of diplomes; track d) {
+                  <option [value]="d">{{ d }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Date d'embauche -->
+          <div class="field-group">
+            <label class="field-label">
+              Date d'embauche <span class="opt-tag">optionnel</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-calendar input-icon"></i>
+              <input type="date" class="field-input with-icon" formControlName="dateEmbauche" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Travail & Rémunération ─────────────── -->
+        <div class="form-card">
+          <div class="form-card-header">
+            <div class="fch-icon" style="background:#F0FDF4">
+              <i class="ti ti-coin" style="color:#16A34A"></i>
+            </div>
+            <span>Travail &amp; Rémunération</span>
+          </div>
+
+          <!-- Salaire -->
+          <div class="field-group">
+            <label class="field-label">
+              Salaire mensuel (DT) <span class="opt-tag">optionnel</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-currency-dinar input-icon"></i>
+              <input type="number" class="field-input with-icon" formControlName="salaire"
+                     placeholder="ex : 3500" min="0"
+                     [class.has-error]="hasError('salaire')" />
+            </div>
+            <app-field-error [control]="form.get('salaire')"
+              [messages]="{ min: 'Le salaire doit être positif' }" />
+          </div>
+
+          <!-- Lieu de travail -->
+          <div class="field-group">
+            <label class="field-label">Lieu de travail</label>
+            <div class="location-group">
+              <label class="location-option"
+                     [class.selected]="form.get('lieuTravail')?.value === 'BUREAU'">
+                <input type="radio" formControlName="lieuTravail" value="BUREAU" hidden />
+                <div class="loc-icon-wrap" style="background:#EFF6FF">
+                  <i class="ti ti-building" style="color:#3B82F6"></i>
+                </div>
+                <span>Bureau</span>
+              </label>
+              <label class="location-option"
+                     [class.selected]="form.get('lieuTravail')?.value === 'TELETRAVAIL'">
+                <input type="radio" formControlName="lieuTravail" value="TELETRAVAIL" hidden />
+                <div class="loc-icon-wrap" style="background:#F0FDF4">
+                  <i class="ti ti-home" style="color:#16A34A"></i>
+                </div>
+                <span>Télétravail</span>
+              </label>
+              <label class="location-option"
+                     [class.selected]="form.get('lieuTravail')?.value === 'HYBRIDE'">
+                <input type="radio" formControlName="lieuTravail" value="HYBRIDE" hidden />
+                <div class="loc-icon-wrap" style="background:#EEF2FF">
+                  <i class="ti ti-arrows-exchange" style="color:#6366F1"></i>
+                </div>
+                <span>Hybride</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Statut -->
+          <div class="field-group">
+            <label class="field-label">Statut <span class="req">*</span></label>
+            <div class="status-group">
+              <label class="status-option status-actif"
+                     [class.selected]="form.get('statut')?.value === 'ACTIF'">
+                <input type="radio" formControlName="statut" value="ACTIF" hidden />
+                <i class="ti ti-circle-check"></i>
+                <span>Actif</span>
+              </label>
+              <label class="status-option status-conge"
+                     [class.selected]="form.get('statut')?.value === 'CONGE'">
+                <input type="radio" formControlName="statut" value="CONGE" hidden />
+                <i class="ti ti-beach"></i>
+                <span>En congé</span>
+              </label>
+              <label class="status-option status-inactif"
+                     [class.selected]="form.get('statut')?.value === 'INACTIF'">
+                <input type="radio" formControlName="statut" value="INACTIF" hidden />
+                <i class="ti ti-circle-x"></i>
+                <span>Inactif</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /row 2 -->
+
+      <!-- ════════════════════════════════════════════
+           ROW 3 — Compte & Accès Keycloak
+      ════════════════════════════════════════════════ -->
+      <div class="form-card kc-card">
+        <div class="form-card-header">
+          <div class="fch-icon" style="background:#ede9fe">
+            <i class="ti ti-key" style="color:#6366F1"></i>
+          </div>
+          <span>Compte &amp; Accès Keycloak</span>
+          @if (!isEdit) {
+            <div class="kc-create-meta">
+              <span class="kc-username-preview">
+                <i class="ti ti-user-circle"></i> {{ usernamePreview }}
+              </span>
+              <span class="kc-mail-preview">
+                <i class="ti ti-mail"></i> {{ form.get('email')?.value || '—' }}
+              </span>
+            </div>
+          }
+        </div>
+
+        <app-keycloak-access
+          [mode]="isEdit ? 'edit' : 'create'"
+          [employeId]="employeId ?? 0"
+          (rolesChange)="selectedRoles = $event"
+          (groupsChange)="selectedGroups = $event">
+        </app-keycloak-access>
+
+        @if (!isEdit) {
+          <div class="keycloak-note">
+            <i class="ti ti-info-circle"></i>
+            Un e-mail sera envoyé avec le mot de passe temporaire — l'employé devra le changer à la première connexion.
+          </div>
+        }
+      </div>
+
+      <!-- ── Error ──────────────────────────────────── -->
+      @if (errorMsg) {
+        <div class="alert-error">
+          <i class="ti ti-alert-circle"></i>{{ errorMsg }}
+        </div>
+      }
+
+      <!-- ── Actions ────────────────────────────────── -->
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-save" [disabled]="saving">
+          @if (saving) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <i class="ti ti-device-floppy"></i>
+          }
+          {{ isEdit ? 'Enregistrer les modifications' : 'Créer l\'employé' }}
+        </button>
+      </div>
+
+    </form>
+  }
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL — Compte Keycloak créé avec succès
+══════════════════════════════════════════════════════ -->
+@if (showSuccessModal && provisionResult) {
+  <div class="modal-overlay">
+    <div class="modal-box">
+
+      <div class="modal-success-header">
+        <div class="modal-check-circle">
+          <i class="ti ti-circle-check"></i>
+        </div>
+        <h2>Employé créé avec succès !</h2>
+        <p>Le compte Keycloak a été provisonné et un e-mail a été envoyé avec les identifiants de connexion.</p>
+      </div>
+
+      <div class="modal-credentials">
+        <div class="cred-label">
+          <i class="ti ti-mail"></i> E-mail de notification envoyé à
+          <strong>{{ form.get('email')?.value }}</strong>
+        </div>
+
+        <div class="cred-card">
+          <div class="cred-row">
+            <span class="cred-key"><i class="ti ti-user-circle"></i> Identifiant</span>
+            <div class="cred-val-row">
+              <code class="cred-val">{{ provisionResult.username }}</code>
+              <button class="btn-copy" (click)="copyToClipboard(provisionResult!.username)" title="Copier">
+                <i class="ti ti-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="cred-divider"></div>
+          <div class="cred-row">
+            <span class="cred-key"><i class="ti ti-lock"></i> Mot de passe temporaire</span>
+            <div class="cred-val-row">
+              <code class="cred-val">
+                {{ passwordVisible ? provisionResult.motDePasse : '••••••••••••' }}
+              </code>
+              <button class="btn-copy" (click)="passwordVisible = !passwordVisible" title="Afficher">
+                <i class="ti" [class.ti-eye]="!passwordVisible" [class.ti-eye-off]="passwordVisible"></i>
+              </button>
+              <button class="btn-copy" (click)="copyToClipboard(provisionResult!.motDePasse)" title="Copier">
+                <i class="ti ti-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cred-warning">
+          <i class="ti ti-alert-triangle"></i>
+          Ce mot de passe est temporaire. L'employé sera invité à le modifier dès sa première connexion.
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal-close" (click)="closeModalAndNavigate()">
+          <i class="ti ti-arrow-left"></i> Retour à la liste
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

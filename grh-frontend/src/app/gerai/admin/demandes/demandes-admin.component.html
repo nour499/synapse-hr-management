@@ -1,0 +1,544 @@
+<div class="demandes-page">
+
+  <!-- ── Header ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-clipboard-list"></i></div>
+      <div>
+        <h1 class="page-title">Demandes RH</h1>
+        <p class="page-sub">Toutes les demandes des employés — traitez-les depuis cet écran</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI strip ─────────────────────────────────── -->
+  <div class="kpi-strip">
+    <button class="kpi-card" [class.active]="filterStatut === ''" (click)="setStatut('')">
+      <i class="ti ti-list kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.total }}</span><span class="kpi-lbl">Total</span></div>
+    </button>
+    <button class="kpi-card kpi-attente" [class.active]="filterStatut === 'EN_ATTENTE'" (click)="setStatut('EN_ATTENTE')">
+      <i class="ti ti-clock kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.enAttente }}</span><span class="kpi-lbl">En attente</span></div>
+    </button>
+    <button class="kpi-card" style="--kpi-color:#8B5CF6" [class.active]="filterStatut === 'EN_ETUDE_DG'" (click)="setStatut('EN_ETUDE_DG')">
+      <i class="ti ti-building kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.enAttenteDg }}</span><span class="kpi-lbl">En attente DG</span></div>
+    </button>
+    <button class="kpi-card kpi-validee" [class.active]="filterStatut === 'VALIDEE'" (click)="setStatut('VALIDEE')">
+      <i class="ti ti-circle-check kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.validees }}</span><span class="kpi-lbl">Validées</span></div>
+    </button>
+    <button class="kpi-card kpi-rejetee" [class.active]="filterStatut === 'REJETEE'" (click)="setStatut('REJETEE')">
+      <i class="ti ti-circle-x kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.rejetees }}</span><span class="kpi-lbl">Rejetées</span></div>
+    </button>
+  </div>
+
+  <!-- ── Filters ───────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher par employé ou objet…"
+             [value]="search" (input)="setSearch($any($event.target).value)" />
+    </div>
+    <select class="filter-select" [value]="filterType" (change)="setType($any($event.target).value)">
+      <option value="">Tous les types</option>
+      @for (cfg of typesConfig; track cfg.type) {
+        <option [value]="cfg.type">{{ cfg.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- ── Table ─────────────────────────────────────── -->
+  @if (loading) {
+    <div class="loading-wrap">
+      <div class="spinner-border" style="color:#6366F1"></div>
+      <p>Chargement…</p>
+    </div>
+  } @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-clipboard-list"></i></div>
+      <h3>Aucune demande trouvée</h3>
+      <p>Modifiez vos filtres pour afficher les résultats.</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="demandes-table">
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Type</th>
+            <th>Objet</th>
+            <th>Statut</th>
+            <th>Soumis le</th>
+            <th>Validé par</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of filtered; track d.id) {
+            <tr [class.row-pending]="isPending(d)">
+
+              <!-- Employé -->
+              <td>
+                <div class="emp-cell">
+                  <div class="emp-avatar-wrap">
+                    @if (d.employePhoto) {
+                      <img [src]="d.employePhoto" class="emp-avatar" [alt]="d.employeNom" />
+                    } @else {
+                      <div class="emp-initials">{{ initiales(d.employeNom, d.employePrenom) }}</div>
+                    }
+                    @if (isPending(d)) {
+                      <span class="pending-dot" title="En attente de traitement"></span>
+                    }
+                  </div>
+                  <div class="emp-name-wrap">
+                    <span class="emp-name" [class.emp-name-pending]="isPending(d)">
+                      {{ d.employePrenom }} {{ d.employeNom }}
+                    </span>
+                    @if (isPending(d)) {
+                      <span class="to-process-badge">
+                        <i class="ti ti-alert-triangle"></i> À traiter
+                      </span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Type -->
+              <td>
+                <span class="type-badge"
+                      [style.background]="typeConfig(d.type).color + '18'"
+                      [style.color]="typeConfig(d.type).color">
+                  <i class="{{ typeConfig(d.type).icon }}"></i>
+                  {{ typeConfig(d.type).label }}
+                </span>
+              </td>
+
+              <!-- Objet -->
+              <td>
+                <span class="desc-text" [title]="d.description">{{ d.description }}</span>
+              </td>
+
+              <!-- Statut -->
+              <td>
+                <span class="status-chip" [ngClass]="statutChip(d.statut).cls">
+                  <i [class]="statutChip(d.statut).icon" aria-hidden="true"></i>
+                  {{ statutChip(d.statut).label }}
+                </span>
+              </td>
+
+              <!-- Soumis le -->
+              <td><span class="date-val muted">{{ d.dateCreation | date:'dd/MM/yyyy' }}</span></td>
+
+              <!-- Validé par -->
+              <td>
+                @if (d.statut === 'EN_ATTENTE') {
+                  <span class="nd">—</span>
+                } @else if (d.statut === 'VALIDEE_CHEF') {
+                  <div class="approver-cell">
+                    <div class="approver-dot chef"></div>
+                    <span>{{ d.validateurNomChef || '—' }}</span>
+                    <span class="role-badge">Chef</span>
+                  </div>
+                } @else if (d.statut === 'VALIDEE_DG') {
+                  <div class="approver-cell">
+                    <div class="approver-dot rh"></div>
+                    <span>{{ d.validateurNomDg || '—' }}</span>
+                    <span class="role-badge">Comité</span>
+                  </div>
+                } @else if (d.statut === 'VALIDEE_RH' || d.statut === 'VALIDEE') {
+                  <div class="approver-cell">
+                    <div class="approver-dot rh"></div>
+                    <span>{{ d.validateurNomRh || 'Service RH' }}</span>
+                    <span class="role-badge rh">RH</span>
+                  </div>
+                } @else if (d.statut === 'REJETEE') {
+                  <div class="approver-cell">
+                    <div class="approver-dot reject"></div>
+                    <span>{{ d.validateurNomRh || d.validateurNomChef || 'Service RH' }}</span>
+                  </div>
+                } @else {
+                  <span class="nd">—</span>
+                }
+              </td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <div role="group" [attr.aria-label]="'Actions pour la demande de ' + d.employePrenom + ' ' + d.employeNom">
+                <button class="btn-action btn-view" (click)="openDetail(d)"
+                        [attr.aria-label]="'Voir les détails de la demande de ' + d.employePrenom + ' ' + d.employeNom"
+                        title="Voir les détails">
+                  <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+                @if (isPending(d)) {
+                  <button class="btn-action btn-approve" (click)="openApprove(d)"
+                          [attr.aria-label]="'Approuver la demande de ' + d.employePrenom + ' ' + d.employeNom"
+                          title="Approuver">
+                    <i class="ti ti-circle-check" aria-hidden="true"></i>
+                  </button>
+                  <button class="btn-action btn-reject" (click)="openReject(d)"
+                          [attr.aria-label]="'Rejeter la demande de ' + d.employePrenom + ' ' + d.employeNom"
+                          title="Rejeter">
+                    <i class="ti ti-circle-x" aria-hidden="true"></i>
+                  </button>
+                }
+                @if (isCreditForDg(d)) {
+                  <button class="btn-action btn-dg" (click)="openDg(d)"
+                          [attr.aria-label]="'Décision Direction RH pour le crédit de ' + d.employePrenom + ' ' + d.employeNom"
+                          title="Décision Direction RH">
+                    <i class="ti ti-building" aria-hidden="true"></i> Décision DG
+                  </button>
+                }
+                </div>
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="row-count">
+      <i class="ti ti-list"></i>
+      {{ filtered.length }} demande{{ filtered.length > 1 ? 's' : '' }} affichée{{ filtered.length > 1 ? 's' : '' }}
+      @if (filtered.length < demandes.length) {
+        <span class="row-filtered"> sur {{ demandes.length }}</span>
+      }
+    </p>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DETAIL DRAWER
+══════════════════════════════════════════════════════ -->
+@if (detailItem) {
+  <div class="drawer-overlay" (click)="closeDetail()" aria-hidden="true"></div>
+  <div class="drawer-panel"
+       role="dialog"
+       aria-modal="true"
+       [attr.aria-label]="'Détail — ' + detailItem.employePrenom + ' ' + detailItem.employeNom"
+       tabindex="-1"
+       (keydown)="handleDrawerKeydown($event)">
+
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon"
+             [style.background]="typeConfig(detailItem.type).color + '20'"
+             [style.color]="typeConfig(detailItem.type).color">
+          <i class="{{ typeConfig(detailItem.type).icon }}"></i>
+        </div>
+        <div>
+          <h2 class="drawer-title">Détail de la demande</h2>
+          <p class="drawer-sub">{{ typeConfig(detailItem.type).label }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeDetail()" aria-label="Fermer le panneau de détail">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+
+      <!-- Employé -->
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-user"></i> Employé</div>
+        <div class="emp-detail-cell">
+          @if (detailItem.employePhoto) {
+            <img [src]="detailItem.employePhoto" class="emp-avatar-lg" [alt]="detailItem.employeNom" />
+          } @else {
+            <div class="emp-initials-lg">{{ initiales(detailItem.employeNom, detailItem.employePrenom) }}</div>
+          }
+          <div>
+            <p class="emp-detail-name">{{ detailItem.employePrenom }} {{ detailItem.employeNom }}</p>
+            <span class="type-badge"
+                  [style.background]="typeConfig(detailItem.type).color + '18'"
+                  [style.color]="typeConfig(detailItem.type).color">
+              <i class="{{ typeConfig(detailItem.type).icon }}"></i>
+              {{ typeConfig(detailItem.type).label }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Objet -->
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-message"></i> Objet de la demande</div>
+        <p class="detail-raison">{{ detailItem.description }}</p>
+      </div>
+
+      <!-- Dates — seulement si la demande a des dates -->
+      @if (detailItem.dateDebut) {
+        <div class="detail-section">
+          <div class="ds-head"><i class="ti ti-calendar"></i> Période</div>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="di-label">Du</span>
+              <span class="di-val">{{ detailItem.dateDebut | date:'dd MMMM yyyy' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Au</span>
+              <span class="di-val">{{ detailItem.dateFin | date:'dd MMMM yyyy' }}</span>
+            </div>
+            @if (detailItem.joursOuvres) {
+              <div class="detail-item">
+                <span class="di-label">Jours ouvrés</span>
+                <span class="jours-badge"><i class="ti ti-sun"></i>{{ detailItem.joursOuvres }} jour{{ detailItem.joursOuvres > 1 ? 's' : '' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Statut & traitement -->
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-checks"></i> Traitement</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="di-label">Statut</span>
+            <span class="status-chip" [ngClass]="statutChip(detailItem.statut).cls">
+              <i [class]="statutChip(detailItem.statut).icon" aria-hidden="true"></i>
+              {{ statutChip(detailItem.statut).label }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Soumis le</span>
+            <span class="di-val">{{ detailItem.dateCreation | date:'dd/MM/yyyy' }}</span>
+          </div>
+          @if (detailItem.type !== 'DOCUMENT_ADMINISTRATIF') {
+            <div class="detail-item">
+              <span class="di-label">Validé par chef</span>
+              <span class="di-val">{{ detailItem.validateurNomChef ?? '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Date validation chef</span>
+              <span class="di-val">{{ detailItem.dateValidation ? (detailItem.dateValidation | date:'dd/MM/yyyy') : '—' }}</span>
+            </div>
+          }
+          @if (detailItem.type === 'PRET' || detailItem.type === 'CREDIT') {
+            <div class="detail-item">
+              <span class="di-label">Décision comité</span>
+              <span class="di-val">{{ detailItem.validateurNomDg ?? '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Date décision comité</span>
+              <span class="di-val">{{ detailItem.dateValidationDg ? (detailItem.dateValidationDg | date:'dd/MM/yyyy') : '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Validation finale RH</span>
+              <span class="di-val">{{ detailItem.validateurNomRh ?? '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Date validation RH</span>
+              <span class="di-val">{{ detailItem.dateValidationRh ? (detailItem.dateValidationRh | date:'dd/MM/yyyy') : '—' }}</span>
+            </div>
+          } @else {
+            <div class="detail-item">
+              <span class="di-label">Traité par RH</span>
+              <span class="di-val">{{ detailItem.validateurNomRh ?? '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Date traitement RH</span>
+              <span class="di-val">{{ detailItem.dateValidationRh ? (detailItem.dateValidationRh | date:'dd/MM/yyyy') : '—' }}</span>
+            </div>
+          }
+        </div>
+        @if (detailItem.type !== 'DOCUMENT_ADMINISTRATIF' && detailItem.commentaireChef) {
+          <div class="detail-comment">
+            <i class="ti ti-message-dots"></i>
+            <p><strong>Chef :</strong> {{ detailItem.commentaireChef }}</p>
+          </div>
+        }
+        @if (detailItem.commentaireRh) {
+          <div class="detail-comment">
+            <i class="ti ti-message-dots"></i>
+            @if (detailItem.type === 'PRET' || detailItem.type === 'CREDIT') {
+              <p><strong>Comité :</strong> {{ detailItem.commentaireRh }}</p>
+            } @else {
+              <p><strong>RH :</strong> {{ detailItem.commentaireRh }}</p>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn-secondary" (click)="closeDetail()">Fermer</button>
+      @if (isPending(detailItem)) {
+        <button class="btn-reject-sm" (click)="openReject(detailItem)">
+          <i class="ti ti-circle-x"></i> Rejeter
+        </button>
+        <button class="btn-primary" (click)="openApprove(detailItem)">
+          <i class="ti ti-circle-check"></i> Approuver
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     APPROVE CONFIRM
+══════════════════════════════════════════════════════ -->
+@if (approveTarget) {
+  <div class="modal-overlay" (click)="cancelApprove()"></div>
+  <div class="confirm-panel confirm-approve">
+    <div class="confirm-icon confirm-icon-ok"><i class="ti ti-circle-check"></i></div>
+    <h3 class="confirm-title">Valider cette demande ?</h3>
+    <p class="confirm-msg">
+      Vous êtes sur le point d'approuver la demande
+      <strong>{{ typeConfig(approveTarget.type).label }}</strong>
+      de <strong>{{ approveTarget.employePrenom }} {{ approveTarget.employeNom }}</strong>.
+    </p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" (click)="cancelApprove()" [disabled]="saving">
+        <i class="ti ti-x"></i> Annuler
+      </button>
+      <button class="btn-primary" (click)="confirmApprove()" [disabled]="saving">
+        @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+        @else { <i class="ti ti-circle-check"></i> }
+        Valider
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     REJECT MODAL
+══════════════════════════════════════════════════════ -->
+@if (rejectTarget) {
+  <div class="modal-overlay" (click)="cancelReject()"></div>
+  <div class="modal-panel reject-modal">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon modal-icon-reject"><i class="ti ti-circle-x"></i></div>
+        <div>
+          <h2 class="modal-title">Rejeter la demande</h2>
+          <p class="modal-sub">{{ rejectTarget.employePrenom }} {{ rejectTarget.employeNom }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="cancelReject()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="rejectForm" (ngSubmit)="confirmReject()" novalidate class="modal-body">
+
+      <div class="reject-context">
+        <span class="type-badge"
+              [style.background]="typeConfig(rejectTarget.type).color + '18'"
+              [style.color]="typeConfig(rejectTarget.type).color">
+          <i class="{{ typeConfig(rejectTarget.type).icon }}"></i>
+          {{ typeConfig(rejectTarget.type).label }}
+        </span>
+        <p class="reject-desc">{{ rejectTarget.description }}</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Motif du rejet <span class="req">*</span></label>
+        <textarea class="field-input" rows="4" formControlName="motif"
+                  [class.has-error]="hasRejectError()"
+                  placeholder="Expliquez pourquoi cette demande est rejetée…"></textarea>
+        @if (hasRejectError()) {
+          <small class="field-error">
+            <i class="ti ti-alert-circle"></i> Motif requis (minimum 5 caractères)
+          </small>
+        }
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="cancelReject()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-danger" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-circle-x"></i> }
+          Rejeter
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     DIRECTION RH — DÉCISION CRÉDIT (EN_ETUDE_DG)
+     ══════════════════════════════════════════════════════ -->
+@if (dgTarget) {
+  <div class="modal-overlay" (click)="cancelDg()"></div>
+  <div class="modal-panel dg-modal">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon modal-icon-dg"><i class="ti ti-building"></i></div>
+        <div>
+          <h2 class="modal-title">Décision Direction RH</h2>
+          <p class="modal-sub">{{ dgTarget.employePrenom }} {{ dgTarget.employeNom }} — crédit</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="cancelDg()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="dgForm" (ngSubmit)="$event.preventDefault()" novalidate class="modal-body">
+
+      <div class="reject-context">
+        <span class="type-badge"
+              [style.background]="typeConfig(dgTarget.type).color + '18'"
+              [style.color]="typeConfig(dgTarget.type).color">
+          <i class="{{ typeConfig(dgTarget.type).icon }}"></i>
+          {{ typeConfig(dgTarget.type).label }}
+        </span>
+        <p class="reject-desc">{{ dgTarget.description }}</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Montant approuvé (TND) <span class="req">*</span></label>
+        <input class="field-input" type="number" min="0" step="0.01"
+               formControlName="montantApprouve"
+               [class.has-error]="hasDgError('montantApprouve')"
+               placeholder="Ex : 8000" />
+        @if (hasDgError('montantApprouve')) {
+          <small class="field-error">
+            <i class="ti ti-alert-circle"></i> Montant requis (≥ 0)
+          </small>
+        }
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Nombre de tranches <span class="req">*</span></label>
+        <input class="field-input" type="number" min="1" step="1"
+               formControlName="nbTranches"
+               [class.has-error]="hasDgError('nbTranches')"
+               placeholder="Ex : 24" />
+        @if (hasDgError('nbTranches')) {
+          <small class="field-error">
+            <i class="ti ti-alert-circle"></i> Nombre de tranches requis (≥ 1)
+          </small>
+        }
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Commentaire</label>
+        <textarea class="field-input" rows="3" formControlName="commentaire"
+                  placeholder="Précisez la décision…"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="cancelDg()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="button" class="btn-danger" (click)="confirmDg(false)" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-circle-x"></i> }
+          Refuser
+        </button>
+        <button type="button" class="btn-primary" (click)="confirmDg(true)" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-circle-check"></i> }
+          Approuver
+        </button>
+      </div>
+
+    </form>
+  </div>
+}

@@ -1,0 +1,239 @@
+<div class="entretiens-page">
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi-card accent-blue">
+      <i class="ti ti-calendar-event kpi-icon"></i>
+      <div>
+        <span class="kpi-value">{{ kpiPlanifie }}</span>
+        <span class="kpi-label">Planifiés</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-amber">
+      <i class="ti ti-clock kpi-icon"></i>
+      <div>
+        <span class="kpi-value">{{ kpiAujourdhui }}</span>
+        <span class="kpi-label">Aujourd'hui</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-green">
+      <i class="ti ti-check kpi-icon"></i>
+      <div>
+        <span class="kpi-value">{{ kpiTermine }}</span>
+        <span class="kpi-label">Terminés</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-violet">
+      <i class="ti ti-user-check kpi-icon"></i>
+      <div>
+        <span class="kpi-value">{{ kpiRetenu }}</span>
+        <span class="kpi-label">Retenus</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <select [(ngModel)]="filterStatut" (ngModelChange)="applyFilter()">
+      <option value="">Tous les statuts</option>
+      @for (s of statuts; track s) {
+        <option [value]="s">{{ statutLabels[s] }}</option>
+      }
+    </select>
+    <input type="date" [(ngModel)]="filterDate" (ngModelChange)="applyFilter()" class="date-filter" />
+    @if (filterStatut || filterDate) {
+      <button class="btn-reset" (click)="filterStatut=''; filterDate=''; applyFilter()">
+        <i class="ti ti-x"></i> Réinitialiser
+      </button>
+    }
+    <span class="result-count">{{ filtered.length }} entretien(s)</span>
+  </div>
+
+  <!-- Interview Cards Grid -->
+  @if (loading) {
+    <div class="loading-state"><i class="ti ti-loader-2 spin"></i> Chargement…</div>
+  } @else {
+    <div class="interviews-grid">
+      @for (i of filtered; track i.id) {
+        <div class="interview-card" [class.card-today]="isToday(i.date)" (click)="openDetail(i)">
+          <div class="card-header-row">
+            <span class="type-badge"><i class="ti ti-microphone"></i> {{ typeLabels[i.type] }}</span>
+            <span class="statut-badge" [ngClass]="statutClass(i.statut)">{{ statutLabels[i.statut] }}</span>
+          </div>
+
+          <div class="card-candidate">
+            <span class="cand-name">{{ i.candidatPrenom }} {{ i.candidatNom }}</span>
+            <span class="cand-job">{{ i.jobTitre }}</span>
+          </div>
+
+          <div class="card-datetime">
+            <span><i class="ti ti-calendar"></i> {{ i.date | date:'EEE dd MMM' }}</span>
+            <span><i class="ti ti-clock"></i> {{ i.heureDebut }} – {{ i.heureFin }}</span>
+          </div>
+
+          @if (i.lieu) {
+            <div class="card-lieu"><i class="ti ti-map-pin"></i> {{ i.lieu }}</div>
+          }
+          @if (i.lienVisio) {
+            <div class="card-lieu"><i class="ti ti-video"></i> Visioconférence</div>
+          }
+
+          <div class="card-intervieweur">
+            <i class="ti ti-user"></i> {{ i.intervieweur }}
+          </div>
+
+          @if (i.statut === 'TERMINE') {
+            <div class="card-decision">
+              <span class="decision-badge" [ngClass]="decisionClass(i.decision)">{{ decisionLabels[i.decision] }}</span>
+              @if (i.noteGlobale) {
+                <span class="stars">
+                  @for (s of stars; track s) {
+                    <i class="ti" [class.ti-star-filled]="s <= i.noteGlobale!" [class.ti-star]="s > i.noteGlobale!"></i>
+                  }
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+      @if (filtered.length === 0) {
+        <div class="empty-state"><i class="ti ti-calendar-off"></i><p>Aucun entretien trouvé</p></div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Detail Drawer -->
+@if (selected) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <aside class="detail-drawer">
+    <div class="drawer-header">
+      <div>
+        <h3>{{ selected.candidatPrenom }} {{ selected.candidatNom }}</h3>
+        <p>{{ selected.jobTitre }} — {{ selected.departement }}</p>
+      </div>
+      <button class="btn-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="drawer-body">
+
+      <!-- Status Action Bar -->
+      <div class="statut-action-bar">
+        @if (selected.statut === 'PLANIFIE') {
+          <button class="btn-statut btn-statut--start" (click)="changeStatut(selected, 'EN_COURS')" [disabled]="changingStatut">
+            <i class="ti ti-player-play"></i> Commencer
+          </button>
+          <button class="btn-statut btn-statut--report" (click)="changeStatut(selected, 'REPORTE')" [disabled]="changingStatut">
+            <i class="ti ti-clock-pause"></i> Reporter
+          </button>
+          <button class="btn-statut btn-statut--cancel" (click)="changeStatut(selected, 'ANNULE')" [disabled]="changingStatut">
+            <i class="ti ti-circle-x"></i> Annuler
+          </button>
+        }
+        @if (selected.statut === 'EN_COURS') {
+          <button class="btn-statut btn-statut--finish" (click)="changeStatut(selected, 'TERMINE')" [disabled]="changingStatut">
+            <i class="ti ti-circle-check"></i> Terminer l'entretien
+          </button>
+        }
+        @if (selected.statut === 'REPORTE') {
+          <button class="btn-statut btn-statut--start" (click)="changeStatut(selected, 'PLANIFIE')" [disabled]="changingStatut">
+            <i class="ti ti-refresh"></i> Reprendre
+          </button>
+        }
+      </div>
+
+      <!-- Re-send Invitation -->
+      @if (selected.statut === 'PLANIFIE' || selected.statut === 'EN_COURS') {
+        <div class="invitation-bar">
+          <button class="btn-resend-inv" (click)="sendInvitation(selected)" [disabled]="sendingInvitation || invitationSent">
+            @if (sendingInvitation) { <span class="spinner-border spinner-border-sm"></span> Envoi… }
+            @else if (invitationSent) { <i class="ti ti-circle-check"></i> Invitation envoyée }
+            @else { <i class="ti ti-mail-forward"></i> Renvoyer l'invitation }
+          </button>
+          @if (invitationError) {
+            <span class="inv-error"><i class="ti ti-alert-circle"></i> {{ invitationError }}</span>
+          }
+        </div>
+      }
+
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Type</span><span>{{ typeLabels[selected.type] }}</span></div>
+        <div class="info-item"><span class="info-label">Statut</span><span class="statut-badge" [ngClass]="statutClass(selected.statut)">{{ statutLabels[selected.statut] }}</span></div>
+        <div class="info-item"><span class="info-label">Date</span><span>{{ selected.date | date:'dd/MM/yyyy' }}</span></div>
+        <div class="info-item"><span class="info-label">Horaire</span><span>{{ selected.heureDebut }} – {{ selected.heureFin }}</span></div>
+        <div class="info-item"><span class="info-label">Intervieweur</span><span>{{ selected.intervieweur }}</span></div>
+        @if (selected.lieu) {
+          <div class="info-item"><span class="info-label">Lieu</span><span>{{ selected.lieu }}</span></div>
+        }
+        @if (selected.lienVisio) {
+          <div class="info-item span-2"><span class="info-label">Lien visio</span>
+            <a [href]="selected.lienVisio" target="_blank" class="visio-link"><i class="ti ti-video"></i> Rejoindre</a>
+          </div>
+        }
+      </div>
+
+      @if (selected.statut === 'TERMINE' && !showDecisionForm) {
+        <div class="decision-block">
+          <div class="decision-result">
+            <span class="decision-badge" [ngClass]="decisionClass(selected.decision)">{{ decisionLabels[selected.decision] }}</span>
+            @if (selected.noteGlobale) {
+              <span class="stars">
+                @for (s of stars; track s) {
+                  <i class="ti" [class.ti-star-filled]="s <= selected.noteGlobale!" [class.ti-star]="s > selected.noteGlobale!"></i>
+                }
+              </span>
+            }
+          </div>
+          @if (selected.commentaire) {
+            <p class="commentaire-text">{{ selected.commentaire }}</p>
+          }
+          <button class="btn-edit" (click)="showDecisionForm = true">Modifier l'évaluation</button>
+        </div>
+      }
+
+      @if (selected.statut !== 'TERMINE' || showDecisionForm) {
+        <div class="decision-form">
+          <h4>Évaluation</h4>
+          <div class="form-group">
+            <label>Décision</label>
+            @for (d of decisions; track d) {
+              <label class="radio-label">
+                <input type="radio" [(ngModel)]="decisionVal" [value]="d" />
+                {{ decisionLabels[d] }}
+              </label>
+            }
+          </div>
+          <div class="form-group">
+            <label>Note globale</label>
+            <div class="star-input">
+              @for (s of stars; track s) {
+                <i class="ti" [class.ti-star-filled]="s <= noteGlobale" [class.ti-star]="s > noteGlobale"
+                   (click)="noteGlobale = s" style="cursor:pointer; font-size:22px; color:#F59E0B;"></i>
+              }
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Commentaire</label>
+            <textarea [(ngModel)]="commentaire" rows="3" class="textarea-input" placeholder="Commentaire sur l'entretien…"></textarea>
+          </div>
+          @if (decisionVal === 'RETENU') {
+            <div class="form-group offer-fields" [class.offer-fields--error]="offreDateError">
+              <label>Date de début <span class="required">*</span></label>
+              <input type="date" [(ngModel)]="offreDateDebut" class="input-field"
+                [class.input-field--error]="offreDateError" (change)="offreDateError = false" />
+              @if (offreDateError) {
+                <span class="offer-error">La date de début est requise pour envoyer l'email d'offre.</span>
+              }
+            </div>
+            <p class="offer-hint"><i class="ti ti-mail-forward"></i> Un email d'offre sera envoyé automatiquement au candidat.</p>
+          }
+          <div class="form-actions">
+            <button class="btn-save" (click)="saveDecision()">Enregistrer</button>
+            @if (showDecisionForm) {
+              <button class="btn-cancel" (click)="showDecisionForm = false">Annuler</button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </aside>
+}

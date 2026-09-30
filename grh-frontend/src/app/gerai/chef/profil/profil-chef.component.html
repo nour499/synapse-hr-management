@@ -1,0 +1,673 @@
+<div class="profil-page">
+
+  <!-- ── Page Header ──────────────────────────────────── -->
+  <div class="page-header mb-4">
+    <div class="header-left">
+      <h2 class="page-title">Mon profil</h2>
+      <p class="page-subtitle">Gérez vos informations personnelles et documents</p>
+    </div>
+    @if (!loading) {
+      <div class="header-actions">
+        <button class="btn-password" (click)="changePassword()">
+          <i class="ti ti-key"></i> Mot de passe
+        </button>
+        <button class="btn-edit" (click)="toggleEditMode()">
+          <i class="ti" [class.ti-edit]="!editMode" [class.ti-x]="editMode"></i>
+          {{ editMode ? 'Annuler' : 'Modifier' }}
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- ── Loading skeleton ─────────────────────────────── -->
+  @if (loading) {
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="skeleton-card">
+          <div class="sk-avatar"></div>
+          <div class="sk-line wide mx-auto mt-3"></div>
+          <div class="sk-line narrow mx-auto mt-2"></div>
+          <div class="sk-stats-row mt-4">
+            <div class="sk-stat"></div><div class="sk-stat"></div><div class="sk-stat"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="skeleton-card">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="sk-line" [class.full]="i>4" [class.wide]="i<=4" style="margin-bottom:18px"></div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Main content ─────────────────────────────────── -->
+  @if (!loading && userInfo) {
+    <div class="row g-4">
+
+      <!-- ══ LEFT COLUMN ════════════════════════════════ -->
+      <div class="col-lg-4">
+
+        <!-- Profile identity card -->
+        <app-card class="profile-card mb-4">
+          <div class="profile-header">
+
+            <!-- Completion ring -->
+            <div class="completion-wrap">
+              <div class="profile-avatar">
+                <img [src]="userInfo.photo" [alt]="userInfo.nomComplet"
+                     (error)="userInfo.photo = 'assets/images/user/avatar-1.jpg'">
+                <div class="avatar-badge"><i class="ti ti-check"></i></div>
+                @if (editMode) {
+                  <button class="btn-change-photo"><i class="ti ti-camera"></i></button>
+                }
+              </div>
+              <svg class="completion-ring" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#F1F5F9" stroke-width="6"/>
+                <circle cx="60" cy="60" r="54" fill="none"
+                  [attr.stroke]="completionColor" stroke-width="6"
+                  stroke-linecap="round"
+                  [attr.stroke-dasharray]="339.3"
+                  [attr.stroke-dashoffset]="339.3 * (1 - completionPct / 100)"
+                  transform="rotate(-90 60 60)"/>
+              </svg>
+              <span class="completion-pct" [style.color]="completionColor">{{ completionPct }}%</span>
+            </div>
+
+            <h3 class="profile-name">{{ userInfo.prenom }} {{ userInfo.nom }}</h3>
+            <p class="profile-role">{{ userInfo.poste }}</p>
+            <span class="profile-badge">
+              <i class="ti ti-building"></i>{{ userInfo.departement }}
+            </span>
+
+            <!-- Manager (hidden for chef / admin roles) -->
+            @if (isManagerVisible && userInfo.managerNom) {
+              <div class="manager-row">
+                <img class="manager-photo"
+                     [src]="userInfo.managerPhoto || 'assets/images/user/avatar-1.jpg'"
+                     [alt]="userInfo.managerNom"
+                     (error)="userInfo.managerPhoto = 'assets/images/user/avatar-1.jpg'">
+                <div>
+                  <span class="manager-label">Responsable</span>
+                  <span class="manager-name">{{ userInfo.managerNom }}</span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Quick stats -->
+          <div class="profile-stats">
+            <div class="stat-item">
+              <span class="stat-value">{{ userInfo.anciennete }}</span>
+              <span class="stat-label">Ancienneté</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ stats?.tachesCompletes ?? userInfo.tachesCompletes }}</span>
+              <span class="stat-label">Tâches</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ stats?.formationsSuivies ?? userInfo.formationsSuivies }}</span>
+              <span class="stat-label">Formations</span>
+            </div>
+          </div>
+        </app-card>
+
+        <!-- Solde de congés -->
+        <app-card class="mb-4">
+          <h4 class="card-section-title">
+            <i class="ti ti-calendar-heart"></i> Solde de congés
+          </h4>
+          <div class="conge-breakdown">
+            <div class="conge-segment conge-total">
+              <span class="conge-val">{{ stats?.congesTotal ?? userInfo.congesTotal }}</span>
+              <span class="conge-lbl">Total</span>
+            </div>
+            <div class="conge-segment conge-pris">
+              <span class="conge-val">{{ congesPris }}</span>
+              <span class="conge-lbl">Pris</span>
+            </div>
+            <div class="conge-segment conge-restants">
+              <span class="conge-val">{{ stats?.congesRestants ?? userInfo.congesRestants }}</span>
+              <span class="conge-lbl">Restants</span>
+            </div>
+          </div>
+          <div class="conge-progress-wrap">
+            <div class="conge-progress-bar"
+              [style.width.%]="stats?.congesTotal ? (congesPris / stats.congesTotal) * 100 : 0">
+            </div>
+          </div>
+          <p class="conge-hint">{{ congesPris }} j posé(s) sur {{ stats?.congesTotal ?? userInfo.congesTotal }} jours annuels</p>
+        </app-card>
+
+        <!-- Mes statistiques -->
+        <app-card>
+          <h4 class="card-section-title">
+            <i class="ti ti-chart-bar"></i> Mes statistiques
+          </h4>
+          <div class="stat-row">
+            <div class="stat-info"><i class="ti ti-calendar-check text-success"></i><span>Présence</span></div>
+            <div class="stat-progress">
+              <div class="progress-bar-stat">
+                <div class="progress-fill-stat" [style.width.%]="stats?.tauxPresence ?? userInfo.tauxPresence"></div>
+              </div>
+              <span class="progress-value">{{ stats?.tauxPresence ?? userInfo.tauxPresence }}%</span>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-info"><i class="ti ti-target text-primary"></i><span>Objectifs</span></div>
+            <div class="stat-progress">
+              <div class="progress-bar-stat">
+                <div class="progress-fill-stat" [style.width.%]="stats?.objectifsAtteints ?? userInfo.objectifsAtteints"></div>
+              </div>
+              <span class="progress-value">{{ stats?.objectifsAtteints ?? userInfo.objectifsAtteints }}%</span>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-info"><i class="ti ti-award text-warning"></i><span>Formations</span></div>
+            <div class="stat-progress">
+              <div class="progress-bar-stat">
+                <div class="progress-fill-stat" [style.width.%]="formationsPct"></div>
+              </div>
+              <span class="progress-value">{{ stats?.formationsSuivies ?? userInfo.formationsSuivies }}/{{ stats?.formationsTotal ?? userInfo.formationsTotal }}</span>
+            </div>
+          </div>
+        </app-card>
+
+      </div>
+
+      <!-- ══ RIGHT COLUMN ═══════════════════════════════ -->
+      <div class="col-lg-8">
+
+        <!-- Tab bar -->
+        <div class="profile-tabs">
+          @for (tab of tabs; track tab.value) {
+            <button class="profile-tab-btn"
+              [class.active]="activeTab === tab.value"
+              (click)="switchTab(tab.value)">
+              <i [class]="tab.icon"></i>{{ tab.label }}
+            </button>
+          }
+        </div>
+
+        <!-- ── TAB 1 : Infos personnelles ──────────────── -->
+        @if (activeTab === 'infos') {
+
+          <!-- Professional info (read-only) -->
+          <app-card class="mb-4">
+            <h4 class="card-section-title">
+              <i class="ti ti-briefcase"></i> Informations professionnelles
+            </h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Poste</label><p>{{ userInfo.poste }}</p>
+              </div>
+              <div class="info-item">
+                <label>Département</label><p>{{ userInfo.departement }}</p>
+              </div>
+              <div class="info-item">
+                <label>Date d'embauche</label>
+                <p>{{ userInfo.dateEmbauche | date:'dd MMMM yyyy' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Ancienneté</label><p>{{ userInfo.anciennete }}</p>
+              </div>
+            </div>
+          </app-card>
+
+          <!-- État civil -->
+          <app-card class="mb-4">
+            <h4 class="card-section-title">
+              <i class="ti ti-id-badge"></i> État civil
+            </h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Genre</label>
+                @if (!editMode) { <p>{{ genreLabel }}</p> }
+                @else {
+                  <select class="form-control" [(ngModel)]="userInfo.genre">
+                    <option value="M">Masculin</option>
+                    <option value="F">Féminin</option>
+                  </select>
+                }
+              </div>
+              <div class="info-item">
+                <label>Situation familiale</label>
+                @if (!editMode) { <p>{{ userInfo.situationFamiliale || '—' }}</p> }
+                @else {
+                  <select class="form-control" [(ngModel)]="userInfo.situationFamiliale">
+                    @for (opt of situationOptions; track opt) {
+                      <option [value]="opt">{{ opt }}</option>
+                    }
+                  </select>
+                }
+              </div>
+              <div class="info-item">
+                <label>Nombre d'enfants</label>
+                @if (!editMode) { <p>{{ userInfo.nombreEnfants }}</p> }
+                @else { <input type="number" class="form-control" [(ngModel)]="userInfo.nombreEnfants" min="0" /> }
+              </div>
+              <div class="info-item">
+                <label>Nationalité</label>
+                @if (!editMode) { <p>{{ userInfo.nationalite || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.nationalite" /> }
+              </div>
+              <div class="info-item">
+                <label>N° CIN</label>
+                @if (!editMode) { <p>{{ userInfo.cin || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.cin" /> }
+              </div>
+              <div class="info-item">
+                <label>N° CNSS</label>
+                <p>{{ userInfo.cnss || '—' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Date de naissance</label>
+                @if (!editMode) { <p>{{ userInfo.dateNaissance | date:'dd/MM/yyyy' }}</p> }
+                @else { <input type="date" class="form-control" [(ngModel)]="userInfo.dateNaissance" /> }
+              </div>
+              <div class="info-item">
+                <label>Lieu de naissance</label>
+                @if (!editMode) { <p>{{ userInfo.lieuNaissance || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.lieuNaissance" /> }
+              </div>
+            </div>
+          </app-card>
+
+          <!-- Coordonnées -->
+          <app-card class="mb-4">
+            <h4 class="card-section-title">
+              <i class="ti ti-map-pin"></i> Coordonnées
+            </h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Email professionnel</label>
+                <p>{{ userInfo.email }}</p>
+              </div>
+              <div class="info-item">
+                <label>Email personnel</label>
+                @if (!editMode) { <p>{{ userInfo.emailPersonnel || '—' }}</p> }
+                @else { <input type="email" class="form-control" [(ngModel)]="userInfo.emailPersonnel" /> }
+              </div>
+              <div class="info-item">
+                <label>Téléphone</label>
+                @if (!editMode) { <p>{{ userInfo.telephone || '—' }}</p> }
+                @else { <input type="tel" class="form-control" [(ngModel)]="userInfo.telephone" /> }
+              </div>
+              <div class="info-item full-width">
+                <label>Adresse</label>
+                @if (!editMode) { <p>{{ userInfo.adresse || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.adresse" /> }
+              </div>
+              <div class="info-item">
+                <label>Ville</label>
+                @if (!editMode) { <p>{{ userInfo.ville || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.ville" /> }
+              </div>
+              <div class="info-item">
+                <label>Code postal</label>
+                @if (!editMode) { <p>{{ userInfo.codePostal || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.codePostal" /> }
+              </div>
+            </div>
+          </app-card>
+
+          <!-- Contact d'urgence -->
+          <app-card>
+            <h4 class="card-section-title">
+              <i class="ti ti-phone-call"></i> Contact d'urgence
+            </h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Nom complet</label>
+                @if (!editMode) { <p>{{ userInfo.contactUrgenceNom || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.contactUrgenceNom" /> }
+              </div>
+              <div class="info-item">
+                <label>Téléphone</label>
+                @if (!editMode) { <p>{{ userInfo.contactUrgenceTel || '—' }}</p> }
+                @else { <input type="tel" class="form-control" [(ngModel)]="userInfo.contactUrgenceTel" /> }
+              </div>
+              <div class="info-item">
+                <label>Lien de parenté</label>
+                @if (!editMode) { <p>{{ userInfo.contactUrgenceLien || '—' }}</p> }
+                @else {
+                  <select class="form-control" [(ngModel)]="userInfo.contactUrgenceLien">
+                    @for (opt of contactLienOptions; track opt) {
+                      <option [value]="opt">{{ opt }}</option>
+                    }
+                  </select>
+                }
+              </div>
+            </div>
+
+            @if (editMode) {
+              <div class="action-buttons mt-3">
+                <button class="btn-save" (click)="saveProfile()" [disabled]="isSaving">
+                  @if (isSaving) { <span class="spinner-border spinner-border-sm"></span> }
+                  @else { <i class="ti ti-check"></i> }
+                  Enregistrer
+                </button>
+                <button class="btn-cancel" (click)="toggleEditMode()" [disabled]="isSaving">
+                  <i class="ti ti-x"></i> Annuler
+                </button>
+              </div>
+            }
+          </app-card>
+        }
+
+        <!-- ── TAB 2 : Contrat & RH ──────────────────── -->
+        @if (activeTab === 'contrat') {
+
+          <!-- Contrat -->
+          <app-card class="mb-4">
+            <h4 class="card-section-title">
+              <i class="ti ti-file-certificate"></i> Contrat de travail
+            </h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Type de contrat</label>
+                <p>
+                  <span class="contrat-badge" [ngClass]="typeContratBadge(userInfo.typeContrat)">
+                    {{ userInfo.typeContrat }}
+                  </span>
+                </p>
+              </div>
+              <div class="info-item">
+                <label>Date d'embauche</label>
+                <p>{{ userInfo.dateEmbauche | date:'dd/MM/yyyy' }}</p>
+              </div>
+              @if (userInfo.dateFinContrat) {
+                <div class="info-item">
+                  <label>Fin de contrat</label>
+                  <p>{{ userInfo.dateFinContrat | date:'dd/MM/yyyy' }}</p>
+                </div>
+              }
+              @if (userInfo.periodeEssaiJusquau) {
+                <div class="info-item">
+                  <label>Période d'essai jusqu'au</label>
+                  <p>{{ userInfo.periodeEssaiJusquau | date:'dd/MM/yyyy' }}</p>
+                </div>
+              }
+              <div class="info-item">
+                <label>Catégorie professionnelle</label>
+                <p>{{ userInfo.categoriePro || '—' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Échelon</label>
+                <p>{{ userInfo.echelon || '—' }}</p>
+              </div>
+              @if (isManagerVisible) {
+                <div class="info-item">
+                  <label>Responsable hiérarchique</label>
+                  <p>{{ userInfo.managerNom || '—' }}</p>
+                </div>
+              }
+            </div>
+          </app-card>
+
+          <!-- Rémunération -->
+          <app-card>
+            <h4 class="card-section-title">
+              <i class="ti ti-coin"></i> Rémunération
+              <span class="readonly-tag">Lecture seule</span>
+            </h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Salaire de base</label>
+                <p class="salary-value">{{ formatSalaire(userInfo.salaireBase) }}</p>
+              </div>
+              <div class="info-item">
+                <label>Banque</label>
+                <p>{{ userInfo.banque || '—' }}</p>
+              </div>
+              <div class="info-item full-width">
+                <label>RIB</label>
+                <p class="rib-value">{{ userInfo.rib || '—' }}</p>
+              </div>
+            </div>
+            <p class="readonly-hint">
+              <i class="ti ti-info-circle"></i>
+              Pour toute modification, contactez le service RH.
+            </p>
+          </app-card>
+        }
+
+        <!-- ── TAB 3 : Compétences ───────────────────── -->
+        @if (activeTab === 'competences') {
+
+          <!-- Formation -->
+          <app-card class="mb-4">
+            <h4 class="card-section-title">
+              <i class="ti ti-school"></i> Formation académique
+            </h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Niveau d'études</label>
+                @if (!editMode) { <p>{{ userInfo.niveauEtudes || '—' }}</p> }
+                @else {
+                  <select class="form-control" [(ngModel)]="userInfo.niveauEtudes">
+                    @for (opt of niveauEtudesOptions; track opt) {
+                      <option [value]="opt">{{ opt }}</option>
+                    }
+                  </select>
+                }
+              </div>
+              <div class="info-item">
+                <label>Diplôme principal</label>
+                @if (!editMode) { <p>{{ userInfo.diplome || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.diplome" /> }
+              </div>
+              <div class="info-item full-width">
+                <label>Établissement</label>
+                @if (!editMode) { <p>{{ userInfo.etablissement || '—' }}</p> }
+                @else { <input type="text" class="form-control" [(ngModel)]="userInfo.etablissement" /> }
+              </div>
+            </div>
+          </app-card>
+
+          <!-- Compétences -->
+          <app-card class="mb-4">
+            <h4 class="card-section-title">
+              <i class="ti ti-code"></i> Compétences techniques
+            </h4>
+            <div class="chips-wrap">
+              @for (c of userInfo.competences; track c) {
+                <span class="chip chip-skill">
+                  {{ c }}
+                  @if (editMode) {
+                    <button class="chip-remove" (click)="removeCompetence(c)">
+                      <i class="ti ti-x"></i>
+                    </button>
+                  }
+                </span>
+              }
+              @if (userInfo.competences.length === 0) {
+                <span class="no-data">Aucune compétence renseignée</span>
+              }
+            </div>
+            @if (editMode) {
+              <div class="chip-input-row mt-3">
+                <input class="form-control" type="text" [(ngModel)]="newCompetence"
+                  placeholder="Ex : React, Python…"
+                  (keyup.enter)="addCompetence()" />
+                <button class="btn-add-chip" (click)="addCompetence()">
+                  <i class="ti ti-plus"></i>
+                </button>
+              </div>
+            }
+          </app-card>
+
+          <!-- Langues -->
+          <app-card class="mb-4">
+            <h4 class="card-section-title">
+              <i class="ti ti-world"></i> Langues
+            </h4>
+            <div class="langues-list">
+              @for (l of userInfo.langues; track $index; let i = $index) {
+                <div class="langue-row">
+                  <span class="langue-name">{{ l.langue }}</span>
+                  <span class="langue-badge" [ngClass]="niveauLangueBadge(l.niveau)">{{ l.niveau }}</span>
+                  @if (editMode) {
+                    <button class="chip-remove ms-auto" (click)="removeLangue(i)">
+                      <i class="ti ti-x"></i>
+                    </button>
+                  }
+                </div>
+              }
+              @if (userInfo.langues.length === 0) {
+                <span class="no-data">Aucune langue renseignée</span>
+              }
+            </div>
+            @if (editMode) {
+              <div class="langue-input-row mt-3">
+                <input class="form-control" type="text" [(ngModel)]="newLangue.langue"
+                  placeholder="Langue…" style="flex:1" />
+                <select class="form-control" [(ngModel)]="newLangue.niveau" style="flex:1">
+                  @for (n of niveauLangueOptions; track n) {
+                    <option [value]="n">{{ n }}</option>
+                  }
+                </select>
+                <button class="btn-add-chip" (click)="addLangue()">
+                  <i class="ti ti-plus"></i>
+                </button>
+              </div>
+            }
+          </app-card>
+
+          <!-- Certifications -->
+          <app-card>
+            <h4 class="card-section-title">
+              <i class="ti ti-certificate"></i> Certifications
+            </h4>
+            @if (userInfo.certifications.length > 0) {
+              <div class="cert-list">
+                @for (cert of userInfo.certifications; track cert.nom) {
+                  <div class="cert-item">
+                    <div class="cert-icon"><i class="ti ti-rosette"></i></div>
+                    <div class="cert-info">
+                      <strong>{{ cert.nom }}</strong>
+                      <span>{{ cert.organisme }}</span>
+                    </div>
+                    <span class="cert-date">{{ cert.date | date:'MM/yyyy' }}</span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="empty-state small-empty">
+                <i class="ti ti-certificate-off"></i>
+                <p>Aucune certification enregistrée</p>
+              </div>
+            }
+
+            @if (editMode) {
+              <div class="action-buttons mt-4">
+                <button class="btn-save" (click)="saveProfile()" [disabled]="isSaving">
+                  @if (isSaving) { <span class="spinner-border spinner-border-sm"></span> }
+                  @else { <i class="ti ti-check"></i> }
+                  Enregistrer
+                </button>
+                <button class="btn-cancel" (click)="toggleEditMode()" [disabled]="isSaving">
+                  <i class="ti ti-x"></i> Annuler
+                </button>
+              </div>
+            }
+          </app-card>
+        }
+
+        <!-- ── TAB 4 : Documents & Activité ─────────── -->
+        @if (activeTab === 'documents') {
+
+          <!-- Documents -->
+          <app-card class="mb-4">
+            <div class="card-header-actions">
+              <h4 class="card-section-title">
+                <i class="ti ti-folder"></i> Mes documents
+              </h4>
+              <button class="btn-upload" (click)="uploadDocument()">
+                <i class="ti ti-upload"></i> Ajouter
+              </button>
+            </div>
+            <div class="documents-list">
+              @for (doc of documents; track doc.id) {
+                <div class="document-item">
+                  <div class="doc-icon" [ngClass]="'doc-' + doc.type">
+                    <i class="ti"
+                      [class.ti-file-text]="doc.type === 'pdf'"
+                      [class.ti-file-spreadsheet]="doc.type === 'excel'"
+                      [class.ti-file-word]="doc.type === 'word'"
+                      [class.ti-photo]="doc.type === 'image'"></i>
+                  </div>
+                  <div class="doc-info">
+                    <div class="doc-name-row">
+                      <h5>{{ doc.nom }}</h5>
+                      <span class="doc-cat-tag" [ngClass]="categorieClass(doc.categorie)">
+                        {{ categorieLabel(doc.categorie) }}
+                      </span>
+                    </div>
+                    <p>{{ doc.taille }} • {{ doc.dateAjout | date:'dd/MM/yyyy' }}</p>
+                  </div>
+                  <div class="doc-actions">
+                    <button class="btn-action" (click)="viewDocument(doc.id)" title="Voir">
+                      <i class="ti ti-eye"></i>
+                    </button>
+                    <button class="btn-action" (click)="downloadDocument(doc.id)" title="Télécharger">
+                      <i class="ti ti-download"></i>
+                    </button>
+                    <button class="btn-action btn-delete" (click)="deleteDocument(doc.id)" title="Supprimer">
+                      <i class="ti ti-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+              @if (documents.length === 0) {
+                <div class="empty-state">
+                  <i class="ti ti-folder-off"></i>
+                  <p>Aucun document ajouté</p>
+                  <button class="btn-upload-empty" (click)="uploadDocument()">
+                    <i class="ti ti-upload"></i> Ajouter mon premier document
+                  </button>
+                </div>
+              }
+            </div>
+          </app-card>
+
+          <!-- Activity timeline -->
+          <app-card>
+            <h4 class="card-section-title">
+              <i class="ti ti-clock"></i> Activité récente
+            </h4>
+            @if (activities.length > 0) {
+              <div class="timeline">
+                @for (a of activities; track a.id) {
+                  <div class="timeline-item">
+                    <div class="timeline-dot" [ngClass]="'dot-' + a.type"></div>
+                    <div class="timeline-content">
+                      <div class="timeline-header">
+                        <h5>{{ a.titre }}</h5>
+                        <span class="timeline-date">{{ a.date | date:'dd/MM/yyyy HH:mm' }}</span>
+                      </div>
+                      <p>{{ a.description }}</p>
+                      @if (a.badge) {
+                        <span class="activity-badge badge-{{ a.type }}">{{ a.badge }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="empty-state">
+                <i class="ti ti-history-off"></i>
+                <p>Aucune activité récente</p>
+              </div>
+            }
+          </app-card>
+        }
+
+      </div>
+    </div>
+  }
+
+</div>

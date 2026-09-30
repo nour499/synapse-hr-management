@@ -1,0 +1,92 @@
+<nav class="pc-sidebar" role="navigation" aria-label="Navigation principale">
+  <div class="navbar-wrapper">
+
+    <!-- ===== LOGO ===== -->
+    <div class="m-header">
+      <a [routerLink]="['/']" class="b-brand" aria-label="Accueil SYNAPSE RH">
+        <img src="assets/images/SYNAPSE.png" alt="" class="logo logo-lg" aria-hidden="true" />
+      </a>
+    </div>
+
+    <!-- ===== MENU ===== -->
+    <div class="navbar-content scroll-div">
+
+      <ul class="pc-navbar" role="list">
+
+        @for (group of navItems; track group.title) {
+
+          <!-- ===== GROUPE ===== -->
+          <li class="pc-item pc-caption" role="presentation">
+            <label>{{ group.title }}</label>
+          </li>
+
+          <!-- ===== ITEMS ===== -->
+          @for (item of group.children; track item.title) {
+
+            <!-- ITEM SIMPLE -->
+            @if (!item.children || item.children.length === 0) {
+              <li class="pc-item">
+                <a [routerLink]="item.url"
+                   routerLinkActive="active"
+                   class="pc-link">
+                  <span class="pc-micon"
+                        [class.nav-has-activity]="hasActivity(item)"
+                        aria-hidden="true">
+                    <i class="{{ item.icon }}"></i>
+                  </span>
+                  <span class="pc-mtext"
+                        [class.nav-text-bold]="hasActivity(item)">{{ item.title }}</span>
+                  @if (item.id?.includes('notifications') && unreadCount > 0) {
+                    <span class="pc-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                  }
+                </a>
+              </li>
+            }
+
+            <!-- ITEM AVEC SOUS-MENU -->
+            @else {
+              <li class="pc-item pc-hasmenu">
+                <a href="javascript:void(0)" class="pc-link"
+                   [attr.aria-expanded]="false"
+                   aria-haspopup="true">
+                  <span class="pc-micon" aria-hidden="true">
+                    <i class="{{ item.icon }}"></i>
+                  </span>
+                  <span class="pc-mtext">{{ item.title }}</span>
+                  <span class="pc-arrow" aria-hidden="true"></span>
+                </a>
+
+                <ul class="pc-submenu" role="list">
+                  @for (sub of item.children; track sub.title) {
+                    <li class="pc-item">
+                      <a [routerLink]="sub.url"
+                         routerLinkActive="active"
+                         class="pc-link">
+                        {{ sub.title }}
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </li>
+            }
+
+          }
+
+        }
+
+      </ul>
+
+    </div>
+
+    <!-- ===== DÉCONNEXION ===== -->
+    <div class="sidebar-logout">
+      <button class="sidebar-logout-link" type="button" (click)="logout()" aria-label="Se déconnecter de SYNAPSE RH">
+        <span class="pc-micon" aria-hidden="true">
+          <i class="ti ti-logout"></i>
+        </span>
+        <span class="pc-mtext">Se déconnecter</span>
+      </button>
+    </div>
+
+  </div>
+</nav>

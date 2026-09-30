@@ -1,0 +1,181 @@
+<app-breadcrumb></app-breadcrumb>
+
+<div class="rapports-page">
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <div class="rapports-header">
+    <div>
+      <h4 class="rapports-title">
+        <i class="ti ti-chart-dots"></i> Rapports RH
+      </h4>
+      <p class="rapports-sub">Analyse globale des indicateurs RH par département</p>
+    </div>
+  </div>
+
+  <!-- ── Generation Form ────────────────────────────── -->
+  <div class="form-card">
+    <div class="form-card-header">
+      <i class="ti ti-adjustments-horizontal"></i>
+      <span>Paramètres du rapport</span>
+    </div>
+    <div class="form-grid">
+
+      <div class="form-field">
+        <label class="field-label"><i class="ti ti-file-analytics"></i> Type de rapport</label>
+        <select class="field-select" [(ngModel)]="formType" (change)="onTypeChange()">
+          <option value="CONGES">Congés &amp; Absences</option>
+          <option value="FORMATIONS">Formations</option>
+          <option value="PROJETS">Projets &amp; Tâches</option>
+          <option value="PERFORMANCE">Performance</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label"><i class="ti ti-building"></i> Département</label>
+        <select class="field-select" [(ngModel)]="formDept" (change)="onDeptChange()">
+          <option value="">Tous les départements</option>
+          @for (dept of departments; track dept) {
+            <option [value]="dept">{{ dept }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label"><i class="ti ti-file-export"></i> Format d'export</label>
+        <div class="format-toggle">
+          <button class="format-btn" [class.active]="formFormat === 'PDF'" (click)="formFormat = 'PDF'">
+            <i class="ti ti-file-type-pdf"></i> PDF
+          </button>
+          <button class="format-btn" [class.active]="formFormat === 'EXCEL'" (click)="formFormat = 'EXCEL'">
+            <i class="ti ti-file-type-xls"></i> Excel
+          </button>
+        </div>
+      </div>
+
+    </div>
+    <div class="form-actions">
+      <button class="btn-export-form" (click)="exportReport()" [disabled]="isExporting || loading || rows.length === 0">
+        @if (isExporting) {
+          <span class="spinner-border spinner-border-sm"></span>
+        } @else {
+          <i class="ti ti-download"></i>
+        }
+        Exporter en {{ formFormat }}
+      </button>
+      <button class="btn-reset" (click)="resetForm()">
+        <i class="ti ti-refresh"></i> Réinitialiser
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────── -->
+  <div class="tabs-bar">
+    @for (tab of tabs; track tab.value) {
+      <button class="tab-btn" [class.active]="activeTab === tab.value"
+        (click)="switchTab($any(tab.value))">
+        <i [class]="tab.icon"></i> {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  <!-- ── Error ──────────────────────────────────────── -->
+  @if (error) {
+    <div class="alert-error"><i class="ti ti-alert-circle me-2"></i>{{ error }}</div>
+  }
+
+  <!-- ── Loading skeleton ───────────────────────────── -->
+  @if (loading) {
+    <div class="stats-grid">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="stat-card skeleton-card">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-body">
+            <div class="skeleton-line wide"></div>
+            <div class="skeleton-line narrow"></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Content ────────────────────────────────────── -->
+  @if (!loading && !error) {
+
+    <div class="stats-grid">
+      @for (stat of stats; track stat.label) {
+        <div class="stat-card">
+          <div class="stat-icon-wrap" [style.background]="stat.color + '18'">
+            <i [class]="stat.icon" [style.color]="stat.color"></i>
+          </div>
+          <div class="stat-body">
+            <h3 class="stat-value" [style.color]="stat.color">{{ stat.value }}</h3>
+            <p class="stat-label">{{ stat.label }}</p>
+            @if (stat.trend) {
+              <span class="stat-trend" [class.trend-up]="stat.trendUp" [class.trend-down]="!stat.trendUp">
+                <i [class]="stat.trendUp ? 'ti ti-trending-up' : 'ti ti-trending-down'"></i>
+                {{ stat.trend }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h6 class="table-title">
+          Détail — {{ currentTabLabel }}
+          @if (formDept) { <span class="dept-chip"><i class="ti ti-building"></i> {{ formDept }}</span> }
+        </h6>
+        <span class="table-count">{{ rows.length }} entrée(s)</span>
+      </div>
+      <div class="table-responsive">
+        <table class="rapport-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              @for (col of currentColumns; track col) {
+                <th>{{ columnLabels[col] }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows; track $index; let i = $index) {
+              <tr>
+                <td class="td-num">{{ i + 1 }}</td>
+                @for (col of currentColumns; track col) {
+                  <td>
+                    @if (col === 'statut' || col === 'appreciation' || col === 'priorite') {
+                      <span class="status-pill" [ngClass]="statutClass(row[col])">{{ row[col] }}</span>
+                    } @else if (col === 'progression') {
+                      <div class="progress-cell">
+                        <div class="progress-bar-wrap">
+                          <div class="progress-bar-fill" [style.width]="row[col]"
+                            [class.fill-success]="+(row[col] + '').replace('%','') === 100"
+                            [class.fill-warning]="+(row[col] + '').replace('%','') < 40"
+                            [class.fill-danger]="+(row[col] + '').replace('%','') < 20">
+                          </div>
+                        </div>
+                        <span class="progress-val">{{ row[col] }}</span>
+                      </div>
+                    } @else {
+                      {{ row[col] }}
+                    }
+                  </td>
+                }
+              </tr>
+            }
+            @if (rows.length === 0) {
+              <tr>
+                <td [attr.colspan]="currentColumns.length + 1" class="empty-row">
+                  <i class="ti ti-database-off me-2"></i>Aucune donnée disponible
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  }
+</div>

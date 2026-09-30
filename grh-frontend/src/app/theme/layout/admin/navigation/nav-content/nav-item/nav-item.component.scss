@@ -1,0 +1,70 @@
+// nav-item.component.scss
+
+:host ::ng-deep {
+
+  .nav-item {
+    margin-bottom: 2px;
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      color: #475569;
+      font-weight: 500;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      
+      // Icon wrapper
+      .coded-micon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        
+        i {
+          font-size: 18px;
+          color: #64748B;
+        }
+      }
+
+      // Text label
+      .coded-mtext {
+        flex: 1;
+        color: #475569;
+      }
+
+      &:hover {
+        background: #F1F5F9;
+        
+        .coded-micon i {
+          color: #3B82F6;
+        }
+        
+        .coded-mtext {
+          color: #1E293B;
+        }
+      }
+    }
+
+    // Active state (when route is active)
+    &.active .nav-link {
+      background: #EEF2FF;
+      
+      .coded-micon i {
+        color: #3B82F6;
+      }
+      
+      .coded-mtext {
+        color: #3B82F6;
+        font-weight: 600;
+      }
+    }
+  }
+
+}

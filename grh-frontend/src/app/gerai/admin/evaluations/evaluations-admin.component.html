@@ -1,0 +1,472 @@
+<div class="ev-admin-page">
+
+  <!-- Header -->
+  <div class="adm-header">
+    <div>
+      <h1 class="adm-page-title">Évaluations de performance</h1>
+      <p class="adm-page-sub">Gestion des campagnes, validation RH et analytics</p>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading) {
+    <div class="adm-loading">Chargement…</div>
+  }
+
+  @if (!loading) {
+
+    <!-- Tabs -->
+    <div class="adm-tabs">
+      @for (tab of [
+        {key:'campagnes', label:'Campagnes', icon:'📋'},
+        {key:'evaluations', label:'Évaluations', icon:'✅'},
+        {key:'analytics', label:'Analytics', icon:'📊'}
+      ]; track tab.key) {
+        <button (click)="setTab($any(tab.key))"
+          class="adm-tab"
+          [style.background]="activeTab === tab.key ? '#6366F1' : 'transparent'"
+          [style.color]="activeTab === tab.key ? '#fff' : '#64748B'">
+          {{ tab.icon }} {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <!-- ════════════════════════════════════════════════════
+         TAB : CAMPAGNES
+    ════════════════════════════════════════════════════ -->
+    @if (activeTab === 'campagnes') {
+
+      <!-- Toolbar -->
+      <div class="adm-toolbar">
+        <button (click)="showCampagneForm = !showCampagneForm; cdr.markForCheck()" class="adm-btn-primary">
+          + Nouvelle campagne
+        </button>
+      </div>
+
+      <!-- Form création campagne -->
+      @if (showCampagneForm) {
+        <div class="adm-form-card">
+          <h3 class="adm-form-title">Créer une campagne d'évaluation</h3>
+          <form [formGroup]="campagneForm" (ngSubmit)="createCampagne()">
+            <div class="adm-form-grid">
+              <div>
+                <label class="adm-form-label">Titre *</label>
+                <input formControlName="titre" type="text" class="adm-form-input"
+                  placeholder="Ex: Évaluation Annuelle 2026">
+              </div>
+              <div>
+                <label class="adm-form-label">Période *</label>
+                <select formControlName="periode" class="adm-form-input">
+                  @for (p of periodes; track p) {
+                    <option [value]="p">{{ periodeLabels[p] }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="adm-form-label">Année *</label>
+                <input formControlName="annee" type="number" class="adm-form-input">
+              </div>
+              <div>
+                <label class="adm-form-label">Date début *</label>
+                <input formControlName="dateDebut" type="date" class="adm-form-input">
+              </div>
+              <div>
+                <label class="adm-form-label">Date fin *</label>
+                <input formControlName="dateFin" type="date" class="adm-form-input">
+              </div>
+              <div>
+                <label class="adm-form-label">Description</label>
+                <input formControlName="description" type="text" class="adm-form-input"
+                  placeholder="Description optionnelle">
+              </div>
+            </div>
+            <div class="adm-form-actions">
+              <button type="button" (click)="showCampagneForm = false; cdr.markForCheck()" class="adm-btn-secondary">
+                Annuler
+              </button>
+              <button type="submit" [disabled]="saving" class="adm-btn-submit"
+                [style.opacity]="saving ? '0.6' : '1'">
+                {{ saving ? 'Création…' : 'Créer la campagne' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- Liste campagnes -->
+      <div class="adm-campagne-grid">
+        @for (c of campagnes; track c.id) {
+          <div class="adm-camp-card">
+            <!-- Header card -->
+            <div class="adm-camp-card-top">
+              <div>
+                <div class="adm-camp-title">{{ c.titre }}</div>
+                <div class="adm-camp-periode">{{ periodeLabels[c.periode] }} {{ c.annee }}</div>
+              </div>
+              <span class="adm-camp-statut"
+                    [style.background]="c.statut === 'ACTIVE' ? '#D1FAE5' : c.statut === 'BROUILLON' ? '#F1F5F9' : '#F3F4F6'"
+                    [style.color]="c.statut === 'ACTIVE' ? '#059669' : c.statut === 'BROUILLON' ? '#64748B' : '#6B7280'">
+                {{ c.statut }}
+              </span>
+            </div>
+
+            <!-- Dates -->
+            <div class="adm-camp-dates">{{ c.dateDebut }} → {{ c.dateFin }}</div>
+
+            <!-- Progression évals -->
+            <div class="adm-camp-progress">
+              <div class="adm-camp-prog-hd">
+                <span>Évaluations</span>
+                <span>{{ campagneCompletedCount(c.id) }}/{{ campagneEvalsCount(c.id) }}</span>
+              </div>
+              <div class="adm-camp-track">
+                @if (campagneEvalsCount(c.id) > 0) {
+                  <div class="adm-camp-fill"
+                       [style.width]="(campagneCompletedCount(c.id)/campagneEvalsCount(c.id)*100)+'%'"></div>
+                }
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="adm-camp-actions">
+              @if (c.statut === 'BROUILLON') {
+                <button (click)="activerCampagne(c)" class="adm-btn-activate">Activer</button>
+              }
+              @if (c.statut === 'ACTIVE') {
+                <button (click)="cloturerCampagne(c)" class="adm-btn-cloturer">Clôturer</button>
+              }
+              @if (c.statut === 'BROUILLON') {
+                <button (click)="supprimerCampagne(c)" class="adm-btn-delete">🗑</button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (campagnes.length === 0) {
+          <div class="adm-camp-empty">Aucune campagne. Créez la première.</div>
+        }
+      </div>
+    }
+
+    <!-- ════════════════════════════════════════════════════
+         TAB : ÉVALUATIONS
+    ════════════════════════════════════════════════════ -->
+    @if (activeTab === 'evaluations') {
+
+      <!-- Detail drawer -->
+      @if (selectedEval && !showRhModal) {
+        <div class="adm-detail-card">
+          <div class="adm-detail-top">
+            <button (click)="closeEvalDetail()" class="adm-btn-back">← Retour</button>
+            <div class="adm-detail-name">{{ selectedEval.employePrenom }} {{ selectedEval.employeNom }}</div>
+            <span class="adm-statut-pill"
+                  [style.background]="statutColors[selectedEval.statut]+'22'"
+                  [style.color]="statutColors[selectedEval.statut]">
+              {{ statutLabels[selectedEval.statut] }}
+            </span>
+            @if (canValiderRh(selectedEval)) {
+              <button (click)="openRhModal(selectedEval)" class="adm-btn-valider">Valider RH</button>
+            }
+            @if (canCloturer(selectedEval)) {
+              <button (click)="cloturerEval(selectedEval)" class="adm-btn-close-eval">Clôturer</button>
+            }
+          </div>
+
+          <div class="adm-detail-grid">
+            <div class="adm-info-cell">
+              <div class="adm-cell-label">Informations</div>
+              <div class="adm-cell-lines">
+                <div><strong>Poste :</strong> {{ selectedEval.employePoste }}</div>
+                <div><strong>Département :</strong> {{ selectedEval.departement }}</div>
+                <div><strong>Campagne :</strong> {{ selectedEval.campagneTitre }}</div>
+                <div><strong>Période :</strong> {{ periodeLabels[selectedEval.periode] }} {{ selectedEval.annee }}</div>
+              </div>
+            </div>
+            <div class="adm-info-cell">
+              <div class="adm-cell-label">Données Auto</div>
+              <div class="adm-auto-data">
+                <div class="adm-auto-val">
+                  <div class="adm-auto-num adm-kpi-indigo">{{ selectedEval.tauxPresence ?? '—' }}%</div>
+                  <div class="adm-auto-sub">Présence</div>
+                </div>
+                <div class="adm-auto-val">
+                  <div class="adm-auto-num adm-kpi-green">{{ selectedEval.formationsRealisees ?? '—' }}</div>
+                  <div class="adm-auto-sub">Formations</div>
+                </div>
+              </div>
+            </div>
+            @if (selectedEval.scoreFinal !== undefined) {
+              <div class="adm-score-cell">
+                <div class="adm-cell-label">Score Final</div>
+                <div class="adm-score-final-num">{{ selectedEval.scoreFinal }}</div>
+                <div class="adm-score-final-den">/100</div>
+                @if (selectedEval.mention) {
+                  <span class="adm-mention-pill"
+                        [style.background]="mentionColors[selectedEval.mention]+'22'"
+                        [style.color]="mentionColors[selectedEval.mention]">
+                    {{ mentionLabels[selectedEval.mention] }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Scores détaillés -->
+          @if (selectedEval.scoreObjectifs !== undefined) {
+            <div class="adm-axes-grid">
+              @for (axis of [
+                {label:'Objectifs',score:selectedEval.scoreObjectifs,max:40,color:'#6366F1'},
+                {label:'Compétences',score:selectedEval.scoreCompetences,max:30,color:'#8B5CF6'},
+                {label:'Formations',score:selectedEval.scoreFormations,max:20,color:'#F59E0B'},
+                {label:'Présence',score:selectedEval.scorePresence,max:10,color:'#10B981'}
+              ]; track axis.label) {
+                <div class="adm-axis-cell">
+                  <div class="adm-axis-label">{{ axis.label }}</div>
+                  <div class="adm-axis-val" [style.color]="axis.color">
+                    {{ axis.score ?? 0 }}<span>/{{ axis.max }}</span>
+                  </div>
+                  <div class="adm-axis-bar">
+                    <div class="adm-axis-fill"
+                         [style.width]="((axis.score ?? 0)/axis.max*100)+'%'"
+                         [style.background]="axis.color"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Feedback chef -->
+          @if (selectedEval.evalChef) {
+            <div class="adm-feedback-block">
+              <div class="adm-feedback-label">Feedback Chef</div>
+              @if (selectedEval.evalChef.pointsForts) {
+                <div class="adm-feedback-line"><strong>Points forts :</strong> {{ selectedEval.evalChef.pointsForts }}</div>
+              }
+              @if (selectedEval.evalChef.axesAmelioration) {
+                <div class="adm-feedback-line"><strong>Axes d'amélioration :</strong> {{ selectedEval.evalChef.axesAmelioration }}</div>
+              }
+            </div>
+          }
+
+          <!-- Commentaire RH -->
+          @if (selectedEval.commentaireRh) {
+            <div class="adm-rh-recap">
+              <div class="adm-rh-recap-label">Commentaire RH</div>
+              <div class="adm-rh-recap-text">{{ selectedEval.commentaireRh }}</div>
+              <div class="adm-rh-recap-meta">Validé par {{ selectedEval.valideeParRh }} le {{ selectedEval.dateValidationRh }}</div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Filtres + table -->
+      @if (!selectedEval || showRhModal) {
+        <div class="adm-filters-row">
+          <select [(ngModel)]="filterStatut" (change)="cdr.markForCheck()" class="adm-filter-select">
+            <option value="">Tous les statuts</option>
+            <option value="EN_ATTENTE">En attente</option>
+            <option value="AUTO_SOUMISE">Auto-soumise</option>
+            <option value="VALIDEE_CHEF">Validée chef</option>
+            <option value="VALIDEE_RH">Validée RH</option>
+            <option value="CLOTUREE">Clôturée</option>
+          </select>
+          <select [(ngModel)]="filterCampagne" (change)="cdr.markForCheck()" class="adm-filter-select">
+            <option value="">Toutes les campagnes</option>
+            @for (c of campagnes; track c.id) {
+              <option [value]="c.id">{{ c.titre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="adm-table-wrap">
+          <table class="adm-table">
+            <thead>
+              <tr class="adm-thead-row">
+                <th class="adm-th">Employé</th>
+                <th class="adm-th">Campagne</th>
+                <th class="adm-th">Département</th>
+                <th class="adm-th center">Statut</th>
+                <th class="adm-th center">Score</th>
+                <th class="adm-th center">Mention</th>
+                <th class="adm-th center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of filteredEvals; track e.id) {
+                <tr class="adm-tr">
+                  <td class="adm-td">
+                    <div class="adm-emp-name">{{ e.employePrenom }} {{ e.employeNom }}</div>
+                    <div class="adm-emp-poste">{{ e.employePoste }}</div>
+                  </td>
+                  <td class="adm-td adm-td-camp">{{ e.campagneTitre }}</td>
+                  <td class="adm-td adm-td-dept">{{ e.departement }}</td>
+                  <td class="adm-td center">
+                    <span class="adm-statut-pill"
+                          [style.background]="statutColors[e.statut]+'22'"
+                          [style.color]="statutColors[e.statut]">
+                      {{ statutLabels[e.statut] }}
+                    </span>
+                  </td>
+                  <td class="adm-td center">
+                    @if (e.scoreFinal !== undefined) {
+                      <span class="adm-score-strong">{{ e.scoreFinal }}/100</span>
+                    } @else {
+                      <span class="adm-score-dash">—</span>
+                    }
+                  </td>
+                  <td class="adm-td center">
+                    @if (e.mention) {
+                      <span class="adm-statut-pill"
+                            [style.background]="mentionColors[e.mention]+'22'"
+                            [style.color]="mentionColors[e.mention]">
+                        {{ mentionLabels[e.mention] }}
+                      </span>
+                    } @else {
+                      <span class="adm-score-dash">—</span>
+                    }
+                  </td>
+                  <td class="adm-td center">
+                    <div class="adm-td-actions">
+                      <button (click)="openEvalDetail(e)" class="adm-btn-see">Voir</button>
+                      @if (canValiderRh(e)) {
+                        <button (click)="openRhModal(e)" class="adm-btn-validate">Valider</button>
+                      }
+                      @if (canCloturer(e)) {
+                        <button (click)="cloturerEval(e)" class="adm-btn-close-sm">Clôturer</button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+              @if (filteredEvals.length === 0) {
+                <tr>
+                  <td colspan="7" class="adm-td-empty">Aucune évaluation trouvée</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+
+    <!-- ════════════════════════════════════════════════════
+         TAB : ANALYTICS
+    ════════════════════════════════════════════════════ -->
+    @if (activeTab === 'analytics') {
+
+      <!-- KPI cards -->
+      <div class="adm-kpi-grid">
+        <div class="adm-kpi-card">
+          <div class="adm-kpi-val adm-kpi-indigo">{{ evaluations.length }}</div>
+          <div class="adm-kpi-label">Évaluations totales</div>
+        </div>
+        <div class="adm-kpi-card">
+          <div class="adm-kpi-val adm-kpi-green">{{ avgScore }}</div>
+          <div class="adm-kpi-label">Score moyen /100</div>
+        </div>
+        <div class="adm-kpi-card">
+          <div class="adm-kpi-val adm-kpi-amber">{{ evalAvecScore.length }}</div>
+          <div class="adm-kpi-label">Scores calculés</div>
+        </div>
+        <div class="adm-kpi-card">
+          <div class="adm-kpi-val adm-kpi-violet">{{ campagnes.length }}</div>
+          <div class="adm-kpi-label">Campagnes</div>
+        </div>
+      </div>
+
+      <div class="adm-analytics-grid">
+
+        <!-- Distribution des mentions -->
+        <div class="adm-analytics-card">
+          <div class="adm-analytics-title">Distribution des mentions</div>
+          @if (mentionDistrib.length === 0) {
+            <div class="adm-no-data">Pas encore de données</div>
+          }
+          @for (item of mentionDistrib; track item.mention) {
+            <div class="adm-mention-row">
+              <div class="adm-mention-hd">
+                <span class="adm-mention-label" [style.color]="item.color">{{ mentionLabels[item.mention] }}</span>
+                <span class="adm-mention-count">{{ item.count }} ({{ item.pct }}%)</span>
+              </div>
+              <div class="adm-mention-track">
+                <div class="adm-mention-fill" [style.width]="item.pct+'%'" [style.background]="item.color"></div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Scores par département -->
+        <div class="adm-analytics-card">
+          <div class="adm-analytics-title">Scores par département</div>
+          @if (deptStats.length === 0) {
+            <div class="adm-no-data">Pas encore de données</div>
+          }
+          @for (item of deptStats; track item.dept) {
+            <div class="adm-dept-row">
+              <div class="adm-dept-name">{{ item.dept }}</div>
+              <div class="adm-dept-track">
+                <div class="adm-dept-fill"
+                     [style.width]="item.avg+'%'"
+                     [style.background]="item.avg >= 85 ? '#10B981' : item.avg >= 70 ? '#6366F1' : item.avg >= 55 ? '#F59E0B' : '#EF4444'"></div>
+              </div>
+              <div class="adm-dept-val">{{ item.avg }}<span>/100</span></div>
+              <div class="adm-dept-count">({{ item.count }})</div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Recommandations -->
+      @if (recommandationDistrib.length > 0) {
+        <div class="adm-reco-distrib">
+          <div class="adm-reco-distrib-title">Distribution des recommandations</div>
+          <div class="adm-reco-distrib-grid">
+            @for (item of recommandationDistrib; track item.label) {
+              <div class="adm-reco-distrib-item"
+                   [style.background]="item.color+'15'"
+                   [style.border-color]="item.color+'44'">
+                <div class="adm-reco-distrib-count" [style.color]="item.color">{{ item.count }}</div>
+                <div class="adm-reco-distrib-label">{{ item.label }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       MODAL : VALIDATION RH
+  ══════════════════════════════════════════════════════ -->
+  @if (showRhModal && selectedEval) {
+    <div class="adm-modal-overlay">
+      <div class="adm-modal-box">
+        <div class="adm-modal-title">Validation RH</div>
+        <div class="adm-modal-sub">
+          {{ selectedEval.employePrenom }} {{ selectedEval.employeNom }} · Score : {{ selectedEval.scoreFinal ?? 'N/A' }}/100
+        </div>
+
+        <form [formGroup]="rhForm" (ngSubmit)="validerRh()">
+          <div class="adm-modal-field">
+            <label class="adm-modal-label">Score ajusté (optionnel)</label>
+            <input formControlName="scoreAjuste" type="number" min="0" max="100" class="adm-modal-input"
+              placeholder="Laissez vide pour conserver le score calculé">
+          </div>
+          <div class="adm-modal-field-last">
+            <label class="adm-modal-label">Commentaire RH</label>
+            <textarea formControlName="commentaireRh" rows="3" class="adm-modal-textarea"
+              placeholder="Observations, contexte, décisions RH…"></textarea>
+          </div>
+          <div class="adm-modal-foot">
+            <button type="button" (click)="closeRhModal()" class="adm-btn-secondary">Annuler</button>
+            <button type="submit" [disabled]="saving" class="adm-btn-submit"
+              [style.opacity]="saving ? '0.6' : '1'">
+              {{ saving ? 'Validation…' : 'Valider' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

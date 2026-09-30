@@ -1,0 +1,22 @@
+<li class="pc-item pc-hasmenu" [class.pc-trigger]="isOpen">
+  <!-- HEADER DU COLLAPSE -->
+  <a class="pc-link" role="button" (click)="toggle()">
+    @if (item().icon) {
+      <span class="pc-micon">
+        <i class="{{ item().icon }}"></i>
+      </span>
+    }
+    <span class="pc-mtext">{{ item().title }}</span>
+    <span class="pc-arrow"></span>
+  </a>
+
+  <!-- SOUS-MENU -->
+  @if (isOpen) {
+    <ul class="coded-submenu">
+  @for (child of item().children; track child) {
+    <app-nav-item [item]="child"></app-nav-item>
+  }
+</ul>
+
+  }
+</li>

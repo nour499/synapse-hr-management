@@ -1,0 +1,390 @@
+<!-- [ breadcrumb ] start -->
+<app-breadcrumb></app-breadcrumb>
+<!-- [ breadcrumb ] end -->
+
+<!-- [ Main Content ] start -->
+<div class="row">
+
+  <!-- Stats Cards -->
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card bg-c-blue">
+      <div class="stat-icon"><i class="ti ti-briefcase"></i></div>
+      <div class="stat-content">
+        <p class="stat-label">Total Projets</p>
+        <h2 class="stat-value">{{ totalProjets }}</h2>
+        <p class="stat-sub">En cours : <strong>{{ projetsEnCours }}</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card bg-c-green">
+      <div class="stat-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="stat-content">
+        <p class="stat-label">Projets Terminés</p>
+        <h2 class="stat-value">{{ projetsTermines }}</h2>
+        <p class="stat-sub">Taux réussite : <strong>{{ tauxReussite }}%</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card bg-c-yellow">
+      <div class="stat-icon"><i class="ti ti-clock"></i></div>
+      <div class="stat-content">
+        <p class="stat-label">En Attente</p>
+        <h2 class="stat-value">{{ projetsEnAttente }}</h2>
+        <p class="stat-sub">À démarrer : <strong>{{ projetsEnAttente }}</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card bg-c-red">
+      <div class="stat-icon"><i class="ti ti-alert-triangle"></i></div>
+      <div class="stat-content">
+        <p class="stat-label">En Retard</p>
+        <h2 class="stat-value">{{ projetsEnRetard }}</h2>
+        <p class="stat-sub">Action requise : <strong>urgent</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Projets Table -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Liste des Projets">
+
+      <!-- Toolbar -->
+      <div class="d-flex align-items-center flex-wrap mb-3" style="gap: 10px;">
+        <div class="input-group" style="max-width: 280px;">
+          <span class="input-group-text"><i class="ti ti-search"></i></span>
+          <input type="text" class="form-control" placeholder="Rechercher un projet..."
+            [(ngModel)]="searchTerm" (input)="filterProjets()" />
+        </div>
+
+        <select class="form-select" style="max-width: 180px;" [(ngModel)]="statusFilter" (change)="filterProjets()">
+          <option value="">Tous les statuts</option>
+          <option [value]="StatutProjet.EN_COURS">En cours</option>
+          <option [value]="StatutProjet.TERMINE">Terminé</option>
+          <option [value]="StatutProjet.EN_PAUSE">En attente</option>
+          <option [value]="StatutProjet.EN_RETARD">En retard</option>
+        </select>
+
+
+        <button class="btn btn-primary ms-auto" (click)="openCreateModal()">
+          <i class="ti ti-plus"></i> Nouveau Projet
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Nom du Projet</th>
+              <th>Équipe</th>
+              <th>Date début</th>
+              <th>Date fin</th>
+              <th>Progression</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (projet of filteredProjets; track projet.id; let i = $index) {
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="project-icon me-2">
+                      <i class="ti ti-briefcase text-primary"></i>
+                    </div>
+                    <div>
+                      <strong>{{ projet.nom }}</strong><br>
+                      <small class="text-muted">{{ (projet.description ?? '') | slice:0:50 }}...</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="avatar-group">
+                  @for (m of (projet.equipe ?? []) | slice:0:3; track m.id) {
+                    @if (m.photo) {
+                      <img [src]="m.photo" [title]="m.nom"
+                           class="avatar-badge"
+                           style="object-fit:cover;padding:0;"
+                           width="32" height="32" />
+                    } @else {
+                      <span class="avatar-badge" [title]="m.nom">
+                        {{ m.initiales }}
+                      </span>
+                    }
+                  }
+                  @if ((projet.equipe?.length ?? 0) > 3) {
+                    <span class="avatar-badge more">+{{ (projet.equipe?.length ?? 0) - 3 }}</span>
+                  }
+                </div>
+
+                </td>
+                <td>{{ projet.dateDebut | date:'dd/MM/yyyy' }}</td>
+                <td>{{ projet.dateFin ? (projet.dateFin | date:'dd/MM/yyyy') : '—' }}</td>
+                <td style="min-width: 140px;">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 6px;">
+                      <div class="progress-bar"
+                        [ngClass]="getProgressClass(projet)"
+                        [style.width.%]="calcProgression(projet)">
+                      </div>
+                    </div>
+                    <span style="font-size:12px; min-width:32px; color:#6c757d;">
+                      {{ calcProgression(projet) }}%
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-badge" [ngClass]="getStatusBadgeClass(projet.statut)">
+                    {{ getStatusLabel(projet.statut) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex" style="gap: 6px;">
+                    <button class="btn btn-sm btn-outline-info" title="Voir" (click)="viewProjet(projet)">
+                      <i class="ti ti-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" title="Modifier" (click)="editProjet(projet)">
+                      <i class="ti ti-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" title="Supprimer" (click)="deleteProjet(projet)">
+                      <i class="ti ti-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+            @if (filteredProjets.length === 0) {
+              <tr>
+                <td colspan="7" class="text-center text-muted py-5">
+                  <i class="ti ti-inbox" style="font-size:36px; display:block; margin-bottom:10px;"></i>
+                  Aucun projet trouvé
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+    </app-card>
+  </div>
+</div>
+
+<!-- ==================== Modal Créer / Modifier ==================== -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="ti ti-briefcase me-2"></i>
+            {{ isEditMode ? 'Modifier le Projet' : 'Nouveau Projet' }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="projetForm">
+            <div class="row g-3">
+              <div class="col-md-12">
+                <label class="form-label fw-semibold">Nom du projet <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" formControlName="nom" placeholder="Ex : Refonte Système RH">
+                @if (projetForm.get('nom')?.invalid && projetForm.get('nom')?.touched) {
+                  <div class="text-danger small mt-1">Le nom est requis.</div>
+                }
+              </div>
+
+              <div class="col-md-12">
+                <label class="form-label fw-semibold">Description</label>
+                <textarea class="form-control" rows="3" formControlName="description" placeholder="Description..."></textarea>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Date de début <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" formControlName="dateDebut">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Date de fin prévue</label>
+                <input type="date" class="form-control" formControlName="dateFin">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Statut</label>
+                <select class="form-select" formControlName="statut">
+                  <option [value]="StatutProjet.EN_PAUSE">En attente</option>
+                  <option [value]="StatutProjet.EN_COURS">En cours</option>
+                  <option [value]="StatutProjet.TERMINE">Terminé</option>
+                  <option [value]="StatutProjet.EN_RETARD">En retard</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nombre total de tâches</label>
+                <input type="number" class="form-control" formControlName="totalTaches" min="0" placeholder="Ex: 20">
+                @if (isEditMode && selectedProjet) {
+                  <div class="text-muted small mt-1">
+                    <i class="ti ti-check"></i>
+                    {{ selectedProjet.tachesCompletees ?? 0 }} tâche(s) complétée(s) —
+                    progression auto : <strong>{{ calcProgression(selectedProjet) }}%</strong>
+                  </div>
+                }
+              </div>
+
+              <div class="col-md-12">
+                <label class="form-label fw-semibold">
+                  Membres de l'équipe
+                  @if (selectedMembres.length > 0) {
+                    <span class="badge bg-primary ms-2">{{ selectedMembres.length }} sélectionné(s)</span>
+                  }
+                </label>
+
+                <!-- Picker toolbar -->
+                <div class="d-flex gap-2 mb-2">
+                  <div class="input-group input-group-sm" style="max-width:220px">
+                    <span class="input-group-text"><i class="ti ti-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Nom, prénom, poste…"
+                      [(ngModel)]="membreSearch" [ngModelOptions]="{standalone:true}">
+                  </div>
+                  <select class="form-select form-select-sm" style="max-width:160px"
+                    [(ngModel)]="membreDept" [ngModelOptions]="{standalone:true}">
+                    <option value="">Tous les depts</option>
+                    @for (d of departments; track d) {
+                      <option [value]="d">{{ d }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Selected chips -->
+                @if (selectedMembres.length > 0) {
+                  <div class="d-flex flex-wrap gap-1 mb-2">
+                    @for (m of selectedMembres; track m.id) {
+                      <span class="badge bg-primary bg-opacity-10 text-primary d-flex align-items-center gap-1 px-2 py-1">
+                        {{ m.prenom }} {{ m.nom }}
+                        <i class="ti ti-x" style="cursor:pointer;font-size:10px" (click)="toggleMembre(m)"></i>
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- Employee list -->
+                <div class="membres-list border rounded" style="max-height:220px;overflow-y:auto;padding:12px">
+                  @if (filteredEmployesForPicker.length === 0) {
+                    <div class="text-muted text-center small py-3">Aucun employé correspondant</div>
+                  }
+                  @for (emp of filteredEmployesForPicker; track emp.id) {
+                    <div class="form-check mb-2" [class.opacity-50]="isAssignedElsewhere(emp)">
+                      <input class="form-check-input" type="checkbox"
+                        [id]="'emp-' + emp.id"
+                        [checked]="isMembre(emp)"
+                        [disabled]="isAssignedElsewhere(emp)"
+                        (change)="toggleMembre(emp)">
+                      <label class="form-check-label d-flex align-items-center gap-2"
+                             [for]="'emp-' + emp.id"
+                             [style.cursor]="isAssignedElsewhere(emp) ? 'not-allowed' : 'pointer'">
+                        <span class="avatar-badge">{{ emp.prenom?.charAt(0) }}{{ emp.nom?.charAt(0) }}</span>
+                        <span>
+                          <strong>{{ emp.prenom }} {{ emp.nom }}</strong>
+                          <small class="text-muted d-block" style="font-size:11px">{{ emp.poste }} · {{ emp.departement }}</small>
+                          @if (isAssignedElsewhere(emp)) {
+                            <small class="text-warning d-block" style="font-size:10px">
+                              <i class="ti ti-lock"></i> Affecté à « {{ emp.projetNom }} »
+                            </small>
+                          }
+                        </span>
+                      </label>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button class="btn btn-primary" (click)="saveProjet()" [disabled]="projetForm.invalid || isSaving">
+            @if (isSaving) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            } @else {
+              <i class="ti ti-device-floppy me-1"></i>
+            }
+            {{ isEditMode ? 'Mettre à jour' : 'Créer le projet' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ==================== Modal Détail ==================== -->
+@if (showDetailModal && selectedProjet) {
+  <div class="modal-overlay" (click)="closeDetailModal()">
+    <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">
+            <i class="ti ti-briefcase me-2"></i>{{ selectedProjet.nom }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeDetailModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <h6 class="text-muted mb-1">Description</h6>
+              <p>{{ selectedProjet.description ?? 'Aucune description.' }}</p>
+            </div>
+            <div class="col-md-4">
+              <div class="card bg-light text-center p-3">
+                <h3 class="text-primary mb-1">{{ calcProgression(selectedProjet) }}%</h3>
+                <div class="progress" style="height: 10px;">
+                  <div class="progress-bar bg-primary" [style.width.%]="calcProgression(selectedProjet)"></div>
+                </div>
+                <small class="text-muted mt-1">Avancement</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <strong><i class="ti ti-calendar me-1"></i>Date début :</strong>
+              <span class="ms-2">{{ selectedProjet.dateDebut | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="col-md-6">
+              <strong><i class="ti ti-calendar me-1"></i>Date fin :</strong>
+              <span class="ms-2">
+                {{ selectedProjet.dateFin ? (selectedProjet.dateFin | date:'dd/MM/yyyy') : '—' }}
+              </span>
+            </div>
+            <div class="col-12">
+              <strong><i class="ti ti-users me-1"></i>Équipe :</strong>
+              <div class="mt-2 d-flex flex-wrap gap-2">
+                @for (m of (selectedProjet.membres ?? []); track m.id) {
+                  <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                    {{ m.prenom }} {{ m.nom }}
+                  </span>
+                }
+                @if (!(selectedProjet.membres?.length)) {
+                  <span class="text-muted small">Aucun membre assigné.</span>
+                }
+              </div>
+            </div>
+            <div class="col-12">
+              <strong><i class="ti ti-tag me-1"></i>Statut :</strong>
+              <span class="status-badge ms-2" [ngClass]="getStatusBadgeClass(selectedProjet.statut)">
+                {{ getStatusLabel(selectedProjet.statut) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
+          <button class="btn btn-primary" (click)="editProjet(selectedProjet); closeDetailModal()">
+            <i class="ti ti-edit me-1"></i>Modifier
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+<!-- [ Main Content ] end -->

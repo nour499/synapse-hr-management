@@ -1,0 +1,333 @@
+<div class="dept-page">
+
+  <!-- ── Header ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-building"></i></div>
+      <div>
+        <h1 class="page-title">Départements</h1>
+        <p class="page-sub">Gérez les départements et leurs responsables</p>
+      </div>
+    </div>
+    <button class="btn-primary" (click)="openCreate()">
+      <i class="ti ti-plus"></i> Nouveau département
+    </button>
+  </div>
+
+  <!-- ── KPI strip ─────────────────────────────────── -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <i class="ti ti-building kpi-ico kpi-ico-violet"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.total }}</span><span class="kpi-lbl">Départements</span></div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-users kpi-ico kpi-ico-blue"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.totalEmployes }}</span><span class="kpi-lbl">Employés au total</span></div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-user-plus kpi-ico kpi-ico-green"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.capaciteTotal }}</span><span class="kpi-lbl">Capacité totale</span></div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-chart-pie kpi-ico kpi-ico-amber"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.tauxOccupation }}%</span><span class="kpi-lbl">Taux d'occupation</span></div>
+    </div>
+  </div>
+
+  <!-- ── Filters ───────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher par département, responsable…"
+             [value]="search" (input)="setSearch($any($event.target).value)" />
+    </div>
+  </div>
+
+  <!-- ── Table ─────────────────────────────────────── -->
+  @if (loading) {
+  <app-skeleton-rows [rows]="6" [cols]="5" [withAvatar]="false" />
+} @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-building"></i></div>
+      <h3>Aucun département trouvé</h3>
+      <p>Créez un département ou modifiez la recherche.</p>
+      <button class="btn-primary" (click)="openCreate()"><i class="ti ti-plus"></i> Nouveau département</button>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="dept-table">
+        <thead>
+          <tr>
+            <th>Département</th>
+            <th>Code</th>
+            <th>Responsable</th>
+            <th>Téléphone</th>
+            <th>Email</th>
+            <th>Effectif</th>
+            <th>Capacité</th>
+            <th>Fondé en</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of paginated; track d.id) {
+            <tr>
+
+              <!-- Département -->
+              <td>
+                <div class="dept-cell">
+                  <div class="dept-icon-wrap">
+                    <i class="ti ti-building-skyscraper"></i>
+                  </div>
+                  <div>
+                    <span class="dept-name">{{ d.nom }}</span>
+                    @if (d.description) {
+                      <span class="dept-desc">{{ d.description }}</span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Code -->
+              <td>
+                <span class="code-badge">{{ d.code }}</span>
+              </td>
+
+              <!-- Responsable -->
+              <td>
+                <div class="head-cell">
+                  @if (d.responsablePhoto) {
+                    <img [src]="d.responsablePhoto" class="head-avatar" [alt]="d.responsable" />
+                  } @else {
+                    <div class="head-initials">{{ initiales(d.responsable) }}</div>
+                  }
+                  <span class="head-name">{{ d.responsable }}</span>
+                </div>
+              </td>
+
+              <!-- Téléphone -->
+              <td>
+                <div class="contact-cell">
+                  <i class="ti ti-phone"></i>
+                  <span>{{ d.telephone }}</span>
+                </div>
+              </td>
+
+              <!-- Email -->
+              <td>
+                <div class="contact-cell">
+                  <i class="ti ti-mail"></i>
+                  <a [href]="'mailto:' + d.email" class="email-link">{{ d.email }}</a>
+                </div>
+              </td>
+
+              <!-- Effectif + barre -->
+              <td>
+                <div class="effectif-cell">
+                  <span class="effectif-val">{{ d.totalEmployes }}</span>
+                  <div class="progress-wrap">
+                    <div class="progress-bar"
+                         [style.width.%]="capacitePercent(d)"
+                         [class.progress-full]="capacitePercent(d) >= 90"
+                         [class.progress-med]="capacitePercent(d) >= 60 && capacitePercent(d) < 90">
+                    </div>
+                  </div>
+                  <span class="effectif-pct">{{ capacitePercent(d) }}%</span>
+                </div>
+              </td>
+
+              <!-- Capacité -->
+              <td>
+                <span class="capacite-badge">
+                  <i class="ti ti-users"></i> {{ d.capacite }}
+                </span>
+              </td>
+
+              <!-- Année -->
+              <td>
+                <span class="year-badge">{{ d.anneeCreation }}</span>
+              </td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button class="btn-action btn-edit"   title="Modifier"   (click)="openEdit(d)">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <button class="btn-action btn-delete" title="Supprimer"  (click)="askDelete(d)">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginator [total]="filtered.length" [pageSize]="pageSize" [page]="page" (pageChange)="page=$event" />
+    </div>
+
+    <p class="row-count">
+      <i class="ti ti-building"></i>
+      {{ filtered.length }} département{{ filtered.length > 1 ? 's' : '' }}
+      @if (filtered.length < departements.length) {
+        <span class="row-filtered"> sur {{ departements.length }}</span>
+      }
+    </p>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     CREATE / EDIT MODAL
+══════════════════════════════════════════════════════ -->
+@if (editItem || isCreating) {
+  <div class="modal-overlay" (click)="closeForm()"></div>
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon"><i class="ti ti-building"></i></div>
+        <div>
+          <h2 class="modal-title">{{ isCreating ? 'Nouveau département' : 'Modifier le département' }}</h2>
+          @if (!isCreating && editItem) {
+            <p class="modal-sub">{{ editItem.nom }}</p>
+          }
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeForm()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submitForm()" novalidate class="modal-body">
+
+      <!-- Nom -->
+      <div class="field-group">
+        <label class="field-label">Nom du département <span class="req">*</span></label>
+        <div class="input-icon-wrap">
+          <i class="ti ti-building-skyscraper input-icon"></i>
+          <input type="text" class="field-input with-icon" formControlName="nom"
+                 [class.has-error]="hasError('nom')" placeholder="ex: Informatique" />
+        </div>
+        @if (hasError('nom')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Nom requis</small>
+        }
+      </div>
+
+      <!-- Code -->
+      <div class="field-group">
+        <label class="field-label">Code <span class="req">*</span></label>
+        <div class="input-icon-wrap">
+          <i class="ti ti-hash input-icon"></i>
+          <input type="text" class="field-input with-icon" formControlName="code"
+                 [class.has-error]="hasError('code')" placeholder="ex: IT" maxlength="20" />
+        </div>
+        @if (hasError('code')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Code requis (max 20 caractères)</small>
+        }
+      </div>
+
+      <!-- Responsable -->
+      <div class="field-group">
+        <label class="field-label">Responsable <span class="req">*</span></label>
+        <div class="input-icon-wrap">
+          <i class="ti ti-user-star input-icon"></i>
+          <input type="text" class="field-input with-icon" formControlName="responsable"
+                 [class.has-error]="hasError('responsable')" placeholder="Nom complet" />
+        </div>
+        @if (hasError('responsable')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Responsable requis</small>
+        }
+      </div>
+
+      <!-- Téléphone + Email -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Téléphone <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-phone input-icon"></i>
+            <input type="tel" class="field-input with-icon" formControlName="telephone"
+                   [class.has-error]="hasError('telephone')" placeholder="+216 71 000 000" />
+          </div>
+          @if (hasError('telephone')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Téléphone requis</small>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-mail input-icon"></i>
+            <input type="email" class="field-input with-icon" formControlName="email"
+                   [class.has-error]="hasError('email')" placeholder="dept@entreprise.tn" />
+          </div>
+          @if (hasError('email')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Email invalide</small>
+          }
+        </div>
+      </div>
+
+      <!-- Capacité + Année + Effectif -->
+      <div class="form-row-3">
+        <div class="field-group">
+          <label class="field-label">Capacité max <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-user-plus input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="capacite" min="1"
+                   [class.has-error]="hasError('capacite')" />
+          </div>
+          @if (hasError('capacite')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Valeur invalide</small>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label">Année création <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="anneeCreation"
+                   min="1900" [max]="2099"
+                   [class.has-error]="hasError('anneeCreation')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Effectif actuel <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-users input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="totalEmployes" min="0"
+                   [class.has-error]="hasError('totalEmployes')" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="field-group">
+        <label class="field-label">Description <span class="opt-tag">optionnel</span></label>
+        <textarea class="field-input" rows="2" formControlName="description"
+                  placeholder="Missions et activités du département…"></textarea>
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-device-floppy"></i> }
+          {{ isCreating ? 'Créer' : 'Enregistrer' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     CONFIRM DELETE
+══════════════════════════════════════════════════════ -->
+<app-confirm-modal
+  [open]="deleteTarget !== null"
+  title="Supprimer ce département ?"
+  [message]="deleteMessage"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()"
+/>

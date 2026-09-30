@@ -1,0 +1,78 @@
+<div id="styleSelector" class="menu-styler" [class.open]="styleSelectorToggle">
+
+  <!-- ── Bouton engrenage ── -->
+  <div class="pct-c-btn" (click)="styleSelectorToggle = !styleSelectorToggle" ngbTooltip="Personnaliser">
+    <i class="ph-duotone ph-gear-six"></i>
+  </div>
+
+  <div class="style-block">
+
+    <!-- Header -->
+    <div class="customize-header">
+      <h5>Personnalisation</h5>
+      <button type="button" class="btn-close" aria-label="Close"
+        (click)="styleSelectorToggle = !styleSelectorToggle">
+      </button>
+    </div>
+
+    <ul class="list-group list-group-flush">
+
+      <!-- ── Thème (Toggle Switch) ── -->
+      <li class="list-group-item">
+        <h5 class="mb-1 text-uppercase">Thème</h5>
+        <p class="text-muted text-sm mb-2">Choisir le mode d'affichage</p>
+
+        <div class="dark-mode-toggle" (click)="toggleDarkMode()">
+          <div class="dark-toggle-left">
+            <div class="dark-toggle-icon">
+              <i [class]="isDarkMode ? 'ti ti-moon-filled' : 'ti ti-sun-filled'"></i>
+            </div>
+            <span class="dark-toggle-label">
+              {{ isDarkMode ? 'Mode Sombre' : 'Mode Clair' }}
+            </span>
+          </div>
+          <!-- Toggle pill -->
+          <div class="dark-toggle-switch" [class.active]="isDarkMode">
+            <div class="dark-toggle-thumb"></div>
+          </div>
+        </div>
+      </li>
+
+      <!-- ── Police (cursor main) ── -->
+      <li class="list-group-item">
+        <h5 class="mb-1 text-uppercase">Police</h5>
+        <p class="text-muted text-sm mb-2">Choisir la police du thème</p>
+
+        <div class="theme-color theme-font-style">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="layout_font"
+              id="layoutfontRoboto"
+              [checked]="setFontFamily === 'Roboto'"
+              (click)="fontFamily('Roboto')" />
+            <label class="form-check-label" for="layoutfontRoboto">Roboto</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="layout_font"
+              id="layoutfontPoppins"
+              [checked]="setFontFamily === 'Poppins'"
+              (click)="fontFamily('Poppins')" />
+            <label class="form-check-label" for="layoutfontPoppins">Poppins</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="layout_font"
+              id="layoutfontInter"
+              [checked]="setFontFamily === 'Inter'"
+              (click)="fontFamily('Inter')" />
+            <label class="form-check-label" for="layoutfontInter">Inter</label>
+          </div>
+        </div>
+      </li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Overlay (ferme en cliquant dehors) -->
+@if (styleSelectorToggle) {
+  <div class="menu-styler-overlay" (click)="styleSelectorToggle = false"></div>
+}

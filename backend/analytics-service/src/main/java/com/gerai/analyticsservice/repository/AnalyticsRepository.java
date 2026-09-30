@@ -1,0 +1,838 @@
+package com.gerai.analyticsservice.repository;
+
+import com.gerai.analyticsservice.model.Demande;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+/**
+ * Repository analytique — schéma GERAI_USER (Oracle).
+ *
+ * Les requêtes natives n'utilisent PAS de préfixe de schéma : la connexion
+ * JDBC se fait déjà avec l'utilisateur propriétaire des tables (GERAI_USER),
+ * donc Oracle résout automatiquement les objets du schéma courant.
+ * (Avant correction : les requêtes préfixaient à tort avec "GERAI." — un
+ * schéma qui n'existe pas — ce qui provoquait des ORA-00942.)
+ *
+ * Stratégie de résolution du département d'un Chef :
+ *   1. Priorité : claim JWT "dept_id" (extrait par JwtHelper) — zéro requête Oracle
+ *   2. Fallback : findDeptIdByEmail() / findDeptIdBySubject() si le claim n'est pas configuré
+ */
+@Repository
+public interface AnalyticsRepository extends JpaRepository<Demande, Long> {
+
+    /* ═══════════════════════════════════════════════════════════
+       RÉSOLUTION IDENTITÉ (fallback si claims custom absents)
+       ═══════════════════════════════════════════════════════════ */
+
+    /**
+     * Retourne le dept_id Oracle de l'employé correspondant à cet email.
+     * Utilisé si le claim "dept_id" n'est pas encore configuré dans Keycloak.
+     */
+    @Query(value = """
+            SELECT DEPT_ID
+            FROM EMPLOYEES
+            WHERE EMAIL = :email
+              AND STATUS = 'ACTIF'
+            """, nativeQuery = true)
+    Long findDeptIdByEmail(@Param("email") String email);
+
+    /**
+     * Retourne le dept_id via le user_id Keycloak (UUID = sub du JWT).
+     * Plus robuste que l'email si l'email peut changer.
+     */
+    @Query(value = """
+            SELECT DEPT_ID
+            FROM EMPLOYEES
+            WHERE USER_ID = :keycloakSub
+              AND STATUS  = 'ACTIF'
+            """, nativeQuery = true)
+    Long findDeptIdBySubject(@Param("keycloakSub") String keycloakSub);
+
+    /**
+     * Retourne l'employee_id Oracle via le user_id Keycloak.
+     */
+    @Query(value = """
+            SELECT EMPLOYEE_ID
+            FROM EMPLOYEES
+            WHERE USER_ID = :keycloakSub
+              AND STATUS  = 'ACTIF'
+            """, nativeQuery = true)
+    Long findEmployeeIdBySubject(@Param("keycloakSub") String keycloakSub);
+
+    /* ═══════════════════════════════════════════════════════════
+       COMPTAGES GLOBAUX — Vue V_ALL_DEMANDES
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = "SELECT COUNT(*) FROM V_ALL_DEMANDES",
+            nativeQuery = true)
+    long countTotal();
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM V_ALL_DEMANDES
+            WHERE STATUT = :statut
+            """, nativeQuery = true)
+    long countByStatut(@Param("statut") String statut);
+
+    @Query(value = """
+            SELECT NVL(TYPE,'INCONNU') AS TYPE_VAL, COUNT(*) AS TOTAL
+            FROM V_ALL_DEMANDES
+            GROUP BY TYPE
+            ORDER BY TYPE
+            """, nativeQuery = true)
+    List<Object[]> countGroupByType();
+
+    @Query(value = """
+            SELECT NVL(STATUT,'INCONNU') AS STATUT_VAL, COUNT(*) AS TOTAL
+            FROM V_ALL_DEMANDES
+            GROUP BY STATUT
+            ORDER BY STATUT
+            """, nativeQuery = true)
+    List<Object[]> countGroupByStatut();
+
+    @Query(value = """
+            SELECT TO_CHAR(DATE_CREATION,'YYYY-MM') AS MOIS, COUNT(*) AS TOTAL
+            FROM V_ALL_DEMANDES
+            WHERE DATE_CREATION IS NOT NULL
+            GROUP BY TO_CHAR(DATE_CREATION,'YYYY-MM')
+            ORDER BY MOIS
+            """, nativeQuery = true)
+    List<Object[]> countGroupByMois();
+
+    @Query(value = """
+            SELECT TO_CHAR(DATE_CREATION,'YYYY-MM') AS MOIS,
+                   NVL(TYPE,'INCONNU')              AS TYPE_VAL,
+                   COUNT(*)                         AS TOTAL
+            FROM V_ALL_DEMANDES
+            WHERE DATE_CREATION IS NOT NULL
+            GROUP BY TO_CHAR(DATE_CREATION,'YYYY-MM'), TYPE
+            ORDER BY MOIS, TYPE
+            """, nativeQuery = true)
+    List<Object[]> countGroupByMoisAndType();
+
+    /* ═══════════════════════════════════════════════════════════
+       STATS CONGÉS — LEAVE_REQUESTS
+       Statuts : EN_ATTENTE | VALIDE_CHEF | VALIDE_RH | REFUSE | ANNULE
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = "SELECT COUNT(*) FROM LEAVE_REQUESTS",
+            nativeQuery = true)
+    long countTotalConges();
+
+    @Query(value = "SELECT COUNT(*) FROM LEAVE_REQUESTS WHERE STATUS = 'VALIDE_RH'",
+            nativeQuery = true)
+    long countCongesValides();
+
+    @Query(value = "SELECT COUNT(*) FROM LEAVE_REQUESTS WHERE STATUS = 'REFUSE'",
+            nativeQuery = true)
+    long countCongesRefuses();
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM LEAVE_REQUESTS
+            WHERE STATUS IN ('EN_ATTENTE','VALIDE_CHEF')
+            """, nativeQuery = true)
+    long countCongesEnAttente();
+
+    @Query(value = """
+            SELECT NVL(ROUND(AVG(DAYS_COUNT), 2), 0)
+            FROM LEAVE_REQUESTS
+            WHERE DAYS_COUNT IS NOT NULL AND DAYS_COUNT > 0
+            """, nativeQuery = true)
+    Double avgJoursConge();
+
+    @Query(value = """
+            SELECT TO_CHAR(CREATED_AT,'YYYY-MM') AS MOIS, COUNT(*) AS TOTAL
+            FROM LEAVE_REQUESTS
+            WHERE CREATED_AT IS NOT NULL
+            GROUP BY TO_CHAR(CREATED_AT,'YYYY-MM')
+            ORDER BY MOIS
+            """, nativeQuery = true)
+    List<Object[]> countCongesGroupByMois();
+
+    /* ═══════════════════════════════════════════════════════════
+       STATS FORMATIONS — TRAINING_REQUESTS
+       Statuts : EN_ATTENTE | APPROUVE_CHEF | APPROUVE_RH | REFUSE | ANNULE
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = "SELECT COUNT(*) FROM TRAINING_REQUESTS",
+            nativeQuery = true)
+    long countTotalFormations();
+
+    @Query(value = "SELECT COUNT(*) FROM TRAINING_REQUESTS WHERE STATUS = 'APPROUVE_RH'",
+            nativeQuery = true)
+    long countFormationsValidees();
+
+    @Query(value = "SELECT COUNT(*) FROM TRAINING_REQUESTS WHERE STATUS = 'REFUSE'",
+            nativeQuery = true)
+    long countFormationsRefusees();
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM TRAINING_REQUESTS
+            WHERE STATUS IN ('EN_ATTENTE','APPROUVE_CHEF')
+            """, nativeQuery = true)
+    long countFormationsEnAttente();
+
+    @Query(value = """
+            SELECT NVL(SUM(ESTIMATED_COST), 0)
+            FROM TRAINING_REQUESTS
+            WHERE STATUS = 'APPROUVE_RH'
+            """, nativeQuery = true)
+    double sumBudgetFormations();
+
+    @Query(value = """
+            SELECT NVL(ROUND(AVG(DURATION_DAYS), 2), 0)
+            FROM TRAINING_REQUESTS
+            WHERE DURATION_DAYS IS NOT NULL AND DURATION_DAYS > 0
+            """, nativeQuery = true)
+    double avgDureeFormations();
+
+    @Query(value = """
+            SELECT TO_CHAR(CREATED_AT,'YYYY-MM') AS MOIS, COUNT(*) AS TOTAL
+            FROM TRAINING_REQUESTS
+            WHERE CREATED_AT IS NOT NULL
+            GROUP BY TO_CHAR(CREATED_AT,'YYYY-MM')
+            ORDER BY MOIS
+            """, nativeQuery = true)
+    List<Object[]> countFormationsGroupByMois();
+
+    /* ═══════════════════════════════════════════════════════════
+       KPIs TEMPS RÉEL
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT COUNT(DISTINCT EMPLOYEE_ID)
+            FROM LEAVE_REQUESTS
+            WHERE STATUS = 'VALIDE_RH'
+              AND TRUNC(SYSDATE) BETWEEN TRUNC(START_DATE) AND TRUNC(END_DATE)
+            """, nativeQuery = true)
+    long countAbsentsAujourdhui();
+
+    /**
+     * Absents aujourd'hui dans un département spécifique (pour le Chef).
+     */
+    @Query(value = """
+            SELECT COUNT(DISTINCT lr.EMPLOYEE_ID)
+            FROM LEAVE_REQUESTS lr
+            JOIN EMPLOYEES e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            WHERE lr.STATUS = 'VALIDE_RH'
+              AND e.DEPT_ID = :deptId
+              AND TRUNC(SYSDATE) BETWEEN TRUNC(lr.START_DATE) AND TRUNC(lr.END_DATE)
+            """, nativeQuery = true)
+    long countAbsentsAujourdhuiParDept(@Param("deptId") Long deptId);
+
+    @Query(value = "SELECT COUNT(*) FROM PROJECTS WHERE STATUS = 'EN_COURS'",
+            nativeQuery = true)
+    long countProjetsActifs();
+
+    /**
+     * Projets actifs dans un département spécifique (pour le Chef).
+     */
+    @Query(value = """
+            SELECT COUNT(*) FROM PROJECTS
+            WHERE STATUS = 'EN_COURS' AND DEPT_ID = :deptId
+            """, nativeQuery = true)
+    long countProjetsActifsParDept(@Param("deptId") Long deptId);
+
+    @Query(value = "SELECT COUNT(*) FROM TASKS WHERE STATUS <> 'TERMINE'",
+            nativeQuery = true)
+    long countTachesOuvertes();
+
+    /**
+     * Tâches ouvertes dans les projets d'un département (pour le Chef).
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM TASKS t
+            JOIN PROJECTS p ON t.PROJECT_ID = p.PROJECT_ID
+            WHERE t.STATUS  <> 'TERMINE'
+              AND p.DEPT_ID = :deptId
+            """, nativeQuery = true)
+    long countTachesOuvertesParDept(@Param("deptId") Long deptId);
+
+    /**
+     * Taux d'absentéisme global mois courant (CTE pour éviter ORA-00937).
+     * Retourne 0 si aucun employé actif ou aucun congé ce mois.
+     */
+    @Query(value = """
+            WITH total_dispo AS (
+                SELECT COUNT(*) * 22 AS DISPO
+                FROM EMPLOYEES
+                WHERE STATUS = 'ACTIF'
+            )
+            SELECT NVL(
+                ROUND(
+                    NVL(SUM(lr.DAYS_COUNT), 0) * 100.0
+                    / NULLIF(td.DISPO, 0),
+                    2
+                ), 0
+            )
+            FROM LEAVE_REQUESTS lr, total_dispo td
+            WHERE lr.STATUS = 'VALIDE_RH'
+              AND TO_CHAR(lr.START_DATE,'YYYY-MM') = TO_CHAR(SYSDATE,'YYYY-MM')
+            GROUP BY td.DISPO
+            """, nativeQuery = true)
+    Double getTauxAbsenteismeMoisCourant();
+
+    /**
+     * Taux d'absentéisme pour un département spécifique mois courant.
+     */
+    @Query(value = """
+            WITH dispo AS (
+                SELECT COUNT(*) * 22 AS DISPO
+                FROM EMPLOYEES
+                WHERE STATUS = 'ACTIF' AND DEPT_ID = :deptId
+            )
+            SELECT NVL(
+                ROUND(
+                    NVL(SUM(lr.DAYS_COUNT), 0) * 100.0
+                    / NULLIF(d.DISPO, 0),
+                    2
+                ), 0
+            )
+            FROM LEAVE_REQUESTS lr
+            JOIN EMPLOYEES e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID, dispo d
+            WHERE lr.STATUS = 'VALIDE_RH'
+              AND e.DEPT_ID = :deptId
+              AND TO_CHAR(lr.START_DATE,'YYYY-MM') = TO_CHAR(SYSDATE,'YYYY-MM')
+            GROUP BY d.DISPO
+            """, nativeQuery = true)
+    Double getTauxAbsenteismeParDept(@Param("deptId") Long deptId);
+
+    /* ═══════════════════════════════════════════════════════════
+       RAPPORTS JASPER — CONGÉS (globaux + filtrés par dept)
+       Colonnes : REQUESTID, MATRICULE, EMPLOYE_NOM, DEPARTEMENT,
+                  DATE_DEBUT, DATE_FIN, NB_JOURS, STATUT, MOTIF,
+                  COMMENTAIRE_RH, DATE_CREATION
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT
+                lr.REQUEST_ID                                           AS REQUESTID,
+                NVL(e.EMPLOYEE_CODE, 'N/A')                             AS MATRICULE,
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')     AS EMPLOYE_NOM,
+                NVL(d.NAME, 'Non défini')                               AS DEPARTEMENT,
+                TO_CHAR(lr.START_DATE,  'DD/MM/YYYY')                  AS DATE_DEBUT,
+                TO_CHAR(lr.END_DATE,    'DD/MM/YYYY')                  AS DATE_FIN,
+                NVL(lr.DAYS_COUNT, 0)                                   AS NB_JOURS,
+                lr.STATUS                                               AS STATUT,
+                NVL(lr.REASON, '-')                                     AS MOTIF,
+                NVL(lr.REJECTION_REASON, '-')                           AS COMMENTAIRE_RH,
+                TO_CHAR(lr.CREATED_AT, 'DD/MM/YYYY HH24:MI')           AS DATE_CREATION
+            FROM LEAVE_REQUESTS lr
+            JOIN      EMPLOYEES   e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            LEFT JOIN DEPARTMENTS d ON e.DEPT_ID      = d.DEPT_ID
+            ORDER BY lr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> listeCongesForReport();
+
+    @Query(value = """
+            SELECT
+                lr.REQUEST_ID                                           AS REQUESTID,
+                NVL(e.EMPLOYEE_CODE, 'N/A')                             AS MATRICULE,
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')     AS EMPLOYE_NOM,
+                NVL(d.NAME, 'Non défini')                               AS DEPARTEMENT,
+                TO_CHAR(lr.START_DATE,  'DD/MM/YYYY')                  AS DATE_DEBUT,
+                TO_CHAR(lr.END_DATE,    'DD/MM/YYYY')                  AS DATE_FIN,
+                NVL(lr.DAYS_COUNT, 0)                                   AS NB_JOURS,
+                lr.STATUS                                               AS STATUT,
+                NVL(lr.REASON, '-')                                     AS MOTIF,
+                NVL(lr.REJECTION_REASON, '-')                           AS COMMENTAIRE_RH,
+                TO_CHAR(lr.CREATED_AT, 'DD/MM/YYYY HH24:MI')           AS DATE_CREATION
+            FROM LEAVE_REQUESTS lr
+            JOIN EMPLOYEES   e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            JOIN DEPARTMENTS d ON e.DEPT_ID      = d.DEPT_ID
+            WHERE d.DEPT_ID = :deptId
+            ORDER BY lr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> listeCongesParDepartement(@Param("deptId") Long deptId);
+
+    /* ═══════════════════════════════════════════════════════════
+       RAPPORTS JASPER — FORMATIONS (globaux + filtrés par dept)
+       Colonnes : REQUEST_ID, EMPLOYE_NOM, MATRICULE, DEPARTEMENT,
+                  TRAINING_TITLE, PROVIDER, PLANNED_DATE, DURATION_DAYS,
+                  ESTIMATED_COST, STATUT, DATE_CREATION
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT
+                tr.REQUEST_ID                                           AS REQUEST_ID,
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')     AS EMPLOYE_NOM,
+                NVL(e.EMPLOYEE_CODE, 'N/A')                             AS MATRICULE,
+                NVL(d.NAME, 'Non défini')                               AS DEPARTEMENT,
+                tr.TRAINING_TITLE                                       AS TRAINING_TITLE,
+                NVL(tr.PROVIDER, 'Interne')                             AS PROVIDER,
+                TO_CHAR(tr.PLANNED_DATE, 'DD/MM/YYYY')                 AS PLANNED_DATE,
+                NVL(tr.DURATION_DAYS, 0)                                AS DURATION_DAYS,
+                NVL(tr.ESTIMATED_COST, 0)                               AS ESTIMATED_COST,
+                tr.STATUS                                               AS STATUT,
+                TO_CHAR(tr.CREATED_AT, 'DD/MM/YYYY HH24:MI')           AS DATE_CREATION
+            FROM TRAINING_REQUESTS tr
+            JOIN      EMPLOYEES   e ON tr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            LEFT JOIN DEPARTMENTS d ON e.DEPT_ID      = d.DEPT_ID
+            ORDER BY tr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> listeFormationsForReport();
+
+    @Query(value = """
+            SELECT
+                tr.REQUEST_ID                                           AS REQUEST_ID,
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')     AS EMPLOYE_NOM,
+                NVL(e.EMPLOYEE_CODE, 'N/A')                             AS MATRICULE,
+                NVL(d.NAME, 'Non défini')                               AS DEPARTEMENT,
+                tr.TRAINING_TITLE                                       AS TRAINING_TITLE,
+                NVL(tr.PROVIDER, 'Interne')                             AS PROVIDER,
+                TO_CHAR(tr.PLANNED_DATE, 'DD/MM/YYYY')                 AS PLANNED_DATE,
+                NVL(tr.DURATION_DAYS, 0)                                AS DURATION_DAYS,
+                NVL(tr.ESTIMATED_COST, 0)                               AS ESTIMATED_COST,
+                tr.STATUS                                               AS STATUT,
+                TO_CHAR(tr.CREATED_AT, 'DD/MM/YYYY HH24:MI')           AS DATE_CREATION
+            FROM TRAINING_REQUESTS tr
+            JOIN EMPLOYEES   e ON tr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            JOIN DEPARTMENTS d ON e.DEPT_ID      = d.DEPT_ID
+            WHERE d.DEPT_ID = :deptId
+            ORDER BY tr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> listeFormationsParDepartement(@Param("deptId") Long deptId);
+
+    /* ═══════════════════════════════════════════════════════════
+       FICHE EMPLOYÉ — Historique depuis V_ALL_DEMANDES
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT
+                NVL(TYPE,'-')                               AS TYPE_VAL,
+                NVL(STATUT,'-')                             AS STATUT_VAL,
+                TO_CHAR(DATE_CREATION,'DD/MM/YYYY')         AS DATE_CREATION,
+                NVL(DESCRIPTION,'-')                        AS DESCRIPTION
+            FROM V_ALL_DEMANDES
+            WHERE EMPLOYE_ID = :employeeId
+            ORDER BY DATE_CREATION DESC NULLS LAST
+            """, nativeQuery = true)
+    List<Object[]> demandesParEmploye(@Param("employeeId") Long employeeId);
+
+    /* ═══════════════════════════════════════════════════════════
+       STATS PAR DÉPARTEMENT (dashboard global RH)
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT
+                dep.NAME                                                        AS DEPT_NAME,
+                COUNT(DISTINCT e.EMPLOYEE_ID)                                   AS HEADCOUNT,
+                NVL(SUM(CASE WHEN v.TYPE='CONGE'     THEN 1 ELSE 0 END),0)     AS NB_CONGES,
+                NVL(SUM(CASE WHEN v.TYPE='FORMATION' THEN 1 ELSE 0 END),0)     AS NB_FORMATIONS,
+                COUNT(DISTINCT p.PROJECT_ID)                                    AS NB_PROJETS
+            FROM DEPARTMENTS dep
+            LEFT JOIN EMPLOYEES      e ON e.DEPT_ID    = dep.DEPT_ID
+                                                 AND e.STATUS     = 'ACTIF'
+            LEFT JOIN V_ALL_DEMANDES v ON v.EMPLOYE_ID = e.EMPLOYEE_ID
+            LEFT JOIN PROJECTS       p ON p.DEPT_ID    = dep.DEPT_ID
+                                                 AND p.STATUS     = 'EN_COURS'
+            GROUP BY dep.DEPT_ID, dep.NAME
+            ORDER BY dep.NAME
+            """, nativeQuery = true)
+    List<Object[]> statsParDepartement();
+
+    /* ═══════════════════════════════════════════════════════════
+       TOP 5 — Employés les plus absents (année courante)
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT *
+            FROM (
+                SELECT
+                    NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')   AS NOM,
+                    NVL(d.NAME,'Non défini')                              AS DEPARTEMENT,
+                    NVL(SUM(lr.DAYS_COUNT), 0)                            AS TOTAL_JOURS
+                FROM LEAVE_REQUESTS lr
+                JOIN      EMPLOYEES   e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                LEFT JOIN DEPARTMENTS d ON e.DEPT_ID      = d.DEPT_ID
+                WHERE lr.STATUS = 'VALIDE_RH'
+                  AND TO_CHAR(lr.START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')
+                GROUP BY e.EMPLOYEE_ID, e.FIRST_NAME, e.LAST_NAME, d.NAME
+                ORDER BY TOTAL_JOURS DESC
+            )
+            WHERE ROWNUM <= 5
+            """, nativeQuery = true)
+    List<Object[]> top5EmployesAbsences();
+
+    @Query(value = """
+    SELECT e.FIRST_NAME, e.LAST_NAME, e.EMPLOYEE_CODE, d.NAME as DEPT_NAME,
+           e.EMAIL, e.PHONE, TO_CHAR(e.HIRE_DATE, 'DD/MM/YYYY') as HIRE_DATE
+    FROM EMPLOYEES e
+    LEFT JOIN DEPARTMENTS d ON e.DEPT_ID = d.DEPT_ID
+    WHERE e.EMPLOYEE_ID = :id
+    """, nativeQuery = true)
+    List<Object[]> findEmployeBasicInfos(@Param("id") Long id);
+
+    /**
+     * Top 5 absences dans un département spécifique (pour le Chef).
+     */
+    @Query(value = """
+            SELECT *
+            FROM (
+                SELECT
+                    NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')   AS NOM,
+                    NVL(d.NAME,'Non défini')                              AS DEPARTEMENT,
+                    NVL(SUM(lr.DAYS_COUNT), 0)                            AS TOTAL_JOURS
+                FROM LEAVE_REQUESTS lr
+                JOIN EMPLOYEES   e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                JOIN DEPARTMENTS d ON e.DEPT_ID      = d.DEPT_ID
+                WHERE lr.STATUS = 'VALIDE_RH'
+                  AND d.DEPT_ID = :deptId
+                  AND TO_CHAR(lr.START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')
+                GROUP BY e.EMPLOYEE_ID, e.FIRST_NAME, e.LAST_NAME, d.NAME
+                ORDER BY TOTAL_JOURS DESC
+            )
+            WHERE ROWNUM <= 5
+            """, nativeQuery = true)
+    List<Object[]> top5EmployesAbsencesParDept(@Param("deptId") Long deptId);
+
+    /* ═══════════════════════════════════════════════════════════
+       RAPPORTS — PROJETS (globaux + filtrés par département)
+       Colonnes : PROJET, CHEF_NOM, NB_MEMBRES, PROGRESSION, STATUT
+       ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT
+                p.NAME                                                                  AS PROJET,
+                NVL(p.PRIORITY, 'NORMALE')                                              AS PRIORITE,
+                TO_CHAR(p.START_DATE, 'DD/MM/YYYY')                                    AS DATE_DEBUT,
+                TO_CHAR(p.END_DATE,   'DD/MM/YYYY')                                    AS DATE_FIN,
+                COUNT(DISTINCT pm.EMPLOYEE_ID)                                          AS NB_MEMBRES,
+                COUNT(DISTINCT t.TASK_ID)                                               AS TOTAL_TACHES,
+                COUNT(DISTINCT CASE WHEN t.STATUS = 'TERMINE' THEN t.TASK_ID END)      AS TACHES_COMPLETEES,
+                NVL(p.PROGRESS_PCT, 0)                                                  AS PROGRESSION,
+                p.STATUS                                                                AS STATUT
+            FROM PROJECTS p
+            LEFT JOIN PROJECT_MEMBERS pm ON pm.PROJECT_ID = p.PROJECT_ID
+                                               AND pm.IS_ACTIVE = 1
+            LEFT JOIN TASKS t            ON t.PROJECT_ID  = p.PROJECT_ID
+            GROUP BY p.PROJECT_ID, p.NAME, p.PRIORITY, p.START_DATE, p.END_DATE,
+                     p.PROGRESS_PCT, p.STATUS
+            ORDER BY CASE NVL(p.PRIORITY,'NORMALE')
+                         WHEN 'CRITIQUE' THEN 1 WHEN 'HAUTE' THEN 2
+                         WHEN 'NORMALE'  THEN 3 ELSE 4 END, p.NAME
+            """, nativeQuery = true)
+    List<Object[]> listeProjetsForReport();
+
+    @Query(value = """
+            SELECT
+                p.NAME                                                                  AS PROJET,
+                NVL(p.PRIORITY, 'NORMALE')                                              AS PRIORITE,
+                TO_CHAR(p.START_DATE, 'DD/MM/YYYY')                                    AS DATE_DEBUT,
+                TO_CHAR(p.END_DATE,   'DD/MM/YYYY')                                    AS DATE_FIN,
+                COUNT(DISTINCT pm.EMPLOYEE_ID)                                          AS NB_MEMBRES,
+                COUNT(DISTINCT t.TASK_ID)                                               AS TOTAL_TACHES,
+                COUNT(DISTINCT CASE WHEN t.STATUS = 'TERMINE' THEN t.TASK_ID END)      AS TACHES_COMPLETEES,
+                NVL(p.PROGRESS_PCT, 0)                                                  AS PROGRESSION,
+                p.STATUS                                                                AS STATUT
+            FROM PROJECTS p
+            LEFT JOIN PROJECT_MEMBERS pm ON pm.PROJECT_ID = p.PROJECT_ID
+                                               AND pm.IS_ACTIVE = 1
+            LEFT JOIN TASKS t            ON t.PROJECT_ID  = p.PROJECT_ID
+            WHERE p.CREATED_BY = :employeeId
+            GROUP BY p.PROJECT_ID, p.NAME, p.PRIORITY, p.START_DATE, p.END_DATE,
+                     p.PROGRESS_PCT, p.STATUS
+            ORDER BY CASE NVL(p.PRIORITY,'NORMALE')
+                         WHEN 'CRITIQUE' THEN 1 WHEN 'HAUTE' THEN 2
+                         WHEN 'NORMALE'  THEN 3 ELSE 4 END, p.NAME
+            """, nativeQuery = true)
+    List<Object[]> listeProjetsParCreateur(@Param("employeeId") Long employeeId);
+
+    @Query(value = """
+            SELECT EMPLOYEE_ID
+            FROM EMPLOYEES
+            WHERE EMAIL = :email
+              AND STATUS = 'ACTIF'
+            """, nativeQuery = true)
+    Long findEmployeeIdByEmail(@Param("email") String email);
+
+    /* ═══════════════════════════════════════════════════════════
+        RAPPORTS FRONTEND — colonnes = clés attendues par Angular
+        ═══════════════════════════════════════════════════════════ */
+
+    /** Colonnes : employe, type, debut, fin, jours, statut */
+    @Query(value = """
+            SELECT
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'') AS employe,
+                'Congé'                                                   AS type,
+                TO_CHAR(lr.START_DATE,'DD/MM/YYYY')                      AS debut,
+                TO_CHAR(lr.END_DATE,  'DD/MM/YYYY')                      AS fin,
+                NVL(lr.DAYS_COUNT, 0)                                 AS jours,
+                lr.STATUS                                                AS statut
+            FROM LEAVE_REQUESTS lr
+            JOIN EMPLOYEES e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            ORDER BY lr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> rapportConges();
+
+    /** Colonnes : employe, formation, duree, cout, statut */
+    @Query(value = """
+            SELECT
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'') AS employe,
+                NVL(tr.TRAINING_TITLE, '-')                           AS formation,
+                NVL(tr.DURATION_DAYS, 0)                            AS duree,
+                NVL(tr.ESTIMATED_COST, 0)                          AS cout,
+                tr.STATUS                                            AS statut
+            FROM TRAINING_REQUESTS tr
+            JOIN EMPLOYEES e ON tr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            ORDER BY tr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> rapportFormations();
+
+    /** Colonnes : projet, priorite, debut, fin, equipe, taches, progression, statut */
+    @Query(value = """
+            SELECT
+                p.NAME                                                        AS projet,
+                NVL(p.PRIORITY, 'NORMALE')                                   AS priorite,
+                TO_CHAR(p.START_DATE, 'DD/MM/YYYY')                          AS debut,
+                TO_CHAR(p.END_DATE,   'DD/MM/YYYY')                          AS fin,
+                COUNT(DISTINCT pm.EMPLOYEE_ID)                                AS equipe,
+                COUNT(DISTINCT t.TASK_ID)                                     AS taches,
+                NVL(p.PROGRESS_PCT, 0)                                      AS progression,
+                p.STATUS                                                        AS statut
+            FROM PROJECTS p
+            LEFT JOIN PROJECT_MEMBERS pm ON pm.PROJECT_ID = p.PROJECT_ID
+                                                       AND pm.IS_ACTIVE = 1
+            LEFT JOIN TASKS t            ON t.PROJECT_ID  = p.PROJECT_ID
+            GROUP BY p.PROJECT_ID, p.NAME, p.PRIORITY, p.START_DATE, p.END_DATE,
+                     p.PROGRESS_PCT, p.STATUS
+            ORDER BY p.NAME
+            """, nativeQuery = true)
+    List<Object[]> rapportProjets();
+
+    /* ═══════════════════════════════════════════════════════════
+        ATTRITION — données par employé actif
+        ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT
+                e.EMPLOYEE_ID                                          AS EMPLOYEE_ID,
+                NVL(e.FIRST_NAME, '')                                 AS PRENOM,
+                NVL(e.LAST_NAME, '')                                  AS NOM,
+                NVL(d.NAME, 'Non défini')                            AS DEPARTEMENT,
+                NVL(e.JOB_TITLE, 'Non défini')                        AS POSTE,
+                e.PHOTO_URL                                           AS PHOTO,
+                e.HIRE_DATE                                           AS HIRE_DATE,
+                NVL((SELECT COUNT(*) FROM LEAVE_REQUESTS lr
+                      WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                        AND lr.STATUS = 'VALIDE_RH'
+                        AND TO_CHAR(lr.START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')), 0) AS CONGES_ANNEE,
+                NVL((SELECT COUNT(*) FROM LEAVE_REQUESTS lr
+                      WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                        AND lr.STATUS = 'REFUSE'), 0)               AS CONGES_REFUSES,
+                NVL((SELECT COUNT(*) FROM TRAINING_REQUESTS tr
+                      WHERE tr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                        AND tr.STATUS = 'APPROUVE_RH'), 0)        AS FORMATIONS
+            FROM EMPLOYEES e
+            LEFT JOIN DEPARTMENTS d ON e.DEPT_ID = d.DEPT_ID
+            WHERE e.STATUS = 'ACTIF'
+            """, nativeQuery = true)
+    List<Object[]> findAllEmployesForAttrition();
+
+    /* ═══════════════════════════════════════════════════════════
+        PERFORMANCE CHEF — agrégats projets globaux
+        ═══════════════════════════════════════════════════════════ */
+
+    @Query(value = """
+            SELECT
+                COUNT(*)                                                       AS TOTAL,
+                NVL(SUM(CASE WHEN STATUS = 'TERMINE'  THEN 1 ELSE 0 END), 0) AS TERMINES,
+                NVL(SUM(CASE WHEN STATUS = 'EN_COURS' THEN 1 ELSE 0 END), 0) AS EN_COURS
+            FROM PROJECTS
+            """, nativeQuery = true)
+    List<Object[]> globalProjectStats();
+
+    @Query(value = """
+            SELECT
+                COUNT(*)                                                       AS TOTAL,
+                NVL(SUM(CASE WHEN STATUS = 'TERMINE'  THEN 1 ELSE 0 END), 0) AS TERMINES,
+                NVL(SUM(CASE WHEN STATUS = 'EN_COURS' THEN 1 ELSE 0 END), 0) AS EN_COURS
+            FROM PROJECTS
+            WHERE DEPT_ID = :deptId
+            """, nativeQuery = true)
+    List<Object[]> globalProjectStatsParDept(@Param("deptId") Long deptId);
+
+    /** Colonnes : employe, departement, absences, score, appreciation */
+    @Query(value = """
+            SELECT
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')            AS employe,
+                NVL(d.NAME, 'Non défini')                                  AS departement,
+                NVL((SELECT COUNT(*)
+                      FROM LEAVE_REQUESTS lr
+                      WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                        AND lr.STATUS = 'VALIDE_RH'
+                        AND TO_CHAR(lr.START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')), 0) AS absences,
+                LEAST(100,
+                    NVL(CASE WHEN MONTHS_BETWEEN(SYSDATE, e.HIRE_DATE) < 12 THEN 25
+                            WHEN MONTHS_BETWEEN(SYSDATE, e.HIRE_DATE) < 36 THEN 12
+                            ELSE 0 END, 0)
+                    + LEAST(NVL((SELECT COUNT(*)
+                          FROM LEAVE_REQUESTS lr
+                          WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                            AND lr.STATUS = 'VALIDE_RH'
+                            AND TO_CHAR(lr.START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')), 0) * 5, 25)
+                    + LEAST(NVL((SELECT COUNT(*)
+                          FROM LEAVE_REQUESTS lr
+                          WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID AND lr.STATUS = 'REFUSE'), 0) * 10, 15)
+                    + NVL(CASE WHEN (SELECT COUNT(*)
+                          FROM TRAINING_REQUESTS tr
+                          WHERE tr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                            AND tr.STATUS = 'APPROUVE_RH') = 0
+                          THEN 10 ELSE 0 END, 0)
+                )                                                               AS score,
+                'À évaluer'                                                  AS appreciation
+            FROM EMPLOYEES e
+            LEFT JOIN DEPARTMENTS d ON e.DEPT_ID = d.DEPT_ID
+            WHERE e.STATUS = 'ACTIF'
+            ORDER BY score DESC
+            """, nativeQuery = true)
+    List<Object[]> rapportPerformance();
+    /* ═══════════ RAPPORTS FRONTEND — ÉQUIPE DU CHEF (MANAGER_ID) ═══════════ */
+
+    @Query(value = """
+            SELECT
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'') AS employe,
+                'Congé'                                            AS type,
+                TO_CHAR(lr.START_DATE,'DD/MM/YYYY')                AS debut,
+                TO_CHAR(lr.END_DATE,  'DD/MM/YYYY')                AS fin,
+                NVL(lr.DAYS_COUNT, 0)                              AS jours,
+                lr.STATUS                                          AS statut
+            FROM LEAVE_REQUESTS lr
+            JOIN EMPLOYEES e ON lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            WHERE e.MANAGER_ID = :chefId
+            ORDER BY lr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> rapportCongesParEquipe(@Param("chefId") Long chefId);
+
+    @Query(value = """
+            SELECT
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'') AS employe,
+                NVL(tr.TRAINING_TITLE, '-')                        AS formation,
+                NVL(tr.DURATION_DAYS, 0)                           AS duree,
+                NVL(tr.ESTIMATED_COST, 0)                          AS cout,
+                tr.STATUS                                          AS statut
+            FROM TRAINING_REQUESTS tr
+            JOIN EMPLOYEES e ON tr.EMPLOYEE_ID = e.EMPLOYEE_ID
+            WHERE e.MANAGER_ID = :chefId
+            ORDER BY tr.CREATED_AT DESC
+            """, nativeQuery = true)
+    List<Object[]> rapportFormationsParEquipe(@Param("chefId") Long chefId);
+
+    @Query(value = """
+            SELECT
+                p.NAME                                AS projet,
+                NVL(p.PRIORITY, 'NORMALE')            AS priorite,
+                TO_CHAR(p.START_DATE, 'DD/MM/YYYY')   AS debut,
+                TO_CHAR(p.END_DATE,   'DD/MM/YYYY')   AS fin,
+                COUNT(DISTINCT pm.EMPLOYEE_ID)        AS equipe,
+                COUNT(DISTINCT t.TASK_ID)             AS taches,
+                NVL(p.PROGRESS_PCT, 0)                AS progression,
+                p.STATUS                              AS statut
+            FROM PROJECTS p
+            LEFT JOIN PROJECT_MEMBERS pm ON pm.PROJECT_ID = p.PROJECT_ID AND pm.IS_ACTIVE = 1
+            LEFT JOIN TASKS t            ON t.PROJECT_ID  = p.PROJECT_ID
+            WHERE p.CREATED_BY = :chefId
+               OR EXISTS (
+                    SELECT 1
+                    FROM PROJECT_MEMBERS pm2
+                    JOIN EMPLOYEES e2 ON pm2.EMPLOYEE_ID = e2.EMPLOYEE_ID
+                    WHERE pm2.PROJECT_ID = p.PROJECT_ID
+                      AND pm2.IS_ACTIVE  = 1
+                      AND e2.MANAGER_ID  = :chefId)
+            GROUP BY p.PROJECT_ID, p.NAME, p.PRIORITY, p.START_DATE, p.END_DATE,
+                     p.PROGRESS_PCT, p.STATUS
+            ORDER BY p.NAME
+            """, nativeQuery = true)
+    List<Object[]> rapportProjetsParEquipe(@Param("chefId") Long chefId);
+
+    @Query(value = """
+            SELECT
+                NVL(e.FIRST_NAME,'') || ' ' || NVL(e.LAST_NAME,'')            AS employe,
+                NVL(d.NAME, 'Non défini')                                     AS departement,
+                NVL((SELECT COUNT(*) FROM LEAVE_REQUESTS lr
+                      WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                        AND lr.STATUS = 'VALIDE_RH'
+                        AND TO_CHAR(lr.START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')), 0) AS absences,
+                LEAST(100,
+                    NVL(CASE WHEN MONTHS_BETWEEN(SYSDATE, e.HIRE_DATE) < 12 THEN 25
+                             WHEN MONTHS_BETWEEN(SYSDATE, e.HIRE_DATE) < 36 THEN 12
+                             ELSE 0 END, 0)
+                    + LEAST(NVL((SELECT COUNT(*) FROM LEAVE_REQUESTS lr
+                          WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                            AND lr.STATUS = 'VALIDE_RH'
+                            AND TO_CHAR(lr.START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')), 0) * 5, 25)
+                    + LEAST(NVL((SELECT COUNT(*) FROM LEAVE_REQUESTS lr
+                          WHERE lr.EMPLOYEE_ID = e.EMPLOYEE_ID AND lr.STATUS = 'REFUSE'), 0) * 10, 15)
+                    + NVL(CASE WHEN (SELECT COUNT(*) FROM TRAINING_REQUESTS tr
+                          WHERE tr.EMPLOYEE_ID = e.EMPLOYEE_ID
+                            AND tr.STATUS = 'APPROUVE_RH') = 0
+                          THEN 10 ELSE 0 END, 0)
+                )                                                             AS score,
+                'À évaluer'                                                   AS appreciation
+            FROM EMPLOYEES e
+            LEFT JOIN DEPARTMENTS d ON e.DEPT_ID = d.DEPT_ID
+            WHERE e.STATUS = 'ACTIF'
+              AND e.MANAGER_ID = :chefId
+            ORDER BY score DESC
+            """, nativeQuery = true)
+    List<Object[]> rapportPerformanceParEquipe(@Param("chefId") Long chefId);
+
+    /* ═══════════════════════════════════════════════════════════
+       STATS PERSONNELLES EMPLOYÉ — pour employee-service
+       Filtrées par EMPLOYEE_ID depuis LEAVE_REQUESTS / TRAINING_REQUESTS
+       ═══════════════════════════════════════════════════════════ */
+
+    /**
+     * Total demandes de congé d'un employé.
+     */
+    @Query(value = "SELECT COUNT(*) FROM LEAVE_REQUESTS WHERE EMPLOYEE_ID = :employeeId",
+            nativeQuery = true)
+    long countCongesByEmployee(@Param("employeeId") Long employeeId);
+
+    /**
+     * Congés validés (VALIDE_RH) d'un employé.
+     */
+    @Query(value = "SELECT COUNT(*) FROM LEAVE_REQUESTS WHERE EMPLOYEE_ID = :employeeId AND STATUS = 'VALIDE_RH'",
+            nativeQuery = true)
+    long countCongesValidesByEmployee(@Param("employeeId") Long employeeId);
+
+    /**
+     * Congés refusés d'un employé.
+     */
+    @Query(value = "SELECT COUNT(*) FROM LEAVE_REQUESTS WHERE EMPLOYEE_ID = :employeeId AND STATUS = 'REFUSE'",
+            nativeQuery = true)
+    long countCongesRefusesByEmployee(@Param("employeeId") Long employeeId);
+
+    /**
+     * Jours de congé validés année courante pour un employé (quota restant).
+     */
+    @Query(value = """
+            SELECT NVL(SUM(DAYS_COUNT), 0)
+            FROM LEAVE_REQUESTS
+            WHERE EMPLOYEE_ID = :employeeId
+              AND STATUS = 'VALIDE_RH'
+              AND TO_CHAR(START_DATE,'YYYY') = TO_CHAR(SYSDATE,'YYYY')
+            """, nativeQuery = true)
+    double sumJoursCongeAnneeCouranteByEmployee(@Param("employeeId") Long employeeId);
+
+    /**
+     * Total demandes de formation d'un employé.
+     */
+    @Query(value = "SELECT COUNT(*) FROM TRAINING_REQUESTS WHERE EMPLOYEE_ID = :employeeId",
+            nativeQuery = true)
+    long countFormationsByEmployee(@Param("employeeId") Long employeeId);
+
+    /**
+     * Formations validées (APPROUVE_RH) d'un employé.
+     */
+    @Query(value = "SELECT COUNT(*) FROM TRAINING_REQUESTS WHERE EMPLOYEE_ID = :employeeId AND STATUS = 'APPROUVE_RH'",
+            nativeQuery = true)
+    long countFormationsValideesByEmployee(@Param("employeeId") Long employeeId);
+}

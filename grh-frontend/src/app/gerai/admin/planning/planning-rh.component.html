@@ -1,0 +1,181 @@
+<div class="planning-page">
+
+  <!-- ── Header ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-calendar-stats"></i></div>
+      <div>
+        <h1 class="page-title">Planning RH</h1>
+        <p class="page-sub">Visualisez les absences simultanées et planifiez les congés</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI strip ─────────────────────────────────── -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <i class="ti ti-user-off kpi-ico kpi-ico-red"></i>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ kpi.absentToday }}</span>
+        <span class="kpi-lbl">Absent(s) aujourd'hui</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-users kpi-ico kpi-ico-amber"></i>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ kpi.absentPeriod }}</span>
+        <span class="kpi-lbl">Absent(s) sur la période</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-circle-check kpi-ico kpi-ico-green"></i>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ kpi.total }}</span>
+        <span class="kpi-lbl">Congés approuvés</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <i class="ti ti-clock kpi-ico kpi-ico-blue"></i>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ kpi.enAttente }}</span>
+        <span class="kpi-lbl">En attente</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────── -->
+  <div class="toolbar">
+    <div class="nav-controls">
+      <button class="btn-nav" (click)="navigate(-1)" title="Précédent">
+        <i class="ti ti-chevron-left"></i>
+      </button>
+      <button class="btn-today" (click)="goToday()">Aujourd'hui</button>
+      <button class="btn-nav" (click)="navigate(1)" title="Suivant">
+        <i class="ti ti-chevron-right"></i>
+      </button>
+      <span class="period-label">{{ periodLabel }}</span>
+    </div>
+
+    <div class="view-toggle">
+      <button class="toggle-btn" [class.active]="viewMode === 'week'"  (click)="setViewMode('week')">
+        <i class="ti ti-calendar-week"></i> Semaine
+      </button>
+      <button class="toggle-btn" [class.active]="viewMode === 'month'" (click)="setViewMode('month')">
+        <i class="ti ti-calendar-month"></i> Mois
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Légende ───────────────────────────────────── -->
+  <div class="legend">
+    @for (t of allTypes; track t) {
+      <span class="legend-item">
+        <span class="legend-dot" [style.background]="typeColors[t]"></span>
+        {{ typeLabels[t] }}
+      </span>
+    }
+    <span class="legend-item legend-item-grey">
+      <span class="legend-dot legend-dot-grey"></span>
+      Week-end
+    </span>
+  </div>
+
+  <!-- ── Gantt ─────────────────────────────────────── -->
+  @if (loading) {
+    <div class="loading-wrap">
+      <div class="spinner-border" style="color:#6366F1"></div>
+      <p>Chargement…</p>
+    </div>
+  } @else {
+    <div class="gantt-wrap">
+      <table class="gantt-table">
+
+        <!-- Header : jours -->
+        <thead>
+          <tr>
+            <th class="th-emp">Employé</th>
+            @for (day of days; track day.getTime()) {
+              <th class="th-day"
+                  [class.th-today]="isToday(day)"
+                  [class.th-weekend]="isWeekend(day)">
+                <span class="day-name">{{ dayName(day) }}</span>
+                <span class="day-num" [class.today-num]="isToday(day)">{{ dayNum(day) }}</span>
+              </th>
+            }
+          </tr>
+        </thead>
+
+        <tbody>
+          @if (employees.length === 0) {
+            <tr>
+              <td [attr.colspan]="days.length + 1" class="empty-row">
+                <i class="ti ti-calendar-off"></i>
+                Aucun congé approuvé enregistré.
+              </td>
+            </tr>
+          } @else if (!hasLeavesInPeriod) {
+            <tr>
+              <td [attr.colspan]="days.length + 1" class="empty-row empty-row-hint">
+                <i class="ti ti-calendar-search"></i>
+                Aucun congé approuvé sur cette période. Utilisez &laquo;&nbsp;‹&nbsp;&raquo; / &laquo;&nbsp;›&nbsp;&raquo; pour naviguer vers une autre période.
+              </td>
+            </tr>
+          }
+          @for (emp of employees; track emp.id) {
+            <tr class="emp-row">
+
+              <!-- Employé -->
+              <td class="td-emp">
+                <div class="emp-cell">
+                  @if (emp.photo) {
+                    <img [src]="emp.photo" class="emp-avatar" [alt]="emp.nom" />
+                  } @else {
+                    <div class="emp-initials">{{ initiales(emp.nom) }}</div>
+                  }
+                  <div class="emp-info">
+                    <span class="emp-name">{{ emp.nom }}</span>
+                    @if (emp.dept) {
+                      <span class="emp-dept">{{ emp.dept }}</span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Jours -->
+              @for (day of days; track day.getTime()) {
+                @let cell = getCellInfo(emp, day);
+                <td class="td-day"
+                    [class.td-today]="isToday(day)"
+                    [class.td-weekend]="isWeekend(day)">
+                  @if (cell) {
+                    <div class="leave-bar"
+                         [class.bar-start]="cell.isStart"
+                         [class.bar-end]="cell.isEnd"
+                         [style.background]="cell.color + '30'"
+                         [style.border-color]="cell.color + '80'"
+                         [style.border-left-color]="cell.isStart ? cell.color : 'transparent'"
+                         [title]="typeLabels[cell.leave.typeConge] + ' — ' + cell.leave.raison">
+                      @if (cell.isStart) {
+                        <i class="{{ typeIcons[cell.leave.typeConge] }}"
+                           [style.color]="cell.color"></i>
+                      }
+                    </div>
+                  }
+                </td>
+              }
+
+            </tr>
+          }
+        </tbody>
+
+      </table>
+    </div>
+
+    <!-- Row count -->
+    <p class="row-count">
+      <i class="ti ti-users"></i>
+      {{ employees.length }} employé{{ employees.length > 1 ? 's' : '' }} avec des congés enregistrés
+    </p>
+  }
+
+</div>

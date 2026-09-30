@@ -1,0 +1,85 @@
+<!-- ── Floating bubble ─────────────────────────────────── -->
+<div class="ai-assistant-wrapper">
+
+  <!-- Toggle button -->
+  <button class="ai-fab" (click)="toggle()" [class.ai-fab--open]="isOpen" title="Assistant RH">
+    <i class="ti" [class.ti-message-chatbot]="!isOpen" [class.ti-x]="isOpen"></i>
+  </button>
+
+  <!-- Chat window -->
+  <div class="ai-chat-window" [class.ai-chat-window--visible]="isOpen">
+
+    <!-- Header -->
+    <div class="ai-chat-header">
+      <div class="ai-chat-header__info">
+        <div class="ai-chat-header__avatar">
+          <i class="ti ti-robot"></i>
+        </div>
+        <div>
+          <div class="ai-chat-header__name">Assistant RH</div>
+          <div class="ai-chat-header__status">
+            <span class="ai-status-dot"></span> SYNAPSE
+          </div>
+        </div>
+      </div>
+      <button class="ai-chat-header__close" (click)="toggle()">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="ai-messages" #messagesContainer>
+      <div
+        *ngFor="let msg of messages"
+        class="ai-message"
+        [class.ai-message--user]="msg.role === 'user'"
+        [class.ai-message--bot]="msg.role === 'assistant'">
+
+        <!-- Bot avatar -->
+        <div *ngIf="msg.role === 'assistant'" class="ai-message__avatar">
+          <i class="ti ti-robot"></i>
+        </div>
+
+        <!-- Bubble -->
+        <div class="ai-message__bubble">
+          <!-- Loading dots -->
+          <div *ngIf="msg.loading" class="ai-typing">
+            <span></span><span></span><span></span>
+          </div>
+          <!-- Content -->
+          <span *ngIf="!msg.loading" [innerHTML]="formatMessage(msg.content)"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick replies -->
+    <div class="ai-quick-replies" *ngIf="!isLoading">
+      <button
+        *ngFor="let q of quickReplies"
+        class="ai-chip"
+        (click)="send(q.text)">
+        {{ q.label }}
+      </button>
+    </div>
+
+    <!-- Input -->
+    <div class="ai-input-area">
+      <textarea
+        class="ai-input"
+        [(ngModel)]="inputText"
+        (keydown)="onEnter($event)"
+        placeholder="Posez votre question..."
+        rows="1"
+        [disabled]="isLoading">
+      </textarea>
+      <button
+        class="ai-send-btn"
+        (click)="send()"
+        [disabled]="!inputText.trim() || isLoading">
+        <i class="ti" [class.ti-send]="!isLoading" [class.ti-loader-2]="isLoading"
+           [class.ai-spin]="isLoading"></i>
+      </button>
+    </div>
+
+  </div>
+</div>

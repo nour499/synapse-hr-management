@@ -1,0 +1,54 @@
+HELP.md
+target/
+out/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Environment variables
+.env
+*.env
+
+# Logs
+*.log
+*-err.log
+run.log
+run.err
+
+# Secret scanner artifacts
+expressions.txt
+
+# Local scripts
+restart-*.ps1
+restart-*.bat
+start.bat
+start_direct.bat
+build.bat
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/

@@ -1,0 +1,332 @@
+// ── Tabs ──────────────────────────────────────────
+.tabs-container {
+  display: flex;
+  gap: 8px;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all .2s;
+
+  i {
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  &:hover:not(.active) {
+    border-color: #4680FF;
+    color: #4680FF;
+  }
+
+  &.active {
+    background: #4680FF;
+    border-color: #4680FF;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(70, 128, 255, .3);
+  }
+}
+
+.tab-badge {
+  background: #ff5370;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+
+  .active & {
+    background: rgba(255, 255, 255, .3);
+  }
+}
+
+// ── Table ─────────────────────────────────────────
+.table {
+  th {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 12px 16px;
+    border-top: none;
+    background: #f8fafc;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    font-size: 13px;
+    color: #374151;
+    border-color: #f1f5f9;
+  }
+
+  tbody tr {
+    transition: background .15s;
+
+    &:hover {
+      background: rgba(70, 128, 255, .03);
+    }
+  }
+}
+
+// ── Employé cell ──────────────────────────────────
+.employe-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.employe-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4680FF, #2952CC);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+// ── Type cell ─────────────────────────────────────
+.type-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  i {
+    font-size: 16px;
+    pointer-events: none;
+  }
+}
+
+// Bootstrap light colors (si non définis dans SharedModule)
+.bg-light-warning {
+  background: rgba(255, 182, 77, .15) !important;
+}
+
+.bg-light-success {
+  background: rgba(46, 216, 182, .15) !important;
+}
+
+.bg-light-danger {
+  background: rgba(255, 83, 112, .15) !important;
+}
+
+.bg-light-info {
+  background: rgba(62, 201, 214, .15) !important;
+}
+
+// ── Status pill ───────────────────────────────────
+.status-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+// ── Buttons ───────────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+
+  i {
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  &-success {
+    background: linear-gradient(135deg, #2ed8b6, #059e80);
+    border: none;
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(46, 216, 182, .35);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 16px rgba(46, 216, 182, .45);
+      color: #fff;
+    }
+  }
+
+  &-outline-danger {
+    border: 1.5px solid #ff5370;
+    color: #ff5370;
+    background: transparent;
+
+    &:hover {
+      background: rgba(255, 83, 112, .08);
+    }
+  }
+}
+
+// ── Empty state ───────────────────────────────────
+.empty-state {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: #94a3b8;
+
+  i {
+    font-size: 42px;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  p {
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+// ── Reject Modal ──────────────────────────────────────
+.reject-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.reject-box {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  overflow: hidden;
+}
+
+.reject-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F1F5F9;
+
+  h6 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #EF4444;
+  }
+}
+
+.reject-close {
+  background: none;
+  border: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #94A3B8;
+  transition: all .15s;
+
+  &:hover { background: #F1F5F9; color: #1E293B; }
+  i { font-size: 16px; }
+}
+
+.reject-body {
+  padding: 20px;
+
+  .reject-desc {
+    font-size: 13px;
+    color: #475569;
+    margin-bottom: 12px;
+  }
+
+  textarea.form-control {
+    resize: none;
+    font-size: 13px;
+    border-radius: 8px;
+    border-color: #E2E8F0;
+
+    &:focus { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+  }
+}
+
+.reject-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid #F1F5F9;
+  background: #FAFAFA;
+}
+
+// ── STYLE MODE DARK - Correctif Filtre ────────────────
+:host-context(.dark) ::ng-deep {
+
+  // ... (garde ton code précédent et ajoute ceci)
+
+  .alert-info {
+    background: rgba(59, 130, 246, 0.15) !important; // Fond bleu sombre transparent
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    color: #93c5fd !important; // Texte bleu très clair
+
+    // Le nom de l'employé est dans une balise <strong>
+    strong {
+      color: #ffffff !important; // Blanc pur pour faire ressortir le nom
+      text-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    }
+
+    // L'icône de filtre
+    i.ti-filter {
+      color: #60a5fa !important;
+    }
+
+    // Le bouton "Voir toutes" à l'intérieur de l'alerte
+    .btn-outline-secondary {
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      color: #f8fafc !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-color: #f8fafc !important;
+      }
+    }
+  }
+
+  // Petit correctif pour le texte "Traité" en mode dark
+  .text-muted.small {
+    color: #64748b !important;
+  }
+}

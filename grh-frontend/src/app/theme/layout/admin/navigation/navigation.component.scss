@@ -1,0 +1,151 @@
+// ── Sidebar scroll layout ─────────────────────────────────
+:host {
+  display: contents;
+}
+
+.navbar-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 56px; // leave room for logout button
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 2px;
+  }
+}
+
+// ── Activity dot on icon (unread notifications for this section) ──
+.pc-micon {
+  position: relative;
+
+  &.nav-has-activity::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #f59e0b;
+    border: 1.5px solid var(--pc-sidebar-bg, #fff);
+    animation: nav-dot-pulse 2s ease-in-out infinite;
+  }
+}
+
+.nav-text-bold {
+  font-weight: 600;
+}
+
+@keyframes nav-dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50%       { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0); }
+}
+
+// ── Notification bell badge (unread count) ─────────────────
+.pc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+// ── Sidebar logout footer ─────────────────────────────────
+.sidebar-logout {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  padding: 8px 0;
+  background: inherit;
+}
+
+.sidebar-logout-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-radius: 0 10px 10px 0;
+  margin-right: 12px;
+  color: #ef4444;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  .pc-micon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+
+    i {
+      font-size: 18px;
+      color: #ef4444;
+      pointer-events: none;
+    }
+  }
+
+  .pc-mtext {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+
+    .pc-micon {
+      background: rgba(239, 68, 68, 0.1);
+      i { color: #dc2626; }
+    }
+  }
+}
+
+// ── Dark mode ─────────────────────────────────────────────
+:host-context(body.dark) {
+  .sidebar-logout {
+    border-top-color: rgba(255, 255, 255, 0.07);
+  }
+
+  .sidebar-logout-link {
+    color: #f87171;
+
+    .pc-micon i { color: #f87171; }
+
+    &:hover {
+      background: rgba(248, 113, 113, 0.1);
+      color: #fca5a5;
+      .pc-micon i { color: #fca5a5; }
+    }
+  }
+}

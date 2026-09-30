@@ -1,0 +1,127 @@
+<div class="shortlist-page">
+
+  <div class="page-header">
+    <div>
+      <h2><i class="ti ti-star-filled"></i> Candidats Shortlistés</h2>
+      <p>{{ candidates.length }} candidat(s) présélectionné(s), triés par score</p>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="loading-state"><i class="ti ti-loader-2 spin"></i> Chargement…</div>
+  } @else if (candidates.length === 0) {
+    <div class="empty-state">
+      <i class="ti ti-star"></i>
+      <p>Aucun candidat shortlisté pour le moment</p>
+    </div>
+  } @else {
+    @for (group of byDepartement; track group.dept) {
+      <div class="dept-group">
+        <div class="dept-title">
+          <i class="ti ti-building"></i> {{ group.dept }}
+          <span class="dept-count">{{ group.list.length }}</span>
+        </div>
+
+        <div class="shortlist-grid">
+          @for (c of group.list; track c.id) {
+            <div class="sl-card" (click)="openDetail(c)">
+              <div class="sl-rank">#{{ candidates.indexOf(c) + 1 }}</div>
+
+              <div class="sl-top">
+                @if (c.photo) {
+                  <img [src]="c.photo" [alt]="c.nom" class="avatar" />
+                } @else {
+                  <span class="avatar-init">{{ initials(c) }}</span>
+                }
+                <div class="sl-info">
+                  <span class="sl-name">{{ c.prenom }} {{ c.nom }}</span>
+                  <span class="sl-job">{{ c.jobTitre }}</span>
+                  <span class="statut-chip" [style.background]="statutColor(c.statut) + '22'" [style.color]="statutColor(c.statut)">
+                    {{ statutLabels[c.statut] }}
+                  </span>
+                </div>
+              </div>
+
+              @if (c.score) {
+                <div class="sl-score">
+                  <div class="score-track">
+                    <div class="score-fill" [style.width.%]="c.score" [ngClass]="scoreClass(c.score)"></div>
+                  </div>
+                  <span class="score-val" [ngClass]="scoreClass(c.score)">{{ c.score }}/100</span>
+                </div>
+              }
+
+              <div class="sl-competences">
+                @for (comp of c.competences.slice(0,3); track comp) {
+                  <span class="comp-tag">{{ comp }}</span>
+                }
+                @if (c.competences.length > 3) {
+                  <span class="comp-more">+{{ c.competences.length - 3 }}</span>
+                }
+              </div>
+
+              <div class="sl-actions" (click)="$event.stopPropagation()">
+                @if (c.statut !== 'OFFRE_ENVOYEE' && c.statut !== 'EMBAUCHE') {
+                  <button class="btn-offer" (click)="promoteToOffer(c)">
+                    <i class="ti ti-send"></i> Envoyer offre
+                  </button>
+                }
+                <button class="btn-remove" (click)="removeFromShortlist(c)">
+                  <i class="ti ti-star"></i>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>
+
+<!-- Detail Drawer -->
+@if (selected) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <aside class="detail-drawer">
+    <div class="drawer-header">
+      <div>
+        <h3>{{ selected.prenom }} {{ selected.nom }}</h3>
+        <p>{{ selected.jobTitre }}</p>
+      </div>
+      <button class="btn-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="dr-row"><strong>Email :</strong> {{ selected.email }}</div>
+      <div class="dr-row"><strong>Téléphone :</strong> {{ selected.telephone }}</div>
+      <div class="dr-row"><strong>Expérience :</strong> {{ selected.experience }} an(s)</div>
+      @if (selected.localisation) {
+        <div class="dr-row"><strong>Localisation :</strong> {{ selected.localisation }}</div>
+      }
+      @if (selected.score) {
+        <div class="dr-row"><strong>Score :</strong>
+          <span class="score-chip" [ngClass]="scoreClass(selected.score)">{{ selected.score }}/100</span>
+        </div>
+      }
+      <div class="dr-row">
+        <strong>Compétences :</strong>
+        <div class="comp-list">
+          @for (comp of selected.competences; track comp) {
+            <span class="comp-tag">{{ comp }}</span>
+          }
+        </div>
+      </div>
+      @if (selected.noteRecruteur) {
+        <div class="dr-note">{{ selected.noteRecruteur }}</div>
+      }
+      <div class="dr-actions">
+        @if (selected.statut !== 'OFFRE_ENVOYEE' && selected.statut !== 'EMBAUCHE') {
+          <button class="btn-offer-lg" (click)="promoteToOffer(selected)">
+            <i class="ti ti-send"></i> Envoyer une offre
+          </button>
+        }
+        <button class="btn-remove-lg" (click)="removeFromShortlist(selected)">
+          <i class="ti ti-star"></i> Retirer de la shortlist
+        </button>
+      </div>
+    </div>
+  </aside>
+}

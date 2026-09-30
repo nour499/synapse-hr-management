@@ -1,0 +1,193 @@
+<div class="projets-admin-page">
+
+  <!-- ══ Header ══ -->
+  <div class="page-header">
+    <div>
+      <h2><i class="ti ti-layout-kanban"></i> Vue d'ensemble – Projets</h2>
+      <p>Supervision globale des projets et de la charge de travail des équipes</p>
+    </div>
+    <div class="header-note">
+      <i class="ti ti-eye"></i> Lecture seule — la gestion des projets est faite par les chefs de projet
+    </div>
+  </div>
+
+  <!-- ══ Stats ══ -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <i class="ti ti-briefcase"></i>
+      <div><strong>{{ stats.total }}</strong><span>Total projets</span></div>
+    </div>
+    <div class="stat-card indigo" (click)="filterStatut='EN_COURS'; setTab('projets')">
+      <i class="ti ti-player-play"></i>
+      <div><strong>{{ stats.enCours }}</strong><span>En cours</span></div>
+    </div>
+    <div class="stat-card red" (click)="filterStatut='EN_RETARD'; setTab('projets')">
+      <i class="ti ti-alert-triangle"></i>
+      <div><strong>{{ stats.enRetard }}</strong><span>En retard</span></div>
+    </div>
+    <div class="stat-card green" (click)="filterStatut='TERMINE'; setTab('projets')">
+      <i class="ti ti-circle-check"></i>
+      <div><strong>{{ stats.termines }}</strong><span>Terminés</span></div>
+    </div>
+    <div class="stat-card purple">
+      <i class="ti ti-chart-bar"></i>
+      <div><strong>{{ stats.avgProg }}<span class="unit">%</span></strong><span>Progression moy.</span></div>
+    </div>
+    @if (overloadedCount > 0) {
+      <div class="stat-card warn" (click)="setTab('workload')">
+        <i class="ti ti-users-group"></i>
+        <div><strong>{{ overloadedCount }}</strong><span>Employés surchargés</span></div>
+      </div>
+    }
+  </div>
+
+  <!-- ══ Tabs ══ -->
+  <div class="tabs">
+    <button [class.active]="activeTab === 'projets'"  (click)="setTab('projets')">
+      <i class="ti ti-briefcase"></i> Projets
+    </button>
+    <button [class.active]="activeTab === 'workload'" (click)="setTab('workload')">
+      <i class="ti ti-users"></i> Charge de travail
+      @if (overloadedCount > 0) {
+        <span class="alert-dot">{{ overloadedCount }}</span>
+      }
+    </button>
+  </div>
+
+  <!-- ══ TAB PROJETS ══ -->
+  @if (activeTab === 'projets') {
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input placeholder="Nom, chef de projet, description…" (input)="onSearch($any($event.target).value)">
+      </div>
+      <select class="filter-select" (change)="onFilter($any($event.target).value)">
+        @for (opt of filterOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </div>
+
+    @if (loading) {
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    } @else if (filtered.length === 0) {
+      <div class="empty-state">
+        <i class="ti ti-briefcase-off"></i><p>Aucun projet trouvé</p>
+      </div>
+    } @else {
+      <div class="projects-grid">
+        @for (p of filtered; track p.id) {
+          <div class="project-card">
+            <div class="pc-top">
+              <div class="pc-color-bar" [style.background]="p.couleur || '#6366F1'"></div>
+              <span class="statut-chip"
+                [style.background]="statutColors[p.statut] + '20'"
+                [style.color]="statutColors[p.statut]">
+                {{ statutLabels[p.statut] }}
+              </span>
+            </div>
+
+            <h4>{{ p.nom }}</h4>
+            <p class="pc-desc">{{ (p.description ?? '') | slice:0:80 }}{{ (p.description?.length ?? 0) > 80 ? '…' : '' }}</p>
+
+            <div class="pc-meta">
+              @if (p.chefProjet) {
+                <span><i class="ti ti-user-star"></i> {{ p.chefProjet }}</span>
+              }
+              <span><i class="ti ti-calendar"></i> {{ p.dateDebut | date:'dd/MM/yy' }}</span>
+              @if (p.dateFin) {
+                <span><i class="ti ti-flag"></i> {{ p.dateFin | date:'dd/MM/yy' }}</span>
+              }
+            </div>
+
+            <!-- Progress bar -->
+            <div class="prog-row">
+              <div class="prog-track">
+                <div class="prog-fill {{ progressClass(calcProgression(p)) }}"
+                     [style.width.%]="calcProgression(p)"></div>
+              </div>
+              <span class="prog-val">{{ calcProgression(p) }}%</span>
+            </div>
+
+            <!-- Tasks -->
+            <div class="pc-tasks">
+              <span><i class="ti ti-check"></i> {{ p.tachesCompletees }}/{{ p.totalTaches }} tâches</span>
+            </div>
+
+            <!-- Team avatars -->
+            <div class="team-row">
+              @for (m of (p.equipe ?? []) | slice:0:5; track m.id) {
+                <span class="avatar" [title]="m.nom">{{ m.initiales }}</span>
+              }
+              @if ((p.equipe?.length ?? 0) > 5) {
+                <span class="avatar more">+{{ (p.equipe?.length ?? 0) - 5 }}</span>
+              }
+              @if (!(p.equipe?.length)) {
+                <span class="no-team">Aucun membre assigné</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- ══ TAB WORKLOAD ══ -->
+  @if (activeTab === 'workload') {
+    @if (loading) {
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    } @else if (workload.length === 0) {
+      <div class="empty-state">
+        <i class="ti ti-users-off"></i>
+        <p>Aucun employé assigné à un projet actif</p>
+      </div>
+    } @else {
+      <div class="workload-header">
+        <p>Employés assignés à des projets actifs (En cours · En attente · En retard)</p>
+        @if (overloadedCount > 0) {
+          <div class="overload-alert">
+            <i class="ti ti-alert-triangle"></i>
+            {{ overloadedCount }} employé(s) sur 2+ projets actifs simultanément — risque de surcharge
+          </div>
+        }
+      </div>
+
+      <div class="workload-list">
+        @for (w of workload; track w.employe.id) {
+          <div class="workload-card" [class.overloaded]="w.overload">
+            <div class="wc-left">
+              <div class="wc-avatar" [class.overloaded-avatar]="w.overload">
+                {{ initiales(w.employe) }}
+              </div>
+              <div class="wc-info">
+                <strong>{{ w.employe.prenom }} {{ w.employe.nom }}</strong>
+                <span>{{ w.employe.poste }} · {{ w.employe.departement }}</span>
+              </div>
+              @if (w.overload) {
+                <span class="overload-badge"><i class="ti ti-alert-triangle"></i> Surcharge</span>
+              }
+            </div>
+
+            <div class="wc-projects">
+              @for (proj of w.projets; track proj.id) {
+                <div class="wc-proj-chip"
+                  [style.border-left-color]="statutColors[proj.statut]"
+                  [style.background]="statutColors[proj.statut] + '08'">
+                  <span class="wcp-dot" [style.background]="proj.couleur || statutColors[proj.statut]"></span>
+                  <span class="wcp-name">{{ proj.nom }}</span>
+                  <span class="wcp-statut" [style.color]="statutColors[proj.statut]">{{ statutLabels[proj.statut] }}</span>
+                  <div class="wcp-prog-mini">
+                    <div class="wcp-fill" [style.width.%]="calcProgression(proj)"
+                         [style.background]="statutColors[proj.statut]"></div>
+                  </div>
+                  <span class="wcp-pct">{{ calcProgression(proj) }}%</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>

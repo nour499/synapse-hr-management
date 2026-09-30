@@ -1,0 +1,122 @@
+<div class="pipeline-page">
+  <div class="pipeline-header">
+    <h2><i class="ti ti-layout-kanban"></i> Pipeline de recrutement</h2>
+    <p class="pipeline-subtitle">Glissez les candidats entre les étapes ou utilisez les boutons de déplacement</p>
+  </div>
+
+  @if (loading) {
+    <div class="loading-state"><i class="ti ti-loader-2 spin"></i> Chargement…</div>
+  } @else {
+    <div class="kanban-board">
+      @for (stage of stages; track stage.statut) {
+        @let count = candidatesInStage(stage.statut).length;
+        <div class="kanban-col">
+          <div class="col-header" [style.border-top-color]="stage.color">
+            <div class="col-title">
+              <i [class]="stage.icon" [style.color]="stage.color"></i>
+              <span>{{ stage.label }}</span>
+            </div>
+            <span class="col-count" [style.background]="stage.color + '22'" [style.color]="stage.color">{{ count }}</span>
+          </div>
+
+          <div class="col-body">
+            @for (c of candidatesInStage(stage.statut); track c.id) {
+              <div class="kanban-card" (click)="openDetail(c)">
+                <div class="card-top">
+                  @if (c.photo) {
+                    <img [src]="c.photo" [alt]="c.nom" class="card-avatar" />
+                  } @else {
+                    <span class="card-avatar-init" [style.background]="stage.color">{{ initials(c) }}</span>
+                  }
+                  <div class="card-info">
+                    <span class="card-name">{{ c.prenom }} {{ c.nom }}</span>
+                    <span class="card-job">{{ c.jobTitre }}</span>
+                  </div>
+                  @if (c.shortliste) {
+                    <i class="ti ti-star-filled star-icon"></i>
+                  }
+                </div>
+                @if (c.score) {
+                  <div class="card-score">
+                    <div class="score-bar-sm" [style.width.%]="c.score" [ngClass]="scoreClass(c.score)"></div>
+                    <span class="score-label" [ngClass]="scoreClass(c.score)">{{ c.score }}/100</span>
+                  </div>
+                }
+                <div class="card-footer">
+                  <span class="card-exp"><i class="ti ti-briefcase"></i> {{ c.experience }} an(s)</span>
+                  <div class="card-nav-btns">
+                    @if (prevStage(stage.statut)) {
+                      <button class="move-btn" (click)="$event.stopPropagation(); moveTo(c, prevStage(stage.statut)!)" title="Étape précédente">
+                        <i class="ti ti-chevron-left"></i>
+                      </button>
+                    }
+                    @if (nextStage(stage.statut)) {
+                      <button class="move-btn move-btn-next" (click)="$event.stopPropagation(); moveTo(c, nextStage(stage.statut)!)" title="Étape suivante">
+                        <i class="ti ti-chevron-right"></i>
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+            @if (count === 0) {
+              <div class="col-empty">Aucun candidat</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Detail Panel -->
+@if (selected) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <aside class="detail-drawer">
+    <div class="drawer-header" [style.background]="stageColor(selected.statut)">
+      <div>
+        <h3>{{ selected.prenom }} {{ selected.nom }}</h3>
+        <p>{{ selected.jobTitre }}</p>
+        <p>{{ selected.departement }}</p>
+      </div>
+      <button class="btn-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="detail-row"><strong>Email :</strong> {{ selected.email }}</div>
+      <div class="detail-row"><strong>Téléphone :</strong> {{ selected.telephone }}</div>
+      <div class="detail-row"><strong>Expérience :</strong> {{ selected.experience }} an(s)</div>
+      @if (selected.localisation) {
+        <div class="detail-row"><strong>Localisation :</strong> {{ selected.localisation }}</div>
+      }
+      @if (selected.score) {
+        <div class="detail-row"><strong>Score :</strong> <span class="score-chip" [ngClass]="scoreClass(selected.score)">{{ selected.score }}/100</span></div>
+      }
+      <div class="detail-row">
+        <strong>Compétences :</strong>
+        <div class="competences">
+          @for (comp of selected.competences; track comp) {
+            <span class="comp-tag">{{ comp }}</span>
+          }
+        </div>
+      </div>
+      @if (selected.noteRecruteur) {
+        <div class="detail-row note-box"><strong>Note :</strong> {{ selected.noteRecruteur }}</div>
+      }
+      <div class="detail-row"><strong>Postulation :</strong> {{ selected.datePostulation | date:'dd/MM/yyyy' }}</div>
+      <div class="move-section">
+        <strong>Déplacer vers :</strong>
+        <div class="move-pills">
+          @for (st of stages; track st.statut) {
+            <button class="move-pill"
+              [style.border-color]="st.color"
+              [style.background]="selected.statut === st.statut ? st.color : 'transparent'"
+              [style.color]="selected.statut === st.statut ? '#fff' : st.color"
+              (click)="moveTo(selected, st.statut)">
+              {{ st.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </aside>
+}

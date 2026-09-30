@@ -1,0 +1,469 @@
+<div class="soldes-page">
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-coin"></i></div>
+      <div>
+        <h1 class="page-title">Soldes de congé</h1>
+        <p class="page-sub">Vue d'ensemble des soldes de congé par employé — {{ soldes[0]?.annee ?? '' }}</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn-add" (click)="openAdd()">
+        <i class="ti ti-plus"></i> Ajouter
+      </button>
+    </div>
+  </div>
+
+  <!-- ── KPI strip ──────────────────────────────────── -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="ti ti-users"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ soldes.length }}</span>
+        <span class="kpi-lbl">Employés</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="ti ti-calendar-check"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ totals.soldeActuel }}</span>
+        <span class="kpi-lbl">Jours restants</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#EFF6FF;color:#3B82F6"><i class="ti ti-circle-check"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ totals.congesAcceptes }}</span>
+        <span class="kpi-lbl">Demandes acceptées</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#FEF9C3;color:#CA8A04"><i class="ti ti-sun"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ totals.congesUtilises }}</span>
+        <span class="kpi-lbl">Jours utilisés</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="ti ti-circle-x"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ totals.congesRejetes }}</span>
+        <span class="kpi-lbl">Demandes rejetées</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#F1F5F9;color:#64748B"><i class="ti ti-calendar-off"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ totals.congesExpires }}</span>
+        <span class="kpi-lbl">Jours expirés</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Search ─────────────────────────────────────── -->
+  <div class="search-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher par employé, département, poste…"
+             [value]="search" (input)="setSearch($any($event.target).value)" />
+    </div>
+  </div>
+
+  <!-- ── Table ──────────────────────────────────────── -->
+  @if (loading) {
+  <app-skeleton-rows [rows]="6" [cols]="5" [withAvatar]="true" />
+} @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-coin"></i></div>
+      <h3>Aucun résultat</h3>
+      <p>Modifiez votre recherche.</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="soldes-table">
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th class="th-num">Solde précédent</th>
+            <th class="th-num">Solde actuel</th>
+            <th class="th-num">Solde total</th>
+            <th class="th-num">Congés utilisés</th>
+            <th class="th-num">Congés acceptés</th>
+            <th class="th-num">Congés rejetés</th>
+            <th class="th-num">Congés expirés</th>
+            <th class="th-num">Report de solde</th>
+            <th class="th-prog">Utilisation</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of paginated; track s.id) {
+            <tr>
+
+              <!-- Employé -->
+              <td>
+                <div class="emp-cell">
+                  @if (s.employePhoto) {
+                    <img [src]="s.employePhoto" class="emp-avatar" [alt]="s.employeNom" />
+                  } @else {
+                    <div class="emp-initials">{{ initiales(s.employeNom) }}</div>
+                  }
+                  <div class="emp-info">
+                    <span class="emp-name">{{ s.employeNom }}</span>
+                    @if (s.poste) { <span class="emp-poste">{{ s.poste }}</span> }
+                    @if (s.departement) { <span class="emp-dept">{{ s.departement }}</span> }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Solde précédent -->
+              <td class="td-num">
+                <span class="num-badge nb-neutral">{{ s.soldePrecedent }} j</span>
+              </td>
+
+              <!-- Solde actuel -->
+              <td class="td-num">
+                <span class="num-badge"
+                      [class.nb-good]="s.soldeActuel >= 15"
+                      [class.nb-warn]="s.soldeActuel >= 7 && s.soldeActuel < 15"
+                      [class.nb-danger]="s.soldeActuel < 7">
+                  {{ s.soldeActuel }} j
+                </span>
+              </td>
+
+              <!-- Solde total -->
+              <td class="td-num">
+                <span class="num-badge nb-total">{{ s.soldeTotal }} j</span>
+              </td>
+
+              <!-- Utilisés -->
+              <td class="td-num">
+                <span class="num-badge nb-used">{{ s.congesUtilises }} j</span>
+              </td>
+
+              <!-- Acceptés -->
+              <td class="td-num">
+                <span class="num-badge nb-accepted">{{ s.congesAcceptes }}</span>
+              </td>
+
+              <!-- Rejetés -->
+              <td class="td-num">
+                <span class="num-badge nb-rejected">{{ s.congesRejetes }}</span>
+              </td>
+
+              <!-- Expirés -->
+              <td class="td-num">
+                <span class="num-badge" [class.nb-expired]="s.congesExpires > 0" [class.nb-neutral]="s.congesExpires === 0">
+                  {{ s.congesExpires }} j
+                </span>
+              </td>
+
+              <!-- Report -->
+              <td class="td-num">
+                <span class="num-badge" [class.nb-carry]="s.reportSolde > 0" [class.nb-neutral]="s.reportSolde === 0">
+                  @if (s.reportSolde > 0) { <i class="ti ti-arrow-up"></i> }
+                  {{ s.reportSolde }} j
+                </span>
+              </td>
+
+              <!-- Usage bar -->
+              <td class="td-prog">
+                <div class="prog-wrap">
+                  <div class="prog-bar">
+                    <div class="prog-fill"
+                         [style.width.%]="usagePercent(s)"
+                         [class.fill-good]="usagePercent(s) < 50"
+                         [class.fill-warn]="usagePercent(s) >= 50 && usagePercent(s) < 80"
+                         [class.fill-danger]="usagePercent(s) >= 80">
+                    </div>
+                  </div>
+                  <span class="prog-pct">{{ usagePercent(s) }}%</span>
+                </div>
+              </td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button class="btn-action btn-edit"   title="Modifier"   (click)="openEdit(s)">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <button class="btn-action btn-delete" title="Supprimer"  (click)="askDelete(s)">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginator [total]="filtered.length" [pageSize]="pageSize" [page]="page" (pageChange)="page=$event" />
+    </div>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     EDIT MODAL
+══════════════════════════════════════════════════════ -->
+@if (editItem) {
+  <div class="modal-overlay" (click)="closeEdit()"></div>
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon"><i class="ti ti-coin"></i></div>
+        <div>
+          <h2 class="modal-title">Modifier le solde</h2>
+          <p class="modal-sub">{{ editItem.employeNom }}</p>
+        </div>
+      </div>
+      <button class="modal-close" (click)="closeEdit()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submitEdit()" novalidate class="modal-body">
+
+      <!-- Row 1 — Balances -->
+      <div class="modal-section-title">
+        <i class="ti ti-wallet"></i> Soldes
+      </div>
+      <div class="form-grid-3">
+        <div class="field-group">
+          <label class="field-label">Solde précédent <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-clock-hour-3 input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="soldePrecedent" min="0"
+                   [class.has-error]="hasError('soldePrecedent')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Solde total <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-sum input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="soldeTotal" min="0"
+                   [class.has-error]="hasError('soldeTotal')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Solde actuel <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar-check input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="soldeActuel" min="0"
+                   [class.has-error]="hasError('soldeActuel')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Report de solde <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-arrow-up input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="reportSolde" min="0"
+                   [class.has-error]="hasError('reportSolde')" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2 — Leave counts -->
+      <div class="modal-section-title">
+        <i class="ti ti-list-numbers"></i> Demandes de congé
+      </div>
+      <div class="form-grid-3">
+        <div class="field-group">
+          <label class="field-label">Congés utilisés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-sun input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesUtilises" min="0"
+                   [class.has-error]="hasError('congesUtilises')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Congés acceptés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-circle-check input-icon" style="color:#10B981"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesAcceptes" min="0"
+                   [class.has-error]="hasError('congesAcceptes')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Congés rejetés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-circle-x input-icon" style="color:#EF4444"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesRejetes" min="0"
+                   [class.has-error]="hasError('congesRejetes')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Congés expirés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar-off input-icon" style="color:#94A3B8"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesExpires" min="0"
+                   [class.has-error]="hasError('congesExpires')" />
+          </div>
+        </div>
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeEdit()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-device-floppy"></i> }
+          Enregistrer
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     ADD MODAL
+══════════════════════════════════════════════════════ -->
+@if (showAddModal) {
+  <div class="modal-overlay" (click)="closeAdd()"></div>
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon"><i class="ti ti-plus"></i></div>
+        <div>
+          <h2 class="modal-title">Nouveau solde de congé</h2>
+          <p class="modal-sub">Créer un solde pour un employé existant</p>
+        </div>
+      </div>
+      <button class="modal-close" (click)="closeAdd()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="addForm" (ngSubmit)="submitAdd()" novalidate class="modal-body">
+
+      <!-- Employee selector -->
+      <div class="modal-section-title">
+        <i class="ti ti-user"></i> Employé
+      </div>
+      <div class="form-grid-1">
+        <div class="field-group">
+          <label class="field-label">Sélectionner un employé <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-user input-icon"></i>
+            <select class="field-input with-icon" formControlName="employeId"
+                    [class.has-error]="hasAddError('employeId')">
+              <option [ngValue]="null" disabled>-- Choisir un employé --</option>
+              @for (e of employes; track e.id) {
+                <option [ngValue]="e.id">{{ e.prenom }} {{ e.nom }}{{ e.poste ? ' — ' + e.poste : '' }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balances -->
+      <div class="modal-section-title">
+        <i class="ti ti-wallet"></i> Soldes
+      </div>
+      <div class="form-grid-3">
+        <div class="field-group">
+          <label class="field-label">Solde précédent <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-clock-hour-3 input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="soldePrecedent" min="0"
+                   [class.has-error]="hasAddError('soldePrecedent')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Solde total <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-sum input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="soldeTotal" min="0"
+                   [class.has-error]="hasAddError('soldeTotal')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Solde actuel <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar-check input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="soldeActuel" min="0"
+                   [class.has-error]="hasAddError('soldeActuel')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Report de solde <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-arrow-up input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="reportSolde" min="0"
+                   [class.has-error]="hasAddError('reportSolde')" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Leave counts -->
+      <div class="modal-section-title">
+        <i class="ti ti-list-numbers"></i> Demandes de congé
+      </div>
+      <div class="form-grid-3">
+        <div class="field-group">
+          <label class="field-label">Congés utilisés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-sun input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesUtilises" min="0"
+                   [class.has-error]="hasAddError('congesUtilises')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Congés acceptés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-circle-check input-icon" style="color:#10B981"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesAcceptes" min="0"
+                   [class.has-error]="hasAddError('congesAcceptes')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Congés rejetés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-circle-x input-icon" style="color:#EF4444"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesRejetes" min="0"
+                   [class.has-error]="hasAddError('congesRejetes')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Congés expirés <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar-off input-icon" style="color:#94A3B8"></i>
+            <input type="number" class="field-input with-icon" formControlName="congesExpires" min="0"
+                   [class.has-error]="hasAddError('congesExpires')" />
+          </div>
+        </div>
+      </div>
+
+      @if (addErrorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ addErrorMsg }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeAdd()" [disabled]="addSaving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="addSaving">
+          @if (addSaving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-plus"></i> }
+          Créer
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     CONFIRM DELETE
+══════════════════════════════════════════════════════ -->
+<app-confirm-modal
+  [open]="deleteTarget !== null"
+  title="Supprimer ce solde ?"
+  [message]="deleteMessage"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()"
+/>

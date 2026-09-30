@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  postgres-grh:
+    image: postgres:16-alpine
+    container_name: postgres-grh
+    environment:
+      POSTGRES_DB: grh
+      POSTGRES_USER: grh
+      POSTGRES_PASSWORD: grh
+    ports:
+      - "5432:5432"
+    volumes:
+      - grh_data:/var/lib/postgresql/data
+
+  employe-service:
+    build: .
+    container_name: employe-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-grh:5432/grh
+      DB_USERNAME: grh
+      DB_PASSWORD: grh
+      KC_SERVER_URL: http://host.docker.internal:8080
+      KC_ADMIN_USERNAME: admin
+      KC_ADMIN_PASSWORD: admin
+      KC_TARGET_REALM: gerai
+      KC_ISSUER_URI: http://host.docker.internal:8080/realms/gerai
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      - postgres-grh
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  grh_data:

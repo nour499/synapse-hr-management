@@ -1,0 +1,30 @@
+<div class="card">
+  <div class="card-header">
+    <h3>Détails de l’employé</h3>
+  </div>
+
+  @if (employe; as e) {
+    <div class="card-body">
+      <p><strong>ID :</strong> {{ e.id }}</p>
+      <p><strong>Nom :</strong> {{ e.prenom }} {{ e.nom }}</p>
+      <p><strong>Poste :</strong> {{ e.poste }}</p>
+      <p><strong>Email :</strong> {{ e.email }}</p>
+      <p>
+        <strong>Statut :</strong>
+        <span
+          class="badge"
+          [ngClass]="{
+            'badge-success': e.statut === 'ACTIF',
+            'badge-warning': e.statut === 'CONGE'
+          }"
+        >
+          {{ e.statut }}
+        </span>
+      </p>
+    </div>
+  } @else {
+    <div class="card-body">
+      <p>Chargement des détails de l’employé...</p>
+    </div>
+  }
+</div>

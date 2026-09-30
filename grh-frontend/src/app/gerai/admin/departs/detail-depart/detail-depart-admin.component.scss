@@ -1,0 +1,109 @@
+:host { display: block; }
+.detail-page { max-width: 860px; }
+
+// BACK
+.back-bar { margin-bottom: 24px; }
+.btn-back {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border: 1.5px solid #E2E8F0; border-radius: 10px;
+  background: #fff; color: #64748B; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+  i { font-size: 15px; }
+  &:hover { border-color: #EF4444; color: #EF4444; background: #FEF2F2; }
+}
+
+// LOADING / NOT FOUND
+.loading-wrap { display: flex; flex-direction: column; align-items: center; padding: 80px 0; gap: 16px; color: #94A3B8; }
+.not-found {
+  display: flex; flex-direction: column; align-items: center; padding: 80px 0; gap: 14px; text-align: center;
+  i { font-size: 52px; color: #CBD5E1; }
+  h3 { margin: 0; font-size: 18px; font-weight: 600; color: #475569; }
+  p  { margin: 0; font-size: 14px; color: #94A3B8; }
+}
+
+// HERO CARD
+.detail-wrap  { display: flex; flex-direction: column; gap: 20px; }
+.hero-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 18px;
+  padding: 24px 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  flex-wrap: wrap;
+}
+.hero-left  { display: flex; align-items: center; gap: 18px; }
+.hero-avatar  {
+  width: 68px; height: 68px; border-radius: 50%; object-fit: cover;
+  border: 3px solid #FEE2E2; flex-shrink: 0;
+}
+.hero-initials {
+  width: 68px; height: 68px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  color: #fff; font-size: 22px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-name  { margin: 0 0 4px; font-size: 20px; font-weight: 700; color: #0F172A; }
+.hero-poste { margin: 0 0 3px; font-size: 13px; color: #64748B; font-weight: 500; }
+.hero-dept  {
+  margin: 0; font-size: 12px; color: #94A3B8;
+  display: flex; align-items: center; gap: 4px;
+  i { font-size: 12px; }
+}
+.hero-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+// STATUT BADGE
+.statut-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+  .s-dot { width: 8px; height: 8px; border-radius: 50%; }
+  &.s-encours { background: #FEF3C7; color: #92400E; .s-dot { background: #F59E0B; } }
+  &.s-valide  { background: #D1FAE5; color: #065F46; .s-dot { background: #10B981; } }
+  &.s-annule  { background: #FEE2E2; color: #991B1B; .s-dot { background: #EF4444; } }
+}
+
+.btn-edit {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border: none; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: #fff; font-size: 13px; font-weight: 600; transition: all 0.2s;
+  i { font-size: 15px; }
+  &:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+}
+
+// INFO GRID
+.info-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+.info-card {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 14px;
+  padding: 18px 20px; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.ic-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  i { font-size: 13px; }
+}
+.ic-value { margin: 0; font-size: 15px; font-weight: 600; color: #1E293B; }
+
+// TYPE BADGE
+.type-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
+  i { font-size: 14px; }
+}
+.type-display { display: flex; }
+
+// SECTION CARDS
+.section-card {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 14px;
+  padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.sc-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  i { font-size: 13px; }
+}
+.sc-body { margin: 0; font-size: 14px; color: #475569; line-height: 1.7; }

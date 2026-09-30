@@ -1,0 +1,542 @@
+:host {
+
+  /* =====================================================
+     TABLE
+  ===================================================== */
+
+  .demandes-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+
+    thead {
+      background: #f1f5f9;
+      border-bottom: 2px solid #e2e8f0;
+
+      th {
+        padding: 12px 16px;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #475569;
+        letter-spacing: 0.5px;
+      }
+
+      th.sortable {
+        cursor: pointer;
+        transition: color 0.2s;
+
+        &:hover {
+          color: #1e293b;
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid #e2e8f0;
+        transition: background 0.2s ease;
+
+        &:hover {
+          background: #f8fafc;
+        }
+
+        td {
+          padding: 14px 16px;
+          font-size: 14px;
+          color: #475569;
+
+          &.fw-bold {
+            font-weight: 600;
+            color: #1e293b;
+          }
+
+          &.text-end {
+            text-align: right;
+          }
+        }
+      }
+    }
+  }
+
+  .type-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      font-size: 18px;
+      color: #3b82f6;
+    }
+  }
+
+  /* =====================================================
+     PAGE
+  ===================================================== */
+
+  .demandes-page {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 8px 0 24px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .header-left {
+    flex: 1;
+  }
+
+  .page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 0 0 4px;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+    color: #64748B;
+    margin: 0;
+  }
+
+  .btn-new-demande {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    i { font-size: 18px; }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(59,130,246,0.3);
+    }
+  }
+
+  /* =====================================================
+     STATS
+  ===================================================== */
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: #CBD5E1;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .stat-total .stat-icon { background: #EFF6FF; color: #3B82F6; }
+  .stat-pending .stat-icon { background: #FFFBEB; color: #F59E0B; }
+  .stat-approved .stat-icon { background: #F0FDF4; color: #10B981; }
+  .stat-rejected .stat-icon { background: #FEF2F2; color: #EF4444; }
+
+  .stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1E293B;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: #64748B;
+    margin-top: 4px;
+  }
+
+  /* =====================================================
+     FILTERS
+  ===================================================== */
+
+  .filters-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px;
+    background: #F8FAFC;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .search-box {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+
+    i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94A3B8;
+      font-size: 18px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px 10px 40px;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+      }
+    }
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin: 0;
+    }
+  }
+
+  .filter-select {
+    padding: 8px 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 140px;
+
+    &:focus {
+      outline: none;
+      border-color: #3B82F6;
+    }
+  }
+
+  .btn-reset {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748B;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #F1F5F9;
+      border-color: #CBD5E1;
+    }
+  }
+
+  /* =====================================================
+     PAGINATION
+  ===================================================== */
+
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-top: 1px solid #F1F5F9;
+    margin-top: 8px;
+  }
+
+  .pagination-info {
+    font-size: 13px;
+    color: #64748B;
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    button {
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background: #E2E8F0;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  /* =====================================================
+     ACTION BUTTONS
+  ===================================================== */
+
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .btn-action {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+
+    &.btn-view {
+      background: #EEF2FF;
+      color: #6366F1;
+
+      &:hover {
+        background: #6366F1;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+      }
+    }
+
+    &.btn-cancel {
+      background: #FEF2F2;
+      color: #EF4444;
+
+      &:hover {
+        background: #EF4444;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+      }
+    }
+  }
+
+  /* =====================================================
+     RESPONSIVE
+  ===================================================== */
+
+  @media (max-width: 768px) {
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .filters-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-box {
+      min-width: 100%;
+    }
+
+    .filter-select {
+      width: 100%;
+    }
+
+    .pagination-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+  }
+// ══════════════════════════════════════════════════
+// 🌙 MODE DARK COMPLET - LISTE DEMANDES
+// ══════════════════════════════════════════════════
+
+:host-context(.dark), body.dark {
+
+  // --- 1. LE HEADER (Correction du bloc blanc) ---
+  .page-header {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+
+    .page-title { 
+      color: #ffffff !important; 
+      font-weight: 700 !important;
+    }
+    .page-subtitle { 
+      color: #94a3b8 !important; 
+    }
+  }
+
+  // Si le header est dans une app-card qui reste blanche
+  app-card:first-of-type, .demandes-page > .mb-4 {
+    ::ng-deep .card {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+  // --- 2. LES STATS CARDS ---
+  .stat-card {
+    background: #1e2536 !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    
+    .stat-value { color: #ffffff !important; }
+    .stat-label { color: #94a3b8 !important; }
+    
+    // Ajustement des icônes pour qu'elles ne soient pas trop flashy
+    &.stat-total .stat-icon { background: rgba(59, 130, 246, 0.1) !important; }
+    &.stat-pending .stat-icon { background: rgba(245, 158, 11, 0.1) !important; }
+    &.stat-approved .stat-icon { background: rgba(16, 185, 129, 0.1) !important; }
+    &.stat-rejected .stat-icon { background: rgba(239, 68, 68, 0.1) !important; }
+  }
+
+  // --- 3. LE CONTENU PRINCIPAL (app-card) ---
+  app-card {
+    ::ng-deep .card {
+      background: #1e2536 !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+  }
+
+  // --- 4. FILTRES ET INPUTS ---
+  .filters-bar {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+
+    .search-box input, .filter-select, .btn-reset {
+      background: #1a1f2e !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #ffffff !important;
+      color-scheme: dark; // Fix pour l'icône calendrier
+    }
+
+    label { color: #94a3b8 !important; }
+
+    // Flèche du select propre
+    .filter-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2360a5fa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 0.75rem center !important;
+      background-size: 12px 12px !important;
+    }
+  }
+
+  // --- 5. LE TABLEAU ---
+  .demandes-table {
+    thead {
+      background: rgba(255, 255, 255, 0.02) !important;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+      th { color: #f1f5f9 !important; }
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      &:hover { background: rgba(255, 255, 255, 0.02) !important; }
+      
+      td {
+        color: #94a3b8 !important;
+        &.fw-bold { color: #ffffff !important; }
+        .text-muted { color: #64748b !important; }
+      }
+    }
+  }
+
+  // --- 6. LA PAGINATION ---
+  .pagination-bar {
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    
+    .pagination-info { color: #64748b !important; }
+    
+    .pagination-controls {
+      color: #ffffff !important;
+      
+      .btn-light {
+        background: #1a1f2e !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+        
+        &:hover:not(:disabled) {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        
+        &:disabled {
+          background: rgba(255, 255, 255, 0.02) !important;
+          color: #475569 !important;
+          border-color: transparent !important;
+        }
+      }
+    }
+  }
+
+  // --- 7. BOUTONS D'ACTION ---
+  .btn-action {
+    &.btn-view {
+      background: rgba(99, 102, 241, 0.12) !important;
+      color: #818cf8 !important;
+      &:hover { background: #6366F1 !important; color: #fff !important; }
+    }
+    &.btn-cancel {
+      background: rgba(239, 68, 68, 0.12) !important;
+      color: #f87171 !important;
+      &:hover { background: #EF4444 !important; color: #fff !important; }
+    }
+  }
+
+  // --- 8. BADGES DE STATUT ---
+  .status-badge {
+    &.status-EN_ATTENTE { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+    &.status-VALIDEE { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; }
+    &.status-REFUSEE { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
+  }
+}}

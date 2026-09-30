@@ -1,0 +1,112 @@
+<div class="detail-page">
+
+  <!-- ── Back bar ────────────────────────────────────── -->
+  <div class="back-bar">
+    <button class="btn-back" (click)="goBack()">
+      <i class="ti ti-arrow-left"></i> Retour aux départs
+    </button>
+  </div>
+
+  <!-- ── Loading ─────────────────────────────────────── -->
+  @if (loading) {
+    <div class="loading-wrap">
+      <div class="spinner-border" style="color:#EF4444"></div>
+      <p>Chargement…</p>
+    </div>
+  }
+
+  <!-- ── Not found ───────────────────────────────────── -->
+  @else if (notFound) {
+    <div class="not-found">
+      <i class="ti ti-mood-sad"></i>
+      <h3>Départ introuvable</h3>
+      <p>Cet enregistrement n'existe pas ou a été supprimé.</p>
+      <button class="btn-back" (click)="goBack()"><i class="ti ti-arrow-left"></i> Retour</button>
+    </div>
+  }
+
+  <!-- ── Content ─────────────────────────────────────── -->
+  @else if (depart) {
+    <div class="detail-wrap">
+
+      <!-- Header card -->
+      <div class="hero-card">
+        <div class="hero-left">
+          @if (depart.employePhoto) {
+            <img [src]="depart.employePhoto" class="hero-avatar" [alt]="depart.employeNom" />
+          } @else {
+            <div class="hero-initials">{{ initiales(depart.employeNom) }}</div>
+          }
+          <div class="hero-info">
+            <h2 class="hero-name">{{ depart.employeNom }}</h2>
+            @if (depart.employePoste) { <p class="hero-poste">{{ depart.employePoste }}</p> }
+            @if (depart.employeDept)  { <p class="hero-dept"><i class="ti ti-building"></i> {{ depart.employeDept }}</p> }
+          </div>
+        </div>
+        <div class="hero-right">
+          <span class="statut-badge"
+                [class.s-encours]="depart.statut === 'EN_COURS'"
+                [class.s-valide]="depart.statut === 'VALIDE'"
+                [class.s-annule]="depart.statut === 'ANNULE'">
+            <span class="s-dot"></span>{{ statutLabels[depart.statut] }}
+          </span>
+          <button class="btn-edit" (click)="goEdit()">
+            <i class="ti ti-edit"></i> Modifier
+          </button>
+        </div>
+      </div>
+
+      <!-- Info grid -->
+      <div class="info-grid">
+
+        <!-- Type de départ -->
+        <div class="info-card">
+          <div class="ic-head">
+            <i class="ti ti-tag"></i> Type de départ
+          </div>
+          <div class="type-display">
+            <span class="type-badge"
+                  [style.background]="typeColors[depart.typeDepart] + '18'"
+                  [style.color]="typeColors[depart.typeDepart]">
+              <i class="{{ typeIcons[depart.typeDepart] }}"></i>
+              {{ typeLabels[depart.typeDepart] }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Date de départ -->
+        <div class="info-card">
+          <div class="ic-head">
+            <i class="ti ti-calendar-event"></i> Date de départ
+          </div>
+          <p class="ic-value">{{ depart.dateDepart | date:'dd/MM/yyyy' }}</p>
+        </div>
+
+        <!-- Enregistré le -->
+        <div class="info-card">
+          <div class="ic-head">
+            <i class="ti ti-clock"></i> Enregistré le
+          </div>
+          <p class="ic-value">{{ depart.createdAt | date:'dd/MM/yyyy' }}</p>
+        </div>
+
+      </div>
+
+      <!-- Raison -->
+      <div class="section-card">
+        <div class="sc-head"><i class="ti ti-message"></i> Raison du départ</div>
+        <p class="sc-body">{{ depart.raison }}</p>
+      </div>
+
+      <!-- Notes -->
+      @if (depart.notes) {
+        <div class="section-card">
+          <div class="sc-head"><i class="ti ti-notes"></i> Notes internes</div>
+          <p class="sc-body">{{ depart.notes }}</p>
+        </div>
+      }
+
+    </div>
+  }
+
+</div>

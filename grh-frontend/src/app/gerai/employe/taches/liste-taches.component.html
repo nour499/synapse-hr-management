@@ -1,0 +1,325 @@
+<!-- ================================================ -->
+<!-- 📋 Mes Tâches - Vue Kanban - Employé            -->
+<!-- ================================================ -->
+
+<div class="taches-page">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header mb-4">
+    <div class="header-left">
+      <h2 class="page-title">Mes tâches</h2>
+      <p class="page-subtitle">Gérez vos tâches en cours et terminées</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-view" [class.active]="viewMode === 'kanban'" (click)="viewMode = 'kanban'">
+        <i class="ti ti-layout-kanban"></i>
+        Kanban
+      </button>
+      <button class="btn-view" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'">
+        <i class="ti ti-list"></i>
+        Liste
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Stats Cards ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-total">
+        <div class="stat-icon"><i class="ti ti-checkbox"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalTaches }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-todo">
+        <div class="stat-icon"><i class="ti ti-circle-dotted"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ tachesAFaire }}</span>
+          <span class="stat-label">À faire</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-progress">
+        <div class="stat-icon"><i class="ti ti-progress"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ tachesEnCours }}</span>
+          <span class="stat-label">En cours</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-done">
+        <div class="stat-icon"><i class="ti ti-circle-check"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ tachesTerminees }}</span>
+          <span class="stat-label">Terminées</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Filters ── -->
+  <app-card class="mb-4">
+    <div class="filters-bar">
+      <div class="search-box">
+        <i class="ti ti-search"></i>
+        <input type="text" 
+               placeholder="Rechercher une tâche..." 
+               [(ngModel)]="searchTerm"
+               (input)="filterTaches()" />
+      </div>
+
+      <div class="filter-group">
+        <label>Projet :</label>
+        <select [(ngModel)]="selectedProjet" (change)="filterTaches()" class="filter-select">
+          <option value="">Tous</option>
+          @for (p of projetsUniques; track p) {
+            <option [value]="p">{{ p }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Priorité :</label>
+        <select [(ngModel)]="selectedPriorite" (change)="filterTaches()" class="filter-select">
+          <option value="">Toutes</option>
+          <option value="Haute">Haute</option>
+          <option value="Moyenne">Moyenne</option>
+          <option value="Basse">Basse</option>
+        </select>
+      </div>
+
+      <button class="btn-reset" (click)="resetFilters()">
+        <i class="ti ti-refresh"></i>
+        Réinitialiser
+      </button>
+    </div>
+  </app-card>
+
+  <!-- ── Kanban Board ── -->
+  @if (viewMode === 'kanban') {
+    <div class="kanban-board">
+      
+      <!-- Colonne À faire -->
+      <div class="kanban-column">
+        <div class="column-header column-todo">
+          <div class="column-title">
+            <i class="ti ti-circle-dotted"></i>
+            À faire
+          </div>
+          <span class="column-count">{{ columnAFaire.length }}</span>
+        </div>
+        <div class="column-body"
+             cdkDropList
+             #todoList="cdkDropList"
+             [cdkDropListData]="columnAFaire"
+             [cdkDropListConnectedTo]="[inProgressList, doneList]"
+             (cdkDropListDropped)="onDrop($event)">
+
+          @for (tache of columnAFaire; track tache.id) {
+            <div class="kanban-card" cdkDrag>
+              <div class="card-header">
+                <span class="priority-badge priority-{{ tache.priorite.toLowerCase() }}">
+                  {{ tache.priorite }}
+                </span>
+              </div>
+              <h4 class="card-title">{{ tache.titre }}</h4>
+              <p class="card-project">
+                <i class="ti ti-briefcase"></i>
+                {{ tache.projet }}
+              </p>
+              <div class="card-footer">
+                <div class="deadline">
+                  <i class="ti ti-calendar"></i>
+                  {{ tache.echeance | date:'dd/MM/yyyy' }}
+                </div>
+                <div class="progress-info">
+                  <span>{{ tache.progression }}%</span>
+                </div>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="tache.progression"></div>
+              </div>
+            </div>
+          }
+
+          @if (columnAFaire.length === 0) {
+            <div class="empty-column">
+              <i class="ti ti-checkbox"></i>
+              <p>Aucune tâche</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Colonne En cours -->
+      <div class="kanban-column">
+        <div class="column-header column-progress">
+          <div class="column-title">
+            <i class="ti ti-progress"></i>
+            En cours
+          </div>
+          <span class="column-count">{{ columnEnCours.length }}</span>
+        </div>
+        <div class="column-body"
+             cdkDropList
+             #inProgressList="cdkDropList"
+             [cdkDropListData]="columnEnCours"
+             [cdkDropListConnectedTo]="[todoList, doneList]"
+             (cdkDropListDropped)="onDrop($event)">
+
+          @for (tache of columnEnCours; track tache.id) {
+            <div class="kanban-card" cdkDrag>
+              <div class="card-header">
+                <span class="priority-badge priority-{{ tache.priorite.toLowerCase() }}">
+                  {{ tache.priorite }}
+                </span>
+              </div>
+              <h4 class="card-title">{{ tache.titre }}</h4>
+              <p class="card-project">
+                <i class="ti ti-briefcase"></i>
+                {{ tache.projet }}
+              </p>
+              <div class="card-footer">
+                <div class="deadline">
+                  <i class="ti ti-calendar"></i>
+                  {{ tache.echeance | date:'dd/MM/yyyy' }}
+                </div>
+                <div class="progress-info">
+                  <span>{{ tache.progression }}%</span>
+                </div>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="tache.progression"></div>
+              </div>
+            </div>
+          }
+
+          @if (columnEnCours.length === 0) {
+            <div class="empty-column">
+              <i class="ti ti-progress"></i>
+              <p>Aucune tâche</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Colonne Terminé -->
+      <div class="kanban-column">
+        <div class="column-header column-done">
+          <div class="column-title">
+            <i class="ti ti-circle-check"></i>
+            Terminé
+          </div>
+          <span class="column-count">{{ columnTerminee.length }}</span>
+        </div>
+        <div class="column-body"
+             cdkDropList
+             #doneList="cdkDropList"
+             [cdkDropListData]="columnTerminee"
+             [cdkDropListConnectedTo]="[todoList, inProgressList]"
+             (cdkDropListDropped)="onDrop($event)">
+
+          @for (tache of columnTerminee; track tache.id) {
+            <div class="kanban-card card-done" cdkDrag>
+              <div class="card-header">
+                <span class="priority-badge priority-{{ tache.priorite.toLowerCase() }}">
+                  {{ tache.priorite }}
+                </span>
+              </div>
+              <h4 class="card-title">{{ tache.titre }}</h4>
+              <p class="card-project">
+                <i class="ti ti-briefcase"></i>
+                {{ tache.projet }}
+              </p>
+              <div class="card-footer">
+                <div class="deadline">
+                  <i class="ti ti-circle-check"></i>
+                  Terminée
+                </div>
+                <div class="progress-info">
+                  <span>100%</span>
+                </div>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill complete" [style.width.%]="100"></div>
+              </div>
+            </div>
+          }
+
+          @if (columnTerminee.length === 0) {
+            <div class="empty-column">
+              <i class="ti ti-circle-check"></i>
+              <p>Aucune tâche</p>
+            </div>
+          }
+        </div>
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Liste View (alternative) ── -->
+  @if (viewMode === 'list') {
+    <app-card>
+      <div class="table-responsive">
+        <table class="taches-table">
+          <thead>
+            <tr>
+              <th>Tâche</th>
+              <th>Projet</th>
+              <th>Priorité</th>
+              <th>Statut</th>
+              <th>Échéance</th>
+              <th>Progression</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tache of tachesFiltrees; track tache.id) {
+              <tr>
+                <td class="fw-bold">{{ tache.titre }}</td>
+                <td>{{ tache.projet }}</td>
+                <td>
+                  <span class="priority-badge priority-{{ tache.priorite.toLowerCase() }}">
+                    {{ tache.priorite }}
+                  </span>
+                </td>
+                <td>
+                  <select class="status-select status-{{ tache.statut }}"
+                          [value]="tache.statut"
+                          (change)="changeStatut(tache, $any($event.target).value)"
+                          title="Changer le statut">
+                    <option value="A_FAIRE">À faire</option>
+                    <option value="EN_COURS">En cours</option>
+                    <option value="TERMINEE">Terminée</option>
+                  </select>
+                </td>
+                <td>{{ tache.echeance | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <div class="progress-cell">
+                    <input type="range" class="progress-slider"
+                           min="0" max="100" step="5"
+                           [value]="tache.progression"
+                           (input)="liveProgressUpdate(tache, $any($event.target).valueAsNumber)"
+                           (change)="updateProgression(tache, $any($event.target).valueAsNumber)" />
+                    <span class="progress-value" [class.complete]="tache.progression === 100">
+                      {{ tache.progression }}%
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  }
+
+</div>

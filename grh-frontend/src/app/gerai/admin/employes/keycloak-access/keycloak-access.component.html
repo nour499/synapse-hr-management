@@ -1,0 +1,197 @@
+<div class="kc-access">
+
+  @if (loading) {
+    <div class="kc-loading"><i class="ti ti-loader-2 spin"></i> Chargement des accès…</div>
+  } @else {
+
+    <!-- ── Status bar (edit mode only) ────────────────── -->
+    @if (mode === 'edit' && access) {
+      <div class="kc-status-bar">
+        <div class="kc-account-info">
+          <div class="kc-avatar">
+            <i class="ti ti-key"></i>
+          </div>
+          <div>
+            <span class="kc-username">{{ access.username }}</span>
+            <span class="kc-created">Compte créé le {{ access.createdAt | date:'dd/MM/yyyy' }}</span>
+            @if (access.lastLogin) {
+              <span class="kc-last-login">Dernière connexion : {{ access.lastLogin | date:'dd/MM/yyyy' }}</span>
+            }
+          </div>
+        </div>
+        <div class="kc-account-actions">
+          <span class="account-status-badge" [class.enabled]="access.accountEnabled" [class.disabled]="!access.accountEnabled">
+            <i class="ti" [class.ti-circle-check]="access.accountEnabled" [class.ti-circle-x]="!access.accountEnabled"></i>
+            {{ access.accountEnabled ? 'Compte actif' : 'Compte désactivé' }}
+          </span>
+          <button type="button" class="btn-toggle-account"
+            [class.btn-disable]="access.accountEnabled"
+            [class.btn-enable]="!access.accountEnabled"
+            (click)="toggleAccount()">
+            <i class="ti" [class.ti-ban]="access.accountEnabled" [class.ti-circle-check]="!access.accountEnabled"></i>
+            {{ access.accountEnabled ? 'Désactiver' : 'Activer' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (mode === 'edit' && !access) {
+      <div class="kc-no-account">
+        <i class="ti ti-user-off"></i>
+        <p>Aucun compte Keycloak trouvé pour cet employé.</p>
+      </div>
+    }
+
+    <!-- ── Feedback ────────────────────────────────────── -->
+    @if (successMsg) {
+      <div class="kc-alert kc-success"><i class="ti ti-circle-check"></i> {{ successMsg }}</div>
+    }
+    @if (errorMsg) {
+      <div class="kc-alert kc-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+    }
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 1 : RÔLE
+    ═══════════════════════════════════════════════ -->
+    <div class="kc-section">
+      <div class="kc-section-header">
+        <div class="kc-section-title">
+          <i class="ti ti-shield-half"></i> Rôle
+        </div>
+        <span class="kc-section-hint">Un seul rôle par utilisateur</span>
+      </div>
+
+      <div class="roles-grid">
+        @for (role of availableRoles; track role.id) {
+          <button type="button" class="role-card" [class.selected]="hasRole(role.name)"
+            [style.--role-color]="role.color"
+            (click)="toggleRole(role.name)">
+            <div class="role-icon" [style.background]="role.color + '22'" [style.color]="role.color">
+              <i [class]="role.icon"></i>
+            </div>
+            <div class="role-info">
+              <span class="role-name">{{ role.name }}</span>
+              <span class="role-desc">{{ role.description }}</span>
+            </div>
+            <div class="role-check">
+              @if (hasRole(role.name)) {
+                <i class="ti ti-circle-check-filled" [style.color]="role.color"></i>
+              } @else {
+                <i class="ti ti-circle" style="color:#cbd5e1"></i>
+              }
+            </div>
+          </button>
+        }
+      </div>
+
+      @if (mode === 'edit' && access) {
+        <div class="kc-save-row">
+          <button type="button" class="btn-kc-save" [disabled]="saving" (click)="saveRoles()">
+            @if (saving) { <i class="ti ti-loader-2 spin"></i> } @else { <i class="ti ti-device-floppy"></i> }
+            Enregistrer le rôle
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 2 : GROUPES
+    ═══════════════════════════════════════════════ -->
+    <div class="kc-section">
+      <div class="kc-section-header">
+        <div class="kc-section-title">
+          <i class="ti ti-folders"></i> Groupes
+        </div>
+        <span class="kc-section-hint">Plusieurs groupes possibles</span>
+      </div>
+
+      <div class="groups-grid">
+        @for (group of availableGroups; track group.id) {
+          <button type="button" class="group-chip" [class.selected]="hasGroup(group.path)"
+            (click)="toggleGroup(group.path)">
+            <i [class]="group.icon"></i>
+            <span>{{ group.name }}</span>
+            @if (hasGroup(group.path)) {
+              <i class="ti ti-x chip-remove"></i>
+            }
+          </button>
+        }
+      </div>
+
+      @if (selectedGroups.length > 0) {
+        <div class="selected-groups-preview">
+          <span class="preview-label">Groupes sélectionnés :</span>
+          @for (g of selectedGroups; track g) {
+            <span class="group-path-chip">{{ g }}</span>
+          }
+        </div>
+      }
+
+      @if (mode === 'edit' && access) {
+        <div class="kc-save-row">
+          <button type="button" class="btn-kc-save" [disabled]="saving" (click)="saveGroups()">
+            @if (saving) { <i class="ti ti-loader-2 spin"></i> } @else { <i class="ti ti-device-floppy"></i> }
+            Enregistrer les groupes
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 3 : MOT DE PASSE (edit only)
+    ═══════════════════════════════════════════════ -->
+    @if (mode === 'edit' && access) {
+      <div class="kc-section">
+        <div class="kc-section-header">
+          <div class="kc-section-title">
+            <i class="ti ti-lock"></i> Mot de passe
+          </div>
+        </div>
+
+        @if (!showResetConfirm && !resetResult) {
+          <button type="button" class="btn-reset-pwd" (click)="confirmReset()">
+            <i class="ti ti-refresh"></i>
+            Réinitialiser le mot de passe
+          </button>
+          <p class="reset-hint">Un nouveau mot de passe temporaire sera généré et envoyé par e-mail à l'employé.</p>
+        }
+
+        @if (showResetConfirm) {
+          <div class="reset-confirm-box">
+            <i class="ti ti-alert-triangle" style="color:#F59E0B; font-size:20px;"></i>
+            <p>Confirmer la réinitialisation du mot de passe ?<br>
+              <small>L'employé recevra un e-mail avec le nouveau mot de passe temporaire.</small>
+            </p>
+            <div class="reset-confirm-actions">
+              <button type="button" class="btn-confirm-reset" (click)="doResetPassword()">Confirmer</button>
+              <button type="button" class="btn-cancel-reset"  (click)="cancelReset()">Annuler</button>
+            </div>
+          </div>
+        }
+
+        @if (resetResult) {
+          <div class="reset-result">
+            <div class="reset-result-header">
+              <i class="ti ti-circle-check" style="color:#10B981"></i>
+              Mot de passe réinitialisé — E-mail envoyé à l'employé
+            </div>
+            <div class="reset-cred-row">
+              <span class="reset-cred-key"><i class="ti ti-lock"></i> Nouveau mot de passe temporaire</span>
+              <div class="reset-cred-val-row">
+                <code class="reset-cred-val">{{ resetPwdVisible ? resetResult.motDePasse : '••••••••••••' }}</code>
+                <button type="button" class="btn-copy-sm" (click)="resetPwdVisible = !resetPwdVisible">
+                  <i class="ti" [class.ti-eye]="!resetPwdVisible" [class.ti-eye-off]="resetPwdVisible"></i>
+                </button>
+                <button type="button" class="btn-copy-sm" (click)="copyToClipboard(resetResult!.motDePasse)">
+                  <i class="ti ti-copy"></i>
+                </button>
+              </div>
+            </div>
+            <button type="button" class="btn-close-reset" (click)="cancelReset()">Fermer</button>
+          </div>
+        }
+      </div>
+    }
+
+  }
+</div>

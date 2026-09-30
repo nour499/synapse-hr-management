@@ -1,0 +1,440 @@
+<div class="profil-page">
+
+  <!-- ── Topbar ──────────────────────────────────────── -->
+  <div class="profil-topbar">
+    <button class="btn-back" (click)="goBack()">
+      <i class="ti ti-arrow-left"></i> Retour à la liste
+    </button>
+    @if (employe) {
+      <button class="btn-edit" (click)="editEmploye()">
+        <i class="ti ti-pencil"></i> Modifier
+      </button>
+    }
+  </div>
+
+  <!-- ── Loading ──────────────────────────────────────── -->
+  @if (loading) {
+    <div class="profil-skel">
+      <!-- Hero card skeleton -->
+      <div class="profil-skel-hero">
+        <div class="sk sk-av-lg"></div>
+        <div class="profil-skel-info">
+          <div class="sk sk-xl" style="width:220px"></div>
+          <div class="sk sk-md" style="width:150px; margin-top:10px"></div>
+          <div class="profil-skel-chips">
+            <div class="sk sk-pill"></div>
+            <div class="sk sk-pill"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Info grid skeleton -->
+      <div class="profil-skel-grid">
+        @for (i of [1,2,3,4,5,6]; track i) {
+          <div class="profil-skel-card">
+            <div class="sk sk-xs" style="width:70px"></div>
+            <div class="sk sk-md" style="width:110px; margin-top:8px"></div>
+          </div>
+        }
+      </div>
+    </div>
+
+  } @else if (notFound) {
+    <div class="not-found">
+      <div class="nf-icon"><i class="ti ti-user-off"></i></div>
+      <h3>Employé introuvable</h3>
+      <p>Cet employé n'existe pas ou a été supprimé.</p>
+      <button class="btn-back" (click)="goBack()">
+        <i class="ti ti-arrow-left"></i> Retour à la liste
+      </button>
+    </div>
+
+  } @else if (employe) {
+
+    <!-- ═══════════════════════════════════════════════
+         HERO CARD
+    ═══════════════════════════════════════════════════ -->
+    <div class="hero-card">
+      <div class="hero-bg"></div>
+      <div class="hero-body">
+
+        <div class="hero-avatar-wrap">
+          @if (employe.photo) {
+            <img [src]="employe.photo" [alt]="employe.prenom" class="hero-photo"
+                 (error)="$any($event.target).src='assets/images/user/avatar-1.jpg'" />
+          } @else {
+            <div class="hero-initials">{{ initiales() }}</div>
+          }
+          <span class="online-dot"></span>
+        </div>
+
+        <div class="hero-info">
+          <h2 class="hero-name">{{ employe.prenom }} {{ employe.nom }}</h2>
+          <p class="hero-poste">{{ employe.poste ?? 'Poste non défini' }}</p>
+          <div class="hero-chips">
+            <div class="hero-dept-chip"
+                 [style.color]="deptColor()"
+                 [style.background]="deptColor() + '18'">
+              <i class="ti ti-building"></i>{{ employe.departement ?? '—' }}
+            </div>
+            @if (employe.statut) {
+              <div class="hero-statut-chip"
+                   [class.chip-actif]="employe.statut === 'ACTIF'"
+                   [class.chip-conge]="employe.statut === 'CONGE'"
+                   [class.chip-inactif]="employe.statut === 'INACTIF'">
+                <i class="ti"
+                   [class.ti-circle-check]="employe.statut === 'ACTIF'"
+                   [class.ti-beach]="employe.statut === 'CONGE'"
+                   [class.ti-circle-x]="employe.statut === 'INACTIF'"></i>
+                {{ employe.statut === 'ACTIF' ? 'Actif' : employe.statut === 'CONGE' ? 'En congé' : 'Inactif' }}
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="hero-anciennete">
+          <i class="ti ti-calendar-event"></i>
+          <div>
+            <span class="anc-val">{{ anciennete }}</span>
+            <span class="anc-lbl">d'ancienneté</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         TABS BAR
+    ═══════════════════════════════════════════════════ -->
+    <div class="profile-tabs">
+      <button class="ptab-btn" [class.active]="activeTab === 'info'" (click)="setTab('info')">
+        <i class="ti ti-user"></i> Informations
+      </button>
+      <button class="ptab-btn" [class.active]="activeTab === 'actifs'" (click)="setTab('actifs')">
+        <i class="ti ti-package"></i> Actifs
+        <span class="ptab-badge">{{ actifs.length }}</span>
+      </button>
+      <button class="ptab-btn" [class.active]="activeTab === 'acces'" (click)="setTab('acces')">
+        <i class="ti ti-key"></i> Accès Keycloak
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB — INFORMATIONS
+    ═══════════════════════════════════════════════════ -->
+    @if (activeTab === 'info') {
+
+      <div class="info-row">
+
+        <!-- ── Coordonnées ── -->
+        <div class="info-card">
+          <div class="ic-head">
+            <div class="ic-icon" style="background:#EFF6FF">
+              <i class="ti ti-address-book" style="color:#3B82F6"></i>
+            </div>
+            <span>Coordonnées</span>
+          </div>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-mail"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Email</span>
+                <span class="ii-value">{{ employe.email }}</span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-phone"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Téléphone</span>
+                <span class="ii-value">{{ employe.telephone ?? '—' }}</span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-map-pin"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Adresse</span>
+                <span class="ii-value">{{ employe.adresse ?? '—' }}</span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-gender-bigender"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Genre</span>
+                <span class="ii-value">{{ employe.genre === 'M' ? 'Masculin' : employe.genre === 'F' ? 'Féminin' : '—' }}</span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-cake"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Date de naissance</span>
+                <span class="ii-value">
+                  {{ employe.dateNaissance ? (employe.dateNaissance | date:'dd MMMM yyyy') : '—' }}
+                </span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-calendar"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Date d'embauche</span>
+                <span class="ii-value">
+                  {{ employe.dateEmbauche ? (employe.dateEmbauche | date:'dd MMMM yyyy') : '—' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Statistiques RH ── -->
+        @if (stats) {
+          <div class="stats-card">
+            <div class="ic-head">
+              <div class="ic-icon" style="background:#F0FDF4">
+                <i class="ti ti-chart-bar" style="color:#16A34A"></i>
+              </div>
+              <span>Statistiques RH</span>
+            </div>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <div class="stat-icon" style="background:#EFF6FF">
+                  <i class="ti ti-beach" style="color:#3B82F6"></i>
+                </div>
+                <div class="stat-body">
+                  <span class="stat-val">{{ stats.congesRestants }}</span>
+                  <span class="stat-lbl">Congés restants</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon" style="background:#FEF9C3">
+                  <i class="ti ti-clipboard-list" style="color:#CA8A04"></i>
+                </div>
+                <div class="stat-body">
+                  <span class="stat-val">{{ stats.demandesEnCours }}</span>
+                  <span class="stat-lbl">Demandes en cours</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon" style="background:#ECFDF5">
+                  <i class="ti ti-checklist" style="color:#059669"></i>
+                </div>
+                <div class="stat-body">
+                  <span class="stat-val">{{ stats.tachesActives }}</span>
+                  <span class="stat-lbl">Tâches actives</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon" style="background:#F0FDF4">
+                  <i class="ti ti-activity" style="color:#16A34A"></i>
+                </div>
+                <div class="stat-body">
+                  <span class="stat-val">{{ stats.tauxPresence }}%</span>
+                  <span class="stat-lbl">Taux de présence</span>
+                </div>
+              </div>
+            </div>
+            <div class="presence-wrap">
+              <div class="presence-ring" [style.background]="presenceRingCss">
+                <div class="presence-hole">
+                  <span class="ph-val">{{ stats.tauxPresence }}</span>
+                  <span class="ph-unit">%</span>
+                  <span class="ph-lbl">présence</span>
+                </div>
+              </div>
+              <p class="presence-caption">Taux de présence mensuel</p>
+            </div>
+          </div>
+        }
+
+      </div>
+
+      <!-- ── Informations professionnelles ── -->
+      <div class="info-row mt-4">
+
+        <div class="info-card">
+          <div class="ic-head">
+            <div class="ic-icon" style="background:#EEF2FF">
+              <i class="ti ti-briefcase" style="color:#6366F1"></i>
+            </div>
+            <span>Informations professionnelles</span>
+          </div>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-school"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Diplôme</span>
+                <span class="ii-value">{{ employe.diplome ?? '—' }}</span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-coin"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Salaire mensuel</span>
+                <span class="ii-value">
+                  {{ employe.salaire != null ? (employe.salaire | number) + ' DT' : '—' }}
+                </span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="ii-icon"><i class="ti ti-map-2"></i></div>
+              <div class="ii-body">
+                <span class="ii-label">Lieu de travail</span>
+                <span class="lieu-badge"
+                      [class.lieu-bureau]="employe.lieuTravail === 'BUREAU'"
+                      [class.lieu-remote]="employe.lieuTravail === 'TELETRAVAIL'"
+                      [class.lieu-hybride]="employe.lieuTravail === 'HYBRIDE'">
+                  @if (employe.lieuTravail === 'BUREAU') {
+                    <i class="ti ti-building"></i> Bureau
+                  } @else if (employe.lieuTravail === 'TELETRAVAIL') {
+                    <i class="ti ti-home"></i> Télétravail
+                  } @else if (employe.lieuTravail === 'HYBRIDE') {
+                    <i class="ti ti-arrows-exchange"></i> Hybride
+                  } @else { — }
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card info-card-empty">
+          <div class="ic-head">
+            <div class="ic-icon" style="background:#FFF1F2">
+              <i class="ti ti-clipboard-list" style="color:#E11D48"></i>
+            </div>
+            <span>Activité récente</span>
+          </div>
+          <div class="empty-activity">
+            <i class="ti ti-history"></i>
+            <p>Historique disponible prochainement</p>
+          </div>
+        </div>
+
+      </div>
+
+    }
+
+    <!-- ═══════════════════════════════════════════════
+         TAB — ACTIFS
+    ═══════════════════════════════════════════════════ -->
+    @else if (activeTab === 'actifs') {
+
+      <div class="actifs-tab">
+
+        <div class="actifs-tab-header">
+          <span class="at-count">{{ actifs.length }} actif{{ actifs.length !== 1 ? 's' : '' }} assigné{{ actifs.length !== 1 ? 's' : '' }}</span>
+          <button class="btn-add-actif" (click)="addActif()">
+            <i class="ti ti-plus"></i> Ajouter un actif
+          </button>
+        </div>
+
+        @if (actifs.length === 0) {
+          <div class="actifs-empty">
+            <div class="ae-icon"><i class="ti ti-package-off"></i></div>
+            <h3>Aucun actif assigné</h3>
+            <p>Cet employé n'a pas encore d'actifs assignés.</p>
+            <button class="btn-add-actif" (click)="addActif()">
+              <i class="ti ti-plus"></i> Ajouter un actif
+            </button>
+          </div>
+        } @else {
+
+          <!-- Tangibles -->
+          @if (actifsTangibles.length > 0) {
+            <div class="actif-section">
+              <div class="as-head">
+                <div class="as-icon" style="background:#EEF2FF">
+                  <i class="ti ti-device-laptop" style="color:#6366F1"></i>
+                </div>
+                <span>Actifs Tangibles</span>
+                <span class="as-count">{{ actifsTangibles.length }}</span>
+              </div>
+              <div class="actif-cards-grid">
+                @for (a of actifsTangibles; track a.id) {
+                  <div class="actif-mini-card">
+                    <div class="amc-icon">
+                      <i class="{{ typeIcons[a.type] ?? 'ti ti-package' }}"></i>
+                    </div>
+                    <div class="amc-body">
+                      <span class="amc-nom">{{ a.nom }}</span>
+                      <span class="amc-type">{{ typeLabels[a.type] ?? a.type }}</span>
+                      @if (a.marque) {
+                        <span class="amc-brand">{{ a.marque }}{{ a.modele ? ' · ' + a.modele : '' }}</span>
+                      }
+                      @if (a.numeroSerie) {
+                        <span class="amc-serial"># {{ a.numeroSerie }}</span>
+                      }
+                    </div>
+                    <span class="amc-statut"
+                          [class.sb-attribue]="a.statut === 'ATTRIBUE'"
+                          [class.sb-disponible]="a.statut === 'DISPONIBLE'"
+                          [class.sb-maintenance]="a.statut === 'EN_MAINTENANCE'"
+                          [class.sb-hors]="a.statut === 'HORS_SERVICE'">
+                      {{ statutActifLabel(a.statut) }}
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Numériques -->
+          @if (actifsNumeriques.length > 0) {
+            <div class="actif-section">
+              <div class="as-head">
+                <div class="as-icon" style="background:#F0F9FF">
+                  <i class="ti ti-license" style="color:#0284C7"></i>
+                </div>
+                <span>Actifs Numériques</span>
+                <span class="as-count">{{ actifsNumeriques.length }}</span>
+              </div>
+              <div class="actif-cards-grid">
+                @for (a of actifsNumeriques; track a.id) {
+                  <div class="actif-mini-card" [class.card-expiring]="isExpiringSoon(a)" [class.card-expired]="isExpired(a)">
+                    <div class="amc-icon">
+                      <i class="{{ typeIcons[a.type] ?? 'ti ti-license' }}"></i>
+                    </div>
+                    <div class="amc-body">
+                      <span class="amc-nom">{{ a.nom }}</span>
+                      <span class="amc-type">{{ typeLabels[a.type] ?? a.type }}</span>
+                      @if (a.marque) {
+                        <span class="amc-brand">{{ a.marque }}</span>
+                      }
+                      @if (a.dateExpiration) {
+                        <span class="amc-expiry" [class.expired]="isExpired(a)" [class.expiring]="isExpiringSoon(a)">
+                          <i class="ti ti-calendar-event"></i>
+                          Exp. {{ a.dateExpiration | date:'dd/MM/yyyy' }}
+                          @if (isExpired(a)) { <span class="exp-chip exp-rouge">Expiré</span> }
+                          @else if (isExpiringSoon(a)) { <span class="exp-chip exp-orange">Bientôt</span> }
+                        </span>
+                      }
+                    </div>
+                    <span class="amc-statut"
+                          [class.sb-attribue]="a.statut === 'ATTRIBUE'"
+                          [class.sb-disponible]="a.statut === 'DISPONIBLE'"
+                          [class.sb-maintenance]="a.statut === 'EN_MAINTENANCE'"
+                          [class.sb-hors]="a.statut === 'HORS_SERVICE'">
+                      {{ statutActifLabel(a.statut) }}
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+        }
+      </div>
+
+    }
+
+    <!-- ═══════════════════════════════════════════════
+         TAB — ACCÈS KEYCLOAK
+    ═══════════════════════════════════════════════════ -->
+    @else if (activeTab === 'acces') {
+      <div class="acces-tab">
+        <app-keycloak-access
+          mode="edit"
+          [employeId]="employe.id">
+        </app-keycloak-access>
+      </div>
+    }
+
+  }
+
+</div>

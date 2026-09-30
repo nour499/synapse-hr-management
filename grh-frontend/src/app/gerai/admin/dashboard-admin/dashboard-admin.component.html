@@ -1,0 +1,455 @@
+<div class="admin-dash">
+
+  <!-- ═══════════════════════════════════════════════
+       HERO BANNER
+  ═══════════════════════════════════════════════════ -->
+  <div class="hero">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+
+    <div class="hero-left">
+      <div class="hero-role-chip">
+        <i class="ti ti-shield-star"></i> Administrateur RH
+      </div>
+      <h2 class="hero-name">
+        Bonjour, {{ userName || 'Admin' }}&thinsp;<span class="wave">👋</span>
+      </h2>
+      <p class="hero-sub">
+        <i class="ti ti-calendar"></i>
+        {{ currentDate | date:'EEEE d MMMM yyyy' }}
+        &nbsp;·&nbsp;
+        <i class="ti ti-building"></i> SYNAPSE RH
+      </p>
+    </div>
+
+    <div class="hero-right">
+      <div class="hero-kpi">
+        <span class="hk-val">{{ totalEmployes }}</span>
+        <span class="hk-lbl">Employés</span>
+      </div>
+      <div class="hero-sep"></div>
+      <div class="hero-kpi">
+        <span class="hk-val">{{ demandesEnAttente }}</span>
+        <span class="hk-lbl">En attente</span>
+      </div>
+      <div class="hero-sep"></div>
+      <div class="hero-kpi">
+        <span class="hk-val">{{ projetsEnCoursCount }}</span>
+        <span class="hk-lbl">Projets actifs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       KPI STRIP (6 cards)
+  ═══════════════════════════════════════════════════ -->
+  <div class="kpi-strip">
+
+    <div class="kpi-card" (click)="go('/chef/equipe')">
+      <div class="kpi-icon-box ib-blue">
+        <i class="ti ti-users"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ totalEmployes }}</span>
+        <span class="kpi-lbl">Total employés</span>
+      </div>
+      <div class="kpi-trend up"><i class="ti ti-trending-up"></i></div>
+    </div>
+
+    <div class="kpi-card" (click)="go('/chef/equipe')">
+      <div class="kpi-icon-box ib-green">
+        <i class="ti ti-user-check"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ membresActifs }}</span>
+        <span class="kpi-lbl">Actifs aujourd'hui</span>
+      </div>
+      <div class="kpi-trend up"><i class="ti ti-trending-up"></i></div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-box ib-amber">
+        <i class="ti ti-beach"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ membresConge }}</span>
+        <span class="kpi-lbl">En congé</span>
+      </div>
+      <div class="kpi-trend neutral"><i class="ti ti-minus"></i></div>
+    </div>
+
+    <div class="kpi-card" (click)="go('/chef/demandes')">
+      <div class="kpi-icon-box ib-amber-dk">
+        <i class="ti ti-clipboard-list"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ demandesEnAttente }}</span>
+        <span class="kpi-lbl">Demandes en attente</span>
+      </div>
+      @if (demandesEnAttente > 0) {
+        <div class="kpi-badge-urgent">Urgent</div>
+      }
+    </div>
+
+    <div class="kpi-card" (click)="go('/chef/projets')">
+      <div class="kpi-icon-box ib-indigo">
+        <i class="ti ti-layout-kanban"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ projetsEnCoursCount }}</span>
+        <span class="kpi-lbl">Projets actifs</span>
+      </div>
+      <div class="kpi-trend up"><i class="ti ti-trending-up"></i></div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-box ib-lime">
+        <i class="ti ti-chart-line"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ tauxPresence }}<span class="kpi-unit">%</span></span>
+        <span class="kpi-lbl">Taux de présence</span>
+      </div>
+      <div class="kpi-trend up"><i class="ti ti-trending-up"></i></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       ANALYTICS ROW
+  ═══════════════════════════════════════════════════ -->
+  <div class="row g-4 mb-4">
+
+    <!-- ── Répartition départements ── -->
+    <div class="col-xl-5 col-lg-6">
+      <div class="dash-card h-100">
+        <div class="dc-head">
+          <div class="dc-title">
+            <div class="dc-icon-wrap ib-indigo">
+              <i class="ti ti-building"></i>
+            </div>
+            <span>Répartition par département</span>
+          </div>
+          <span class="dc-badge">{{ allEmployes.length }} employés</span>
+        </div>
+
+        @if (loading) {
+          <div class="skel-bars">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="skel-bar-row">
+                <div class="sk sk-label"></div>
+                <div class="sk sk-bar" [style.width.%]="60+i*5"></div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="dept-chart">
+            @for (d of deptStats; track d.nom) {
+              <div class="dept-row">
+                <div class="dept-label-wrap">
+                  <span class="dept-dot" [style.background]="d.color"></span>
+                  <span class="dept-nom">{{ d.nom }}</span>
+                </div>
+                <div class="dept-bar-track">
+                  <div class="dept-bar-fill"
+                       [style.width.%]="d.pct"
+                       [style.background]="d.color">
+                  </div>
+                </div>
+                <span class="dept-count">{{ d.count }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Donut demandes ── -->
+    <div class="col-xl-3 col-lg-6">
+      <div class="dash-card h-100">
+        <div class="dc-head">
+          <div class="dc-title">
+            <div class="dc-icon-wrap ib-amber-dk">
+              <i class="ti ti-chart-pie"></i>
+            </div>
+            <span>Types de demandes</span>
+          </div>
+        </div>
+
+        @if (loading) {
+          <div class="skel-donut-wrap"><div class="skel-donut"></div></div>
+        } @else if (typeStats.length === 0) {
+          <div class="empty-sm">
+            <i class="ti ti-inbox"></i><p>Aucune demande</p>
+          </div>
+        } @else {
+          <div class="donut-section">
+            <div class="donut-wrap">
+              <div class="donut-ring" [style.background]="demandesDonutCss">
+                <div class="donut-hole">
+                  <span class="donut-total">{{ donutTotal }}</span>
+                  <span class="donut-lbl">Total</span>
+                </div>
+              </div>
+            </div>
+            <ul class="donut-legend">
+              @for (t of typeStats; track t.label) {
+                <li>
+                  <span class="leg-dot" [style.background]="t.color"></span>
+                  <span class="leg-label">{{ t.label }}</span>
+                  <span class="leg-val">{{ t.count }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Présence ring ── -->
+    <div class="col-xl-4 col-lg-12">
+      <div class="dash-card h-100">
+        <div class="dc-head">
+          <div class="dc-title">
+            <div class="dc-icon-wrap ib-lime">
+              <i class="ti ti-activity"></i>
+            </div>
+            <span>Présence &amp; Statuts</span>
+          </div>
+        </div>
+
+        <div class="presence-section">
+          <div class="presence-ring-wrap">
+            <div class="presence-ring" [style.background]="presenceRingCss">
+              <div class="ring-inner">
+                <span class="ring-val">{{ tauxPresence }}</span>
+                <span class="ring-unit">%</span>
+                <span class="ring-lbl">présence</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="presence-legend">
+            <div class="pl-item">
+              <div class="pl-circle pl-green"></div>
+              <div class="pl-info">
+                <span class="pl-val">{{ membresActifs }}</span>
+                <span class="pl-label">Présents</span>
+              </div>
+            </div>
+            <div class="pl-item">
+              <div class="pl-circle pl-amber"></div>
+              <div class="pl-info">
+                <span class="pl-val">{{ membresConge }}</span>
+                <span class="pl-label">En congé</span>
+              </div>
+            </div>
+            <div class="pl-item">
+              <div class="pl-circle pl-slate"></div>
+              <div class="pl-info">
+                <span class="pl-val">{{ totalEmployes - membresActifs - membresConge }}</span>
+                <span class="pl-label">Inactifs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       EMPLOYEES + ACTIVITY
+  ═══════════════════════════════════════════════════ -->
+  <div class="row g-4 mb-4">
+
+    <!-- ── Annuaire employés ── -->
+    <div class="col-xl-7">
+      <div class="dash-card">
+        <div class="dc-head">
+          <div class="dc-title">
+            <div class="dc-icon-wrap ib-blue">
+              <i class="ti ti-id-badge"></i>
+            </div>
+            <span>Annuaire des employés</span>
+          </div>
+          <button class="dc-btn" (click)="go('/chef/equipe')">
+            Voir tout <i class="ti ti-arrow-right"></i>
+          </button>
+        </div>
+
+        @if (loading) {
+          <div class="emp-grid">
+            @for (i of [1,2,3,4,5,6]; track i) {
+              <div class="emp-card-skel">
+                <div class="sk sk-av-lg"></div>
+                <div class="sk sk-line-sm mt-2"></div>
+                <div class="sk sk-line-xs mt-1"></div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="emp-grid">
+            @for (e of allEmployes.slice(0, 12); track e.id) {
+              <div class="emp-card">
+                <div class="emp-avatar-wrap">
+                  @if (e.photo) {
+                    <img [src]="e.photo" [alt]="e.prenom"
+                         class="emp-photo"
+                         (error)="$any($event.target).src='assets/images/user/avatar-1.jpg'" />
+                  } @else {
+                    <div class="emp-initials">
+                      {{ ((e.prenom?.[0] ?? '') + (e.nom?.[0] ?? '')).toUpperCase() || '?' }}
+                    </div>
+                  }
+                  <span class="emp-status-dot dot-actif"></span>
+                </div>
+                <div class="emp-details">
+                  <span class="emp-name">{{ e.prenom }} {{ e.nom }}</span>
+                  <span class="emp-poste">{{ e.poste ?? '—' }}</span>
+                  <span class="emp-dept" [style.color]="deptColor(e.departement)">
+                    {{ e.departement ?? '—' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Activité RH récente ── -->
+    <div class="col-xl-5">
+      <div class="dash-card h-100">
+        <div class="dc-head">
+          <div class="dc-title">
+            <div class="dc-icon-wrap ib-rose">
+              <i class="ti ti-activity-heartbeat"></i>
+            </div>
+            <span>Activité RH récente</span>
+          </div>
+          <button class="dc-btn" (click)="go('/chef/demandes')">
+            Voir tout <i class="ti ti-arrow-right"></i>
+          </button>
+        </div>
+
+        @if (loading) {
+          <div class="timeline-skel">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="tl-skel-row">
+                <div class="sk sk-circle"></div>
+                <div class="tl-skel-body">
+                  <div class="sk sk-line-sm"></div>
+                  <div class="sk sk-line-xs mt-1"></div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (timeline.length === 0) {
+          <div class="empty-sm">
+            <i class="ti ti-history"></i><p>Aucune activité récente</p>
+          </div>
+        } @else {
+          <div class="timeline">
+            @for (item of timeline; track $index) {
+              <div class="tl-item">
+                <div class="tl-icon" [style.background]="item.iconBg + '22'">
+                  <i class="ti {{ item.icon }}" [style.color]="item.iconBg"></i>
+                </div>
+                <div class="tl-connector"></div>
+                <div class="tl-body">
+                  <div class="tl-main">
+                    <span class="tl-who">{{ item.texte }}</span>
+                    <span class="tl-statut" [class]="statutClass(item.statut)">
+                      {{ statutLabel[item.statut] ?? item.statut }}
+                    </span>
+                  </div>
+                  <div class="tl-sub">
+                    <span>{{ item.sous }}</span>
+                    <span class="tl-date">{{ item.date | date:'dd/MM HH:mm' }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       PROJECTS PIPELINE
+  ═══════════════════════════════════════════════════ -->
+  <div class="dash-card mb-4">
+    <div class="dc-head">
+      <div class="dc-title">
+        <div class="dc-icon-wrap ib-indigo">
+          <i class="ti ti-layout-kanban"></i>
+        </div>
+        <span>Pipeline des projets actifs</span>
+      </div>
+      <button class="dc-btn" (click)="go('/chef/projets')">
+        Gérer <i class="ti ti-arrow-right"></i>
+      </button>
+    </div>
+
+    @if (loading) {
+      <div class="proj-grid">
+        @for (i of [1,2,3]; track i) {
+          <div class="proj-card-skel">
+            <div class="sk sk-line-sm"></div>
+            <div class="sk sk-bar mt-3 w-100"></div>
+          </div>
+        }
+      </div>
+    } @else if (projetsActifs.length === 0) {
+      <div class="empty-sm"><i class="ti ti-check-all"></i><p>Aucun projet actif</p></div>
+    } @else {
+      <div class="proj-grid">
+        @for (p of projetsActifs; track p.id) {
+          <div class="proj-card" (click)="go('/chef/projets')">
+            <div class="proj-color-bar" [style.background]="p.couleur || '#6366F1'"></div>
+            <div class="proj-card-body">
+              <div class="proj-top">
+                <span class="proj-name">{{ p.nom }}</span>
+                <span class="proj-statut" [class]="projetStatutClass(p.statut)">
+                  {{ projetStatutLabel(p.statut) }}
+                </span>
+              </div>
+
+              <div class="proj-progress-wrap">
+                <div class="proj-progress-track">
+                  <div class="proj-progress-fill"
+                       [style.width.%]="calcProgression(p)"
+                       [style.background]="p.couleur || '#6366F1'">
+                  </div>
+                </div>
+                <span class="proj-pct">{{ calcProgression(p) }}%</span>
+              </div>
+
+              <div class="proj-footer">
+                <div class="proj-team">
+                  @for (m of (p.membres || p.equipe || []).slice(0,3); track m.id) {
+                    <span class="proj-av" [title]="m.nom">{{ m.initiales }}</span>
+                  }
+                  @if ((p.membres || p.equipe || []).length > 3) {
+                    <span class="proj-av proj-av-more">+{{ (p.membres || p.equipe || []).length - 3 }}</span>
+                  }
+                </div>
+                <span class="proj-tasks">
+                  <i class="ti ti-checklist"></i>
+                  {{ p.tachesCompletees ?? '—' }}/{{ p.totalTaches ?? '—' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+
+</div>

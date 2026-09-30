@@ -1,0 +1,558 @@
+<div class="conges-page">
+
+  <!-- ── Header ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-beach"></i></div>
+      <div>
+        <h1 class="page-title">Demandes de congé</h1>
+        <p class="page-sub">Suivi de toutes les demandes de congé des employés</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI strip ─────────────────────────────────── -->
+  <div class="kpi-strip">
+    <button class="kpi-card" [class.active]="filterStatut === ''" (click)="setStatut('')">
+      <i class="ti ti-calendar kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.total }}</span><span class="kpi-lbl">Total</span></div>
+    </button>
+    <button class="kpi-card kpi-attente" [class.active]="filterStatut === 'EN_ATTENTE'" (click)="setStatut('EN_ATTENTE')">
+      <i class="ti ti-clock kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.enAttente }}</span><span class="kpi-lbl">En attente</span></div>
+    </button>
+    <button class="kpi-card kpi-approuve" [class.active]="filterStatut === 'APPROUVE'" (click)="setStatut('APPROUVE')">
+      <i class="ti ti-circle-check kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.approuve }}</span><span class="kpi-lbl">Approuvés</span></div>
+    </button>
+    <button class="kpi-card kpi-rejete" [class.active]="filterStatut === 'REJETE'" (click)="setStatut('REJETE')">
+      <i class="ti ti-circle-x kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.rejete }}</span><span class="kpi-lbl">Rejetés</span></div>
+    </button>
+    <button class="kpi-card kpi-medical" [class.active]="filterStatut === 'EN_ETUDE_MEDICALE'" (click)="setStatut('EN_ETUDE_MEDICALE')">
+      <i class="ti ti-stethoscope kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.medical }}</span><span class="kpi-lbl">Comité médical</span></div>
+    </button>
+  </div>
+
+  <!-- ── Filters ───────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher par employé, département, raison…"
+             [value]="search" (input)="setSearch($any($event.target).value)" />
+    </div>
+    <select class="filter-select" [value]="filterType" (change)="setType($any($event.target).value)">
+      <option value="">Tous les types</option>
+      @for (group of typeGroups; track group.label) {
+        <optgroup [label]="group.label">
+          @for (t of group.types; track t) {
+            <option [value]="t">{{ typeLabels[t] }}</option>
+          }
+        </optgroup>
+      }
+    </select>
+  </div>
+
+  <!-- ── Table ─────────────────────────────────────── -->
+  @if (loading) {
+  <app-skeleton-rows [rows]="6" [cols]="4" [withAvatar]="true" />
+} @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-beach"></i></div>
+      <h3>Aucune demande trouvée</h3>
+      <p>Modifiez vos filtres pour afficher les résultats.</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="conges-table">
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Département</th>
+            <th>Type de congé</th>
+            <th>Du</th>
+            <th>Au</th>
+            <th>Nb jours</th>
+            <th>Durée</th>
+            <th>Statut</th>
+            <th>Raison</th>
+            <th>Demandé le</th>
+            <th>Approuvé par</th>
+            <th>Date approbation</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of paginated; track d.id) {
+            <tr [class.row-pending]="d.statut === 'EN_ATTENTE'"
+                [class.row-medical]="d.statut === 'EN_ETUDE_MEDICALE'">
+
+              <!-- Employé -->
+              <td>
+                <div class="emp-cell">
+                  <div class="emp-avatar-wrap">
+                    @if (d.employePhoto) {
+                      <img [src]="d.employePhoto" class="emp-avatar" [alt]="d.employeNom" />
+                    } @else {
+                      <div class="emp-initials">{{ initiales(d.employeNom) }}</div>
+                    }
+                    @if (d.statut === 'EN_ATTENTE' || d.statut === 'EN_ETUDE_MEDICALE') {
+                      <span class="pending-dot"
+                            [class.pending-dot-medical]="d.statut === 'EN_ETUDE_MEDICALE'"
+                            title="{{ d.statut === 'EN_ETUDE_MEDICALE' ? 'En attente du comité médical' : 'En attente de traitement' }}"></span>
+                    }
+                  </div>
+                  <div class="emp-name-wrap">
+                    <span class="emp-name" [class.emp-name-pending]="d.statut === 'EN_ATTENTE' || d.statut === 'EN_ETUDE_MEDICALE'">
+                      {{ d.employeNom }}
+                    </span>
+                    @if (d.statut === 'EN_ATTENTE') {
+                      <span class="to-process-badge">
+                        <i class="ti ti-alert-triangle"></i> À traiter
+                      </span>
+                    }
+                    @if (d.statut === 'EN_ETUDE_MEDICALE') {
+                      <span class="to-process-badge to-process-medical">
+                        <i class="ti ti-stethoscope"></i> Comité médical
+                      </span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Département -->
+              <td>
+                @if (d.departement) {
+                  <span class="dept-badge">{{ d.departement }}</span>
+                } @else { <span class="nd">—</span> }
+              </td>
+
+              <!-- Type -->
+              <td>
+                <span class="type-badge"
+                      [style.background]="typeColors[d.typeConge] + '18'"
+                      [style.color]="typeColors[d.typeConge]">
+                  <i class="{{ typeIcons[d.typeConge] }}"></i>
+                  {{ typeLabels[d.typeConge] }}
+                </span>
+                @if (halfSalaryTypes.has(d.typeConge)) {
+                  <span class="half-sal-badge" title="Demi-salaire">½ sal.</span>
+                }
+              </td>
+
+              <!-- Du -->
+              <td><span class="date-val">{{ d.dateDebut | date:'dd/MM/yyyy' }}</span></td>
+
+              <!-- Au -->
+              <td><span class="date-val">{{ d.dateFin | date:'dd/MM/yyyy' }}</span></td>
+
+              <!-- Nb jours -->
+              <td>
+                <span class="jours-badge">
+                  <i class="ti ti-sun"></i>{{ d.nombreJours }} j
+                </span>
+              </td>
+
+              <!-- Durée type -->
+              <td>
+                <span class="duree-badge" [class.duree-demi]="d.dureeType === 'DEMI_JOURNEE'">
+                  <i class="{{ d.dureeType === 'DEMI_JOURNEE' ? 'ti ti-circle-half' : 'ti ti-circle' }}"></i>
+                  {{ dureeLabels[d.dureeType] }}
+                </span>
+              </td>
+
+              <!-- Statut -->
+              <td>
+                <span class="statut-badge"
+                      [class.s-attente]="d.statut === 'EN_ATTENTE'"
+                      [class.s-medical]="d.statut === 'EN_ETUDE_MEDICALE'"
+                      [class.s-approuve]="d.statut === 'APPROUVE'"
+                      [class.s-rejete]="d.statut === 'REJETE'"
+                      [class.s-annule]="d.statut === 'ANNULE'">
+                  <span class="s-dot"></span>{{ statutLabels[d.statut] }}
+                </span>
+              </td>
+
+              <!-- Raison -->
+              <td>
+                <span class="raison-text" [title]="d.raison">{{ d.raison }}</span>
+              </td>
+
+              <!-- Demandé le -->
+              <td><span class="date-val muted">{{ d.dateDemande | date:'dd/MM/yyyy' }}</span></td>
+
+              <!-- Approuvé par -->
+              <td>
+                @if (d.approvePar) {
+                  <div class="approver-cell">
+                    <div class="approver-dot"></div><span>{{ d.approvePar }}</span>
+                  </div>
+                } @else { <span class="nd">—</span> }
+              </td>
+
+              <!-- Date approbation -->
+              <td>
+                @if (d.dateApprobation) {
+                  <span class="date-val muted">{{ d.dateApprobation | date:'dd/MM/yyyy' }}</span>
+                } @else { <span class="nd">—</span> }
+              </td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button class="btn-action btn-view" title="Voir les détails" (click)="openDetail(d)">
+                  <i class="ti ti-eye"></i>
+                </button>
+                @if (d.statut === 'EN_ETUDE_MEDICALE') {
+                  <button class="btn-action btn-approve-med" title="Approuver — comité médical" (click)="openMedicalDecision(d, true)">
+                    <i class="ti ti-circle-check"></i>
+                  </button>
+                  <button class="btn-action btn-reject-med" title="Refuser — comité médical" (click)="openMedicalDecision(d, false)">
+                    <i class="ti ti-circle-x"></i>
+                  </button>
+                } @else {
+                  <button class="btn-action btn-edit"   title="Modifier"   (click)="openEdit(d)">
+                    <i class="ti ti-edit"></i>
+                  </button>
+                  <button class="btn-action btn-delete" title="Supprimer"  (click)="askDelete(d)">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                }
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginator [total]="filtered.length" [pageSize]="pageSize" [page]="page" (pageChange)="page=$event" />
+    </div>
+
+    <p class="row-count">
+      <i class="ti ti-list"></i>
+      {{ filtered.length }} demande{{ filtered.length > 1 ? 's' : '' }} affichée{{ filtered.length > 1 ? 's' : '' }}
+      @if (filtered.length < demandes.length) {
+        <span class="row-filtered"> sur {{ demandes.length }}</span>
+      }
+    </p>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DETAIL DRAWER
+══════════════════════════════════════════════════════ -->
+@if (detailItem) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <div class="drawer-panel">
+
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon" [style.background]="typeColors[detailItem.typeConge] + '20'"
+             [style.color]="typeColors[detailItem.typeConge]">
+          <i class="{{ typeIcons[detailItem.typeConge] }}"></i>
+        </div>
+        <div>
+          <h2 class="drawer-title">Détail de la demande</h2>
+          <p class="drawer-sub">{{ typeLabels[detailItem.typeConge] }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="drawer-body">
+
+      <!-- Employé -->
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-user"></i> Employé</div>
+        <div class="emp-detail-cell">
+          @if (detailItem.employePhoto) {
+            <img [src]="detailItem.employePhoto" class="emp-avatar-lg" [alt]="detailItem.employeNom" />
+          } @else {
+            <div class="emp-initials-lg">{{ initiales(detailItem.employeNom) }}</div>
+          }
+          <div>
+            <p class="emp-detail-name">{{ detailItem.employeNom }}</p>
+            @if (detailItem.departement) {
+              <span class="dept-badge">{{ detailItem.departement }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Congé -->
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-calendar"></i> Congé</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="di-label">Type</span>
+            <span class="type-badge" [style.background]="typeColors[detailItem.typeConge] + '18'"
+                  [style.color]="typeColors[detailItem.typeConge]">
+              <i class="{{ typeIcons[detailItem.typeConge] }}"></i>{{ typeLabels[detailItem.typeConge] }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Durée</span>
+            <span class="duree-badge" [class.duree-demi]="detailItem.dureeType === 'DEMI_JOURNEE'">
+              <i class="{{ detailItem.dureeType === 'DEMI_JOURNEE' ? 'ti ti-circle-half' : 'ti ti-circle' }}"></i>
+              {{ dureeLabels[detailItem.dureeType] }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Du</span>
+            <span class="di-val">{{ detailItem.dateDebut | date:'dd MMMM yyyy' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Au</span>
+            <span class="di-val">{{ detailItem.dateFin | date:'dd MMMM yyyy' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Nombre de jours</span>
+            <span class="jours-badge"><i class="ti ti-sun"></i>{{ detailItem.nombreJours }} jour{{ detailItem.nombreJours > 1 ? 's' : '' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Statut</span>
+            <span class="statut-badge"
+                  [class.s-attente]="detailItem.statut === 'EN_ATTENTE'"
+                  [class.s-medical]="detailItem.statut === 'EN_ETUDE_MEDICALE'"
+                  [class.s-approuve]="detailItem.statut === 'APPROUVE'"
+                  [class.s-rejete]="detailItem.statut === 'REJETE'"
+                  [class.s-annule]="detailItem.statut === 'ANNULE'">
+              <span class="s-dot"></span>{{ statutLabels[detailItem.statut] }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Raison -->
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-message"></i> Raison</div>
+        <p class="detail-raison">{{ detailItem.raison }}</p>
+      </div>
+
+      <!-- Traitement -->
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-checks"></i> Traitement</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="di-label">Demandé le</span>
+            <span class="di-val">{{ detailItem.dateDemande | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Approuvé par</span>
+            <span class="di-val">{{ detailItem.approvePar ?? '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="di-label">Date approbation</span>
+            <span class="di-val">{{ detailItem.dateApprobation ? (detailItem.dateApprobation | date:'dd/MM/yyyy') : '—' }}</span>
+          </div>
+        </div>
+        @if (detailItem.commentaire) {
+          <div class="detail-comment">
+            <i class="ti ti-message-dots"></i>
+            <p>{{ detailItem.commentaire }}</p>
+          </div>
+        }
+      </div>
+
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn-secondary" (click)="closeDetail()">Fermer</button>
+      @if (detailItem.statut === 'EN_ETUDE_MEDICALE') {
+        <button class="btn-primary btn-med-approve" (click)="openMedicalDecision(detailItem, true)">
+          <i class="ti ti-circle-check"></i> Approuver
+        </button>
+        <button class="btn-danger" (click)="openMedicalDecision(detailItem, false)">
+          <i class="ti ti-circle-x"></i> Refuser
+        </button>
+      } @else {
+        <button class="btn-primary" (click)="openEdit(detailItem)">
+          <i class="ti ti-edit"></i> Modifier
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     EDIT MODAL
+══════════════════════════════════════════════════════ -->
+@if (editItem) {
+  <div class="modal-overlay" (click)="closeEdit()"></div>
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon"><i class="ti ti-edit"></i></div>
+        <div>
+          <h2 class="modal-title">Modifier la demande</h2>
+          <p class="modal-sub">{{ editItem.employeNom }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeEdit()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submitEdit()" novalidate class="modal-body">
+
+      <!-- Type de congé -->
+      <div class="field-group">
+        <label class="field-label">Type de congé <span class="req">*</span></label>
+        @for (group of typeGroups; track group.label) {
+          <p class="type-group-label">{{ group.label }}</p>
+          <div class="type-grid-sm">
+            @for (t of group.types; track t) {
+              <label class="type-opt" [class.selected]="form.get('typeConge')?.value === t">
+                <input type="radio" formControlName="typeConge" [value]="t" hidden />
+                <i class="{{ typeIcons[t] }}" [style.color]="typeColors[t]"></i>
+                <span>{{ typeLabels[t] }}</span>
+              </label>
+            }
+          </div>
+        }
+        @if (hasError('typeConge')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Type requis</small>
+        }
+      </div>
+
+      <!-- Dates -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Du <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar input-icon"></i>
+            <input type="date" class="field-input with-icon" formControlName="dateDebut"
+                   [class.has-error]="hasError('dateDebut')" />
+          </div>
+          @if (hasError('dateDebut')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Date requise</small>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label">Au <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar input-icon"></i>
+            <input type="date" class="field-input with-icon" formControlName="dateFin"
+                   [class.has-error]="hasError('dateFin')" />
+          </div>
+          @if (hasError('dateFin')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Date requise</small>
+          }
+        </div>
+      </div>
+
+      <!-- Nb jours + Durée -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Nombre de jours <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-sun input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="nombreJours" min="1"
+                   [class.has-error]="hasError('nombreJours')" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Durée <span class="req">*</span></label>
+          <div class="duree-group">
+            @for (dt of allDurees; track dt) {
+              <label class="duree-opt" [class.selected]="form.get('dureeType')?.value === dt">
+                <input type="radio" formControlName="dureeType" [value]="dt" hidden />
+                <i class="{{ dt === 'DEMI_JOURNEE' ? 'ti ti-circle-half' : 'ti ti-circle' }}"></i>
+                <span>{{ dureeLabels[dt] }}</span>
+              </label>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Statut -->
+      <div class="field-group">
+        <label class="field-label">Statut <span class="req">*</span></label>
+        <div class="statut-group">
+          <label class="statut-opt s-opt-attente"  [class.selected]="form.get('statut')?.value === 'EN_ATTENTE'">
+            <input type="radio" formControlName="statut" value="EN_ATTENTE" hidden />
+            <i class="ti ti-clock"></i><span>En attente</span>
+          </label>
+          <label class="statut-opt s-opt-approuve" [class.selected]="form.get('statut')?.value === 'APPROUVE'">
+            <input type="radio" formControlName="statut" value="APPROUVE" hidden />
+            <i class="ti ti-circle-check"></i><span>Approuvé</span>
+          </label>
+          <label class="statut-opt s-opt-rejete"   [class.selected]="form.get('statut')?.value === 'REJETE'">
+            <input type="radio" formControlName="statut" value="REJETE" hidden />
+            <i class="ti ti-circle-x"></i><span>Rejeté</span>
+          </label>
+          <label class="statut-opt s-opt-annule"    [class.selected]="form.get('statut')?.value === 'ANNULE'">
+            <input type="radio" formControlName="statut" value="ANNULE" hidden />
+            <i class="ti ti-ban"></i><span>Annulé</span>
+          </label>
+          <label class="statut-opt s-opt-medical"  [class.selected]="form.get('statut')?.value === 'EN_ETUDE_MEDICALE'">
+            <input type="radio" formControlName="statut" value="EN_ETUDE_MEDICALE" hidden />
+            <i class="ti ti-stethoscope"></i><span>Comité médical</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Raison -->
+      <div class="field-group">
+        <label class="field-label">Raison <span class="req">*</span></label>
+        <textarea class="field-input" rows="2" formControlName="raison"
+                  [class.has-error]="hasError('raison')"
+                  placeholder="Motif du congé…"></textarea>
+        @if (hasError('raison')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Raison requise</small>
+        }
+      </div>
+
+      <!-- Approuvé par + Commentaire -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Approuvé par <span class="opt-tag">optionnel</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-user-check input-icon"></i>
+            <input type="text" class="field-input with-icon" formControlName="approvePar"
+                   placeholder="Nom du validateur" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Commentaire <span class="opt-tag">optionnel</span></label>
+          <input type="text" class="field-input" formControlName="commentaire"
+                 placeholder="Observation…" />
+        </div>
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeEdit()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-device-floppy"></i> }
+          Enregistrer
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     CONFIRM DELETE
+══════════════════════════════════════════════════════ -->
+<app-confirm-modal
+  [open]="deleteTarget !== null"
+  title="Supprimer cette demande ?"
+  [message]="deleteMessage"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()"
+/>
+
+<app-confirm-modal
+  [open]="medDecisionItem !== null"
+  [title]="medDecisionApprove ? 'Approuver — comité médical' : 'Refuser — comité médical'"
+  [message]="medDecisionMessage"
+  (confirmed)="confirmMedicalDecision()"
+  (cancelled)="cancelMedicalDecision()"
+/>

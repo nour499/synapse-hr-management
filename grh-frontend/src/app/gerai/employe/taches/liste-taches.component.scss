@@ -1,0 +1,331 @@
+// =====================================================
+// 📋 Mes Tâches - Vue Kanban - Employé
+// =====================================================
+
+:host ::ng-deep {
+
+  .taches-page { font-family: 'Plus Jakarta Sans', sans-serif !important; padding: 8px 0 24px !important; }
+
+  .page-header { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 24px !important; }
+  .header-left { flex: 1 !important; }
+  .page-title    { font-size: 24px !important; font-weight: 700 !important; color: #1E293B !important; margin: 0 0 4px !important; }
+  .page-subtitle { font-size: 14px !important; color: #64748B !important; margin: 0 !important; }
+  .header-actions { display: flex !important; gap: 8px !important; }
+
+  .btn-view {
+    display: flex !important; align-items: center !important; gap: 8px !important;
+    padding: 8px 16px !important; background: white !important;
+    border: 1.5px solid #E2E8F0 !important; border-radius: 8px !important;
+    font-size: 14px !important; font-weight: 600 !important; color: #64748B !important;
+    cursor: pointer !important; transition: all 0.2s !important;
+    &.active { background: #3B82F6 !important; border-color: #3B82F6 !important; color: white !important; }
+    &:hover:not(.active) { border-color: #CBD5E1 !important; background: #F8FAFC !important; }
+  }
+
+  .stat-card {
+    display: flex !important; align-items: center !important; gap: 16px !important;
+    padding: 20px !important; background: white !important;
+    border-radius: 12px !important; border: 1px solid #E2E8F0 !important; transition: all 0.2s !important;
+    &:hover { border-color: #CBD5E1 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important; }
+  }
+  .stat-icon { width: 48px !important; height: 48px !important; border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 22px !important; }
+  .stat-total    .stat-icon { background: #EFF6FF !important; color: #3B82F6 !important; }
+  .stat-todo     .stat-icon { background: #F3F4F6 !important; color: #6B7280 !important; }
+  .stat-progress .stat-icon { background: #FEF3C7 !important; color: #F59E0B !important; }
+  .stat-done     .stat-icon { background: #F0FDF4 !important; color: #10B981 !important; }
+  .stat-info  { display: flex !important; flex-direction: column !important; }
+  .stat-value { font-size: 24px !important; font-weight: 700 !important; color: #1E293B !important; line-height: 1 !important; }
+  .stat-label { font-size: 13px !important; color: #64748B !important; margin-top: 4px !important; }
+
+  .filters-bar {
+    display: flex !important; align-items: center !important; gap: 12px !important;
+    flex-wrap: wrap !important; padding: 16px !important;
+    background: #F8FAFC !important; border-radius: 10px !important;
+  }
+  .search-box {
+    position: relative !important; flex: 1 !important; min-width: 250px !important;
+    i { position: absolute !important; left: 12px !important; top: 50% !important; transform: translateY(-50%) !important; color: #94A3B8 !important; font-size: 18px !important; }
+    input {
+      width: 100% !important; padding: 10px 12px 10px 40px !important;
+      border: 1px solid #E2E8F0 !important; border-radius: 8px !important;
+      font-size: 14px !important; transition: all 0.2s !important; background: white !important; color: #1e293b !important;
+      &:focus { outline: none !important; border-color: #3B82F6 !important; box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important; }
+    }
+  }
+  .filter-group { display: flex !important; align-items: center !important; gap: 8px !important; label { font-size: 13px !important; font-weight: 600 !important; color: #475569 !important; margin: 0 !important; } }
+  .filter-select { padding: 8px 12px !important; border: 1px solid #E2E8F0 !important; border-radius: 8px !important; font-size: 14px !important; cursor: pointer !important; min-width: 140px !important; background: white !important; color: #1e293b !important; &:focus { outline: none !important; border-color: #3B82F6 !important; } }
+  .btn-reset {
+    display: flex !important; align-items: center !important; gap: 6px !important;
+    padding: 8px 14px !important; background: white !important; border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important; font-size: 13px !important; font-weight: 600 !important; color: #64748B !important; cursor: pointer !important; transition: all 0.2s !important;
+    &:hover { background: #F1F5F9 !important; border-color: #CBD5E1 !important; }
+  }
+
+  // ── Kanban ──
+  .kanban-board { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 20px !important; }
+  .kanban-column { background: #F8FAFC !important; border-radius: 12px !important; min-height: 500px !important; display: flex !important; flex-direction: column !important; }
+  .column-header { display: flex !important; align-items: center !important; justify-content: space-between !important; padding: 16px 18px !important; border-radius: 12px 12px 0 0 !important; }
+  .column-title  { display: flex !important; align-items: center !important; gap: 8px !important; font-size: 14px !important; font-weight: 700 !important; color: white !important; i { font-size: 18px !important; } }
+  .column-count  { font-size: 13px !important; font-weight: 600 !important; padding: 4px 10px !important; background: rgba(255,255,255,0.25) !important; border-radius: 100px !important; color: white !important; }
+  .column-todo     { background: linear-gradient(135deg, #6B7280, #4B5563) !important; }
+  .column-progress { background: linear-gradient(135deg, #F59E0B, #D97706) !important; }
+  .column-done     { background: linear-gradient(135deg, #10B981, #059669) !important; }
+  .column-body { flex: 1 !important; padding: 16px !important; overflow-y: auto !important; display: flex !important; flex-direction: column !important; gap: 12px !important; min-height: 400px !important; }
+
+  .kanban-card {
+    background: white !important; border-radius: 10px !important; padding: 16px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important; cursor: grab !important; transition: all 0.2s !important;
+    &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; transform: translateY(-2px) !important; }
+    &.card-done { opacity: 0.85 !important; }
+  }
+  .card-header { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 12px !important; }
+
+  .priority-badge {
+    font-size: 11px !important; font-weight: 700 !important; padding: 4px 10px !important;
+    border-radius: 100px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;
+    &.priority-haute   { background: #FEE2E2 !important; color: #DC2626 !important; }
+    &.priority-moyenne { background: #FEF3C7 !important; color: #D97706 !important; }
+    &.priority-basse   { background: #D1FAE5 !important; color: #059669 !important; }
+  }
+
+  .card-title   { font-size: 15px !important; font-weight: 600 !important; color: #1E293B !important; margin: 0 0 8px !important; line-height: 1.4 !important; }
+  .card-project { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 13px !important; color: #64748B !important; margin: 0 0 12px !important; i { font-size: 14px !important; } }
+  .card-footer  { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 8px !important; }
+  .deadline     { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 12px !important; color: #64748B !important; i { font-size: 14px !important; } }
+  .progress-info { font-size: 12px !important; font-weight: 600 !important; color: #3B82F6 !important; }
+  .progress-bar  { height: 6px !important; background: #E2E8F0 !important; border-radius: 100px !important; overflow: hidden !important; }
+  .progress-fill { height: 100% !important; background: linear-gradient(90deg, #3B82F6, #1D4ED8) !important; border-radius: 100px !important; transition: width 0.3s !important; &.complete { background: linear-gradient(90deg, #10B981, #059669) !important; } }
+
+  .empty-column { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; padding: 40px 20px !important; color: #CBD5E1 !important; i { font-size: 48px !important; margin-bottom: 8px !important; } p { font-size: 14px !important; margin: 0 !important; } }
+
+  // ── Liste view ──
+  .taches-table {
+    width: 100% !important; border-collapse: collapse !important;
+    thead { background: #F8FAFC !important; border-bottom: 2px solid #E2E8F0 !important; th { padding: 14px 16px !important; text-align: left !important; font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; color: #475569 !important; } }
+    tbody tr { border-bottom: 1px solid #F1F5F9 !important; transition: background 0.15s !important; &:hover { background: #F8FAFC !important; } td { padding: 16px !important; font-size: 14px !important; color: #475569 !important; vertical-align: middle !important; &.fw-bold { font-weight: 600 !important; color: #1E293B !important; } } }
+  }
+
+  .status-badge {
+    display: inline-flex !important; align-items: center !important; padding: 5px 12px !important;
+    border-radius: 100px !important; font-size: 12px !important; font-weight: 600 !important;
+    &.status-A_FAIRE  { background: #F3F4F6 !important; color: #6B7280 !important; }
+    &.status-EN_COURS { background: #FEF3C7 !important; color: #D97706 !important; }
+    &.status-TERMINEE { background: #D1FAE5 !important; color: #059669 !important; }
+  }
+
+  .progress-cell { display: flex !important; align-items: center !important; gap: 10px !important; min-width: 170px !important; }
+
+  .progress-slider {
+    flex: 1 !important; height: 4px !important; appearance: none !important;
+    cursor: pointer !important; border-radius: 100px !important;
+    background: #E2E8F0 !important; accent-color: #3B82F6 !important; outline: none !important;
+    &::-webkit-slider-thumb {
+      appearance: none !important; width: 14px !important; height: 14px !important;
+      border-radius: 50% !important; background: #3B82F6 !important;
+      cursor: pointer !important; transition: transform 0.15s !important;
+      &:hover { transform: scale(1.25) !important; }
+    }
+    &::-moz-range-thumb {
+      width: 14px !important; height: 14px !important; border-radius: 50% !important;
+      background: #3B82F6 !important; border: none !important; cursor: pointer !important;
+    }
+  }
+
+  .progress-value {
+    font-size: 12px !important; font-weight: 700 !important;
+    color: #3B82F6 !important; min-width: 34px !important; text-align: right !important;
+    &.complete { color: #10B981 !important; }
+  }
+
+  .status-select {
+    border: none !important;
+    border-radius: 100px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 5px 28px 5px 12px !important;
+    cursor: pointer !important;
+    outline: none !important;
+    appearance: none !important;
+    background-repeat: no-repeat !important;
+    background-position: right 8px center !important;
+    background-size: 12px !important;
+    transition: filter 0.15s, box-shadow 0.15s !important;
+
+    &.status-A_FAIRE {
+      background-color: #F3F4F6 !important;
+      color: #6B7280 !important;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    }
+    &.status-EN_COURS {
+      background-color: #FEF3C7 !important;
+      color: #D97706 !important;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23D97706' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    }
+    &.status-TERMINEE {
+      background-color: #D1FAE5 !important;
+      color: #059669 !important;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23059669' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    }
+
+    &:hover { filter: brightness(0.94) !important; }
+    &:focus { box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important; }
+  }
+
+  .cdk-drag-placeholder { opacity: 0.4 !important; background: #F1F5F9 !important; border: 2px dashed #CBD5E1 !important; }
+
+  @media (max-width: 1024px) { .kanban-board { grid-template-columns: 1fr !important; } .kanban-column { min-height: 300px !important; } }
+  @media (max-width: 768px) {
+    .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
+    .filters-bar { flex-direction: column !important; align-items: stretch !important; }
+    .search-box  { min-width: 100% !important; }
+  }
+// ══════════════════════════════════════════════════
+// 🌙 DARK MODE COMPLET - MES TÂCHES
+// ══════════════════════════════════════════════════
+
+:host-context(.dark), body.dark {
+  
+  // --- 1. LE HEADER (IMPORTANT : Suppression du bloc blanc) ---
+  .page-header {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+
+    .page-title { 
+      color: #ffffff !important; 
+      font-weight: 700 !important;
+    }
+    .page-subtitle { 
+      color: #94a3b8 !important; 
+    }
+  }
+
+  // --- 2. BOUTONS DE VUE (Kanban / Liste) ---
+  .btn-view {
+    background: #1a1f2e !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #94a3b8 !important;
+    
+    &.active { 
+      background: #3b82f6 !important; 
+      border-color: #3b82f6 !important; 
+      color: white !important; 
+    }
+    
+    &:hover:not(.active) { 
+      background: #1e2536 !important; 
+      color: #ffffff !important;
+    }
+  }
+
+  // --- 3. STATS CARDS ---
+  .stat-card {
+    background: #1e2536 !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    
+    .stat-value { color: #ffffff !important; }
+    .stat-label { color: #94a3b8 !important; }
+
+    // Icônes avec opacité légère pour le dark mode
+    .stat-total .stat-icon    { background: rgba(59, 130, 246, 0.15) !important; color: #60a5fa !important; }
+    .stat-todo .stat-icon     { background: rgba(148, 163, 184, 0.15) !important; color: #94a3b8 !important; }
+    .stat-progress .stat-icon { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+    .stat-done .stat-icon     { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; }
+  }
+
+  // --- 4. FILTRES & BARRE DE RECHERCHE ---
+  .filters-bar {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+
+    .search-box input, .filter-select, .btn-reset {
+      background: #1a1f2e !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      color: #ffffff !important;
+    }
+
+    .search-box i { color: #64748b !important; }
+    label { color: #94a3b8 !important; }
+
+    // Correction flèche select
+    .filter-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2360a5fa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 0.75rem center !important;
+      background-size: 12px 12px !important;
+    }
+  }
+
+  // --- 5. KANBAN BOARD ---
+  .kanban-column {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .kanban-card {
+    background: #1e2536 !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+
+    .card-title { color: #ffffff !important; }
+    .card-project, .deadline { color: #94a3b8 !important; }
+    
+    .progress-bar { background: rgba(255, 255, 255, 0.08) !important; }
+  }
+
+  // --- 6. LISTE VIEW (TABLEAU) ---
+  .taches-table {
+    thead {
+      background: rgba(255, 255, 255, 0.03) !important;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+      th { color: #f1f5f9 !important; }
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      &:hover { background: rgba(255, 255, 255, 0.02) !important; }
+      
+      td {
+        color: #94a3b8 !important;
+        &.fw-bold { color: #ffffff !important; }
+      }
+    }
+  }
+
+  // --- 7. BADGES (Priorité & Statut) ---
+  .priority-badge {
+    &.priority-haute   { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
+    &.priority-moyenne { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+    &.priority-basse   { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; }
+  }
+
+  .status-badge {
+    &.status-A_FAIRE   { background: rgba(148, 163, 184, 0.15) !important; color: #94a3b8 !important; }
+    &.status-EN_COURS  { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+    &.status-TERMINEE  { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; }
+  }
+
+  .status-select {
+    color-scheme: dark;
+    &.status-A_FAIRE  { background-color: rgba(148,163,184,0.15) !important; color: #94a3b8 !important; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important; }
+    &.status-EN_COURS { background-color: rgba(245,158,11,0.15) !important; color: #fbbf24 !important; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23fbbf24' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important; }
+    &.status-TERMINEE { background-color: rgba(16,185,129,0.15) !important; color: #34d399 !important; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2334d399' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important; }
+  }
+
+  .progress-slider {
+    background: rgba(255,255,255,0.1) !important;
+    accent-color: #60a5fa !important;
+    &::-webkit-slider-thumb { background: #60a5fa !important; }
+    &::-moz-range-thumb     { background: #60a5fa !important; }
+  }
+  .progress-value { color: #60a5fa !important; &.complete { color: #34d399 !important; } }
+
+  // Placeholder lors du drag & drop
+  .cdk-drag-placeholder {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 2px dashed rgba(255, 255, 255, 0.1) !important;
+  }
+}}

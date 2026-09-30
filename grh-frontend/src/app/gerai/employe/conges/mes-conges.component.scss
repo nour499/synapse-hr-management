@@ -1,0 +1,875 @@
+/* ══════════════════════════════════════════════════════════════
+   🏖️ MES CONGÉS - STYLES MODERNES
+   ══════════════════════════════════════════════════════════════ */
+
+.conges-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 8px 0 24px;
+    min-height: calc(100vh - 200px);
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 6px;
+    line-height: 1.2;
+}
+
+.page-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+
+    i {
+        font-size: 16px;
+    }
+}
+
+.btn-nouvelle-demande {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+
+    i {
+        font-size: 18px;
+    }
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+/* ── Solde Grid ──────────────────────────────────────────── */
+
+.solde-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.solde-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.card-header-solde {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+
+    .icon-wrapper {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    h3 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #475569;
+        margin: 0;
+    }
+}
+
+.card-body-solde {
+    .solde-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-bottom: 16px;
+
+        .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1;
+        }
+
+        .total {
+            font-size: 18px;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .unit {
+            font-size: 14px;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+    }
+}
+
+.progress-bar-modern {
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 100px;
+        transition: width 0.4s ease;
+    }
+}
+
+.progress-label {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+}
+
+.next-conge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #64748b;
+    margin: 12px 0 0;
+
+    i {
+        font-size: 16px;
+    }
+}
+
+/* Couleurs par type */
+.card-annuel {
+    .icon-wrapper {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3B82F6;
+    }
+
+    .progress-fill {
+        background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+    }
+}
+
+.card-rtt {
+    .icon-wrapper {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8B5CF6;
+    }
+
+    .progress-fill {
+        background: linear-gradient(90deg, #8B5CF6, #7C3AED);
+    }
+}
+
+.card-maladie {
+    .icon-wrapper {
+        background: rgba(239, 68, 68, 0.1);
+        color: #EF4444;
+    }
+
+    .progress-fill {
+        background: linear-gradient(90deg, #F87171, #EF4444);
+    }
+}
+
+.card-pris {
+    .icon-wrapper {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+    }
+}
+
+/* ── Statistiques Row ────────────────────────────────────── */
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    i {
+        font-size: 24px;
+    }
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: #64748b;
+    }
+}
+
+/* ── Tableau ─────────────────────────────────────────────── */
+
+.card-header-custom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f1f5f9;
+
+    h3 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+
+        i {
+            font-size: 20px;
+            color: #3B82F6;
+        }
+    }
+}
+
+.badge-count {
+    background: #eff6ff;
+    color: #3B82F6;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.demandes-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+
+    thead {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+
+        th {
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    }
+
+    tbody {
+        tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.15s ease;
+
+            &:hover {
+                background: #fafbfc;
+            }
+
+            &.row-en-attente {
+                background: #fffbeb;
+
+                &:hover {
+                    background: #fef3c7;
+                }
+            }
+
+            td {
+                padding: 16px;
+            }
+        }
+    }
+}
+
+.type-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: #1e293b;
+
+    i {
+        font-size: 18px;
+        color: #64748b;
+    }
+}
+
+.periode-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .date-range {
+        color: #475569;
+    }
+
+    .motif-hint {
+        color: #94a3b8;
+        cursor: help;
+        font-size: 16px;
+    }
+}
+
+.duree-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .jours-total {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .jours-ouvres {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+}
+
+.validateur-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #64748b;
+
+    i {
+        font-size: 16px;
+    }
+}
+
+.btn-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    i {
+        font-size: 16px;
+    }
+
+    &.btn-annuler {
+        background: #fee2e2;
+        color: #dc2626;
+
+        &:hover {
+            background: #fecaca;
+            transform: scale(1.05);
+        }
+    }
+}
+
+/* ── Empty State ─────────────────────────────────────────── */
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+    text-align: center;
+
+    i {
+        font-size: 64px;
+        color: #cbd5e1;
+        margin-bottom: 20px;
+    }
+
+    h4 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #475569;
+        margin: 0 0 8px;
+    }
+
+    p {
+        font-size: 14px;
+        color: #94a3b8;
+        margin: 0 0 24px;
+    }
+}
+
+.btn-empty-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #3B82F6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+    }
+}
+
+/* ── Loading ─────────────────────────────────────────────── */
+
+.loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 20px;
+
+    p {
+        font-size: 14px;
+        color: #64748b;
+        margin: 0;
+    }
+}
+
+.spinner-modern {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #3B82F6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .btn-nouvelle-demande {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .solde-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .demandes-table {
+        thead {
+
+            th:nth-child(5),
+            th:nth-child(6) {
+                display: none;
+            }
+        }
+
+        tbody {
+
+            td:nth-child(5),
+            td:nth-child(6) {
+                display: none;
+            }
+        }
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   🌙 MODE DARK TOTAL - PROTECTION CONTRE LES ZONES BLANCHES
+   ══════════════════════════════════════════════════════════════ */
+
+:host-context(.dark) {
+
+    // 1. Fond global de la page
+    .conges-page {
+        background-color: #0f172a !important;
+        color: #f1f5f9 !important;
+    }
+
+    // 2. FIX du bandeau de titre (évite le rectangle blanc en haut)
+    // On cible le container du header qui apparaît blanc sur tes screens
+    .page-header,
+    .header-container,
+    div[style*="background: white"],
+    div[style*="background-color: rgb(255, 255, 255)"] {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+
+        .page-title {
+            color: #f8fafc !important;
+        }
+
+        .page-subtitle {
+            background: rgba(15, 23, 42, 0.6) !important;
+            color: #94a3b8 !important;
+            border: 1px solid rgba(51, 65, 85, 0.5) !important;
+        }
+    }
+
+    // 3. Grille de Soldes (Cartes Annuel, RTT, Maladie)
+    .solde-card {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+
+        &:hover {
+            background: #242f44 !important;
+            border-color: #475569 !important;
+        }
+
+        .card-header-solde h3 {
+            color: #cbd5e1 !important;
+        }
+
+        .solde-value {
+            .value {
+                color: #ffffff !important;
+            }
+
+            .total,
+            .unit {
+                color: #64748b !important;
+            }
+        }
+
+        .progress-bar-modern {
+            background: #0f172a !important;
+        }
+
+        .next-conge {
+            background: rgba(15, 23, 42, 0.4) !important;
+            color: #94a3b8 !important;
+        }
+    }
+
+    // 4. Ligne de Statistiques (En attente, Approuvées, etc.)
+    .stat-item {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+
+        .stat-value {
+            color: #f1f5f9 !important;
+        }
+
+        .stat-label {
+            color: #94a3b8 !important;
+        }
+
+        i {
+            opacity: 0.8;
+        }
+    }
+
+    // 5. Section Historique / Tableaux
+    app-card,
+    .card-container,
+    .table-container {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+        border-radius: 12px;
+    }
+
+    .card-header-custom {
+        background: transparent !important;
+        border-bottom: 1px solid #334155 !important;
+
+        h3 {
+            color: #f8fafc !important;
+        }
+
+        .badge-count {
+            background: rgba(59, 130, 246, 0.2) !important;
+            color: #60a5fa !important;
+        }
+    }
+
+    // 6. Style du Tableau
+    .demandes-table {
+        background: transparent !important;
+
+        thead {
+            background: #162032 !important;
+
+            th {
+                color: #94a3b8 !important;
+                border-bottom: 2px solid #334155 !important;
+            }
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #334155 !important;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.02) !important;
+            }
+
+            // Lignes "En attente"
+            &.row-en-attente {
+                background: rgba(245, 158, 11, 0.05) !important;
+            }
+
+            td {
+                color: #cbd5e1 !important;
+            }
+
+            .type-cell {
+                color: #f1f5f9 !important;
+            }
+
+            .jours-total {
+                color: #f1f5f9 !important;
+            }
+        }
+    }
+
+
+    // 8. Bouton Nouvelle Demande
+    .btn-nouvelle-demande {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+        box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    // 9. États vides et Loading
+    .empty-state {
+        h4 {
+            color: #f1f5f9 !important;
+        }
+
+        p {
+            color: #64748b !important;
+        }
+
+        i {
+            color: #334155 !important;
+        }
+    }
+}
+
+// ── Cancel Modal ────────────────────────────────────────
+.cancel-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.cancel-box {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.18);
+    overflow: hidden;
+}
+
+.cancel-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 24px 16px;
+    gap: 12px;
+
+    .cancel-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #FEE2E2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        i { font-size: 24px; color: #EF4444; }
+    }
+
+    h6 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+}
+
+.cancel-body {
+    padding: 0 24px 20px;
+    text-align: center;
+
+    p {
+        font-size: 14px;
+        color: #475569;
+        margin: 0 0 8px;
+        line-height: 1.5;
+    }
+
+    .cancel-warn {
+        font-size: 12px;
+        color: #DC2626;
+        font-weight: 500;
+    }
+}
+
+.cancel-foot {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid #F1F5F9;
+    background: #FAFAFA;
+}
+
+.btn-modal-secondary {
+    flex: 1;
+    padding: 10px;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all .15s;
+
+    &:hover { background: #F8FAFC; border-color: #CBD5E1; }
+}
+
+.btn-modal-danger {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #EF4444;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+
+    i { font-size: 14px; }
+    &:hover { background: #DC2626; }
+}
+
+// ── Error banner ─────────────────────────────────────────
+.cancel-error-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1300;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FCA5A5;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(239,68,68,.15);
+    white-space: nowrap;
+
+    i { font-size: 16px; }
+
+    .cancel-error-close {
+        background: none;
+        border: none;
+        color: #DC2626;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 4px;
+        display: flex;
+        align-items: center;
+        i { font-size: 14px; }
+    }
+}

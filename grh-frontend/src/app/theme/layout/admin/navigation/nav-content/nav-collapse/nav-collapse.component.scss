@@ -1,0 +1,107 @@
+:host ::ng-deep {
+  .pc-hasmenu {
+    position: relative;
+
+    > .pc-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      color: #475569;
+      font-weight: 500;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+
+      .pc-micon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        i {
+          font-size: 18px;
+          color: #64748B;
+        }
+      }
+
+      .pc-mtext {
+        flex: 1;
+        color: #475569;
+      }
+
+      &::after {
+        content: '\ea61'; // tabler icon chevron-down
+        font-family: 'tabler-icons';
+        font-size: 14px;
+        color: #94A3B8;
+        transition: transform 0.2s;
+        margin-left: auto;
+      }
+
+      &:hover {
+        background: #F1F5F9;
+
+        .pc-micon i {
+          color: #3B82F6;
+        }
+
+        .pc-mtext {
+          color: #1E293B;
+        }
+      }
+    }
+
+    .pc-submenu {
+      max-height: 0;
+      overflow: hidden;
+      padding-left: 44px;
+      transition: max-height 0.3s ease;
+
+      .pc-item {
+        margin-top: 2px;
+      }
+    }
+
+    &.pc-trigger {
+      > .pc-link {
+        background: #F8FAFC;
+
+        .pc-micon i {
+          color: #3B82F6;
+        }
+
+        .pc-mtext {
+          color: #3B82F6;
+          font-weight: 600;
+        }
+
+        &::after {
+          transform: rotate(180deg);
+          color: #3B82F6;
+        }
+      }
+
+      > .pc-submenu {
+        max-height: 500px; // assez grand pour tout contenu
+      }
+    }
+
+    &.active > .pc-link {
+      background: #EEF2FF;
+
+      .pc-micon i {
+        color: #3B82F6;
+      }
+
+      .pc-mtext {
+        color: #3B82F6;
+        font-weight: 600;
+      }
+    }
+  }
+}

@@ -1,0 +1,245 @@
+<div class="form-page">
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <div class="page-header">
+    <button class="btn-back" (click)="cancel()"><i class="ti ti-arrow-left"></i></button>
+    <div>
+      <h1 class="page-title">{{ isEdit ? 'Modifier l\'actif' : 'Ajouter un actif' }}</h1>
+      <p class="page-sub">{{ isEdit ? 'Mettre à jour les informations de l\'actif' : 'Enregistrer un nouvel actif' }}</p>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="loading-wrap">
+      <div class="spinner-border" style="color:#6366F1"></div>
+      <p>Chargement…</p>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+      <!-- ════════════════════════════════════════════
+           CATEGORY PICKER
+      ════════════════════════════════════════════════ -->
+      <div class="section-card mb-4">
+        <div class="section-head">
+          <div class="sh-icon" style="background:#EEF2FF"><i class="ti ti-category" style="color:#6366F1"></i></div>
+          <span>Catégorie</span>
+        </div>
+        <div class="cat-picker">
+          <label class="cat-option" [class.selected]="form.get('categorie')?.value === 'TANGIBLE'">
+            <input type="radio" formControlName="categorie" value="TANGIBLE" hidden />
+            <div class="cat-icon" style="background:#EEF2FF"><i class="ti ti-device-laptop" style="color:#6366F1"></i></div>
+            <div class="cat-text">
+              <span class="cat-title">Actif Tangible</span>
+              <span class="cat-sub">Matériel physique : ordinateur, téléphone, casque, véhicule…</span>
+            </div>
+          </label>
+          <label class="cat-option" [class.selected]="form.get('categorie')?.value === 'NUMERIQUE'">
+            <input type="radio" formControlName="categorie" value="NUMERIQUE" hidden />
+            <div class="cat-icon" style="background:#F0F9FF"><i class="ti ti-license" style="color:#0284C7"></i></div>
+            <div class="cat-text">
+              <span class="cat-title">Actif Numérique</span>
+              <span class="cat-sub">Licence logiciel, clé d'accès, abonnement…</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           ROW 1 — Identification + Détails
+      ════════════════════════════════════════════════ -->
+      <div class="form-grid mb-4">
+
+        <!-- Identification -->
+        <div class="section-card">
+          <div class="section-head">
+            <div class="sh-icon" style="background:#EFF6FF"><i class="ti ti-tag" style="color:#3B82F6"></i></div>
+            <span>Identification</span>
+          </div>
+
+          <!-- Nom -->
+          <div class="field-group">
+            <label class="field-label">Nom de l'actif <span class="req">*</span></label>
+            <input type="text" class="field-input" formControlName="nom"
+                   placeholder="ex : MacBook Pro 14&quot;"
+                   [class.has-error]="hasError('nom')" />
+            @if (hasError('nom')) {
+              <small class="field-error"><i class="ti ti-alert-circle"></i> Nom requis (2 car. min.)</small>
+            }
+          </div>
+
+          <!-- Type -->
+          <div class="field-group">
+            <label class="field-label">Type <span class="req">*</span></label>
+            <div class="type-grid">
+              @for (t of currentTypes; track t.value) {
+                <label class="type-option" [class.selected]="form.get('type')?.value === t.value">
+                  <input type="radio" formControlName="type" [value]="t.value" hidden />
+                  <i class="{{ t.icon }}"></i>
+                  <span>{{ t.label }}</span>
+                </label>
+              }
+            </div>
+            @if (hasError('type')) {
+              <small class="field-error"><i class="ti ti-alert-circle"></i> Type requis</small>
+            }
+          </div>
+
+          <!-- Marque + Modèle -->
+          <div class="form-row-2">
+            <div class="field-group">
+              <label class="field-label">Marque <span class="opt-tag">optionnel</span></label>
+              <input type="text" class="field-input" formControlName="marque" placeholder="ex : Apple" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Modèle <span class="opt-tag">optionnel</span></label>
+              <input type="text" class="field-input" formControlName="modele" placeholder="ex : M3 Pro" />
+            </div>
+          </div>
+
+          @if (!isNumerique) {
+            <!-- Numéro de série -->
+            <div class="field-group">
+              <label class="field-label">Numéro de série <span class="opt-tag">optionnel</span></label>
+              <div class="input-icon-wrap">
+                <i class="ti ti-hash input-icon"></i>
+                <input type="text" class="field-input with-icon" formControlName="numeroSerie"
+                       placeholder="ex : SN-MPB-0012" />
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Détails & Dates -->
+        <div class="section-card">
+          <div class="section-head">
+            <div class="sh-icon" style="background:#F0FDF4"><i class="ti ti-calendar" style="color:#16A34A"></i></div>
+            <span>Détails &amp; Dates</span>
+          </div>
+
+          <!-- Description -->
+          <div class="field-group">
+            <label class="field-label">Description <span class="opt-tag">optionnel</span></label>
+            <textarea class="field-input" rows="2" formControlName="description"
+                      placeholder="Description ou notes…"></textarea>
+          </div>
+
+          <!-- Valeur -->
+          <div class="field-group">
+            <label class="field-label">Valeur (DT) <span class="opt-tag">optionnel</span></label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-coin input-icon"></i>
+              <input type="number" class="field-input with-icon" formControlName="valeur"
+                     placeholder="ex : 2800" min="0" />
+            </div>
+          </div>
+
+          <!-- Date acquisition -->
+          <div class="field-group">
+            <label class="field-label">Date d'acquisition <span class="opt-tag">optionnel</span></label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-calendar input-icon"></i>
+              <input type="date" class="field-input with-icon" formControlName="dateAcquisition" />
+            </div>
+          </div>
+
+          @if (isNumerique) {
+            <!-- Date expiration (licences/abonnements) -->
+            <div class="field-group">
+              <label class="field-label">Date d'expiration <span class="opt-tag">optionnel</span></label>
+              <div class="input-icon-wrap">
+                <i class="ti ti-calendar-event input-icon"></i>
+                <input type="date" class="field-input with-icon" formControlName="dateExpiration" />
+              </div>
+            </div>
+          }
+        </div>
+
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           ROW 2 — Attribution & Statut
+      ════════════════════════════════════════════════ -->
+      <div class="section-card mb-4">
+        <div class="section-head">
+          <div class="sh-icon" style="background:#FEF3C7"><i class="ti ti-user-share" style="color:#D97706"></i></div>
+          <span>Attribution &amp; Statut</span>
+        </div>
+
+        <div class="form-grid">
+          <!-- Statut -->
+          <div class="field-group">
+            <label class="field-label">Statut <span class="req">*</span></label>
+            <div class="statut-group">
+              <label class="statut-opt opt-disponible"   [class.selected]="form.get('statut')?.value === 'DISPONIBLE'">
+                <input type="radio" formControlName="statut" value="DISPONIBLE" hidden />
+                <i class="ti ti-circle-check"></i><span>Disponible</span>
+              </label>
+              <label class="statut-opt opt-attribue"     [class.selected]="form.get('statut')?.value === 'ATTRIBUE'">
+                <input type="radio" formControlName="statut" value="ATTRIBUE" hidden />
+                <i class="ti ti-user-check"></i><span>Attribué</span>
+              </label>
+              <label class="statut-opt opt-maintenance"  [class.selected]="form.get('statut')?.value === 'EN_MAINTENANCE'">
+                <input type="radio" formControlName="statut" value="EN_MAINTENANCE" hidden />
+                <i class="ti ti-tool"></i><span>Maintenance</span>
+              </label>
+              <label class="statut-opt opt-hors"         [class.selected]="form.get('statut')?.value === 'HORS_SERVICE'">
+                <input type="radio" formControlName="statut" value="HORS_SERVICE" hidden />
+                <i class="ti ti-circle-x"></i><span>Hors service</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Employé assigné -->
+          <div class="field-group">
+            <label class="field-label">
+              Employé assigné
+              @if (!isAttribue) { <span class="opt-tag">optionnel</span> }
+            </label>
+            <div class="input-icon-wrap">
+              <i class="ti ti-user input-icon"></i>
+              <select class="field-select with-icon" formControlName="employeId"
+                      [class.has-error]="hasError('employeId')">
+                <option [value]="null">— Aucun employé —</option>
+                @for (e of employes; track e.id) {
+                  <option [value]="e.id">{{ e.prenom }} {{ e.nom }}</option>
+                }
+              </select>
+            </div>
+            <app-field-error [control]="form.get('employeId')"
+              [messages]="{ required: 'Veuillez assigner un employé (statut Attribué)' }" />
+
+            @if (isAttribue) {
+              <!-- Date d'attribution -->
+              <div class="field-group mt-3">
+                <label class="field-label">Date d'attribution <span class="opt-tag">optionnel</span></label>
+                <div class="input-icon-wrap">
+                  <i class="ti ti-calendar input-icon"></i>
+                  <input type="date" class="field-input with-icon" formControlName="dateAttribution" />
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Error ──────────────────────────────────── -->
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+
+      <!-- ── Actions ────────────────────────────────── -->
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-save" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-device-floppy"></i> }
+          {{ isEdit ? 'Enregistrer' : 'Créer l\'actif' }}
+        </button>
+      </div>
+
+    </form>
+  }
+</div>

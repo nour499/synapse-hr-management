@@ -1,0 +1,337 @@
+<!-- ================================================ -->
+<!-- 💼 Mes Projets - Employé                        -->
+<!-- ================================================ -->
+
+<div class="projets-page">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header mb-4">
+    <div class="header-left">
+      <h2 class="page-title">Mes projets</h2>
+      <p class="page-subtitle">Suivez l'avancement de vos projets et tâches</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-view" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'">
+        <i class="ti ti-layout-grid"></i>
+        Grille
+      </button>
+      <button class="btn-view" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'">
+        <i class="ti ti-list"></i>
+        Liste
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Stats Cards ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-total">
+        <div class="stat-icon"><i class="ti ti-briefcase"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalProjets }}</span>
+          <span class="stat-label">Total projets</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-progress">
+        <div class="stat-icon"><i class="ti ti-progress"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ projetsEnCours }}</span>
+          <span class="stat-label">En cours</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-tasks">
+        <div class="stat-icon"><i class="ti ti-checkbox"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalTaches }}</span>
+          <span class="stat-label">Tâches assignées</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-completion">
+        <div class="stat-icon"><i class="ti ti-chart-line"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ tauxCompletion }}%</span>
+          <span class="stat-label">Taux completion</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Filters ── -->
+  <app-card class="mb-4">
+    <div class="filters-bar">
+      <div class="search-box">
+        <i class="ti ti-search"></i>
+        <input type="text" 
+               placeholder="Rechercher un projet..." 
+               [(ngModel)]="searchTerm"
+               (input)="filterProjets()" />
+      </div>
+
+      <div class="filter-group">
+        <label>Statut :</label>
+        <select [(ngModel)]="selectedStatut" (change)="filterProjets()" class="filter-select">
+          <option value="">Tous</option>
+          <option value="EN_COURS">En cours</option>
+          <option value="EN_PAUSE">En pause</option>
+          <option value="EN_RETARD">En retard</option>
+          <option value="TERMINE">Terminé</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Trier :</label>
+        <select [(ngModel)]="sortBy" (change)="filterProjets()" class="filter-select">
+          <option value="deadline">Échéance</option>
+          <option value="progression">Progression</option>
+          <option value="nom">Nom A→Z</option>
+        </select>
+      </div>
+
+      <button class="btn-reset" (click)="resetFilters()">
+        <i class="ti ti-refresh"></i>
+        Réinitialiser
+      </button>
+    </div>
+  </app-card>
+
+  <!-- ── Grid View ── -->
+  @if (viewMode === 'grid') {
+    <div class="row g-4">
+      @for (projet of projetsFiltres; track projet.id) {
+        <div class="col-lg-6 col-xl-4">
+          <div class="projet-card {{ urgencyClass(projet) }}" (click)="goToTaches(projet)">
+
+            <!-- Header -->
+            <div class="projet-header">
+              <div class="projet-icon" [style.background]="projet.couleur + '20'" [style.color]="projet.couleur">
+                <i class="ti ti-briefcase"></i>
+              </div>
+              <div class="header-badges">
+                @if (urgencyLabel(projet)) {
+                  <span class="urgency-chip chip-{{ urgencyClass(projet) }}">
+                    <i class="ti ti-clock"></i>
+                    {{ urgencyLabel(projet) }}
+                  </span>
+                }
+                <span class="projet-status status-{{ projet.statut }}">
+                  {{ getStatutLabel(projet.statut) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Title & Description -->
+            <h3 class="projet-title">{{ projet.nom }}</h3>
+            <p class="projet-description">{{ projet.description }}</p>
+
+            <!-- Stats Row -->
+            <div class="projet-stats">
+              <div class="stat-item">
+                <i class="ti ti-checkbox"></i>
+                <span>{{ projet.tachesCompletees }}/{{ projet.totalTaches }} tâches</span>
+              </div>
+              <div class="stat-item" [class.deadline-late]="daysLeft(projet.dateEcheance) < 0 && projet.statut !== 'TERMINE'"
+                                   [class.deadline-soon]="daysLeft(projet.dateEcheance) >= 0 && daysLeft(projet.dateEcheance) <= 7 && projet.statut !== 'TERMINE'">
+                <i class="ti ti-calendar"></i>
+                <span>{{ projet.dateEcheance | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="projet-progress">
+              <div class="progress-header">
+                <span class="progress-label">Progression</span>
+                <span class="progress-value">{{ projet.progression }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" 
+                     [style.width.%]="projet.progression"
+                     [style.background]="projet.couleur"></div>
+              </div>
+            </div>
+
+            <!-- Team -->
+            <div class="projet-team">
+              <div class="team-avatars">
+                @for (membre of (projet.membres || []).slice(0, 3); track membre.id) {
+                  <div class="team-avatar" [title]="membre.nomComplet || membre.nom">
+                    {{ membre.initiales }}
+                  </div>
+                }
+                @if ((projet.membres?.length || 0) > 3) {
+                  <div class="team-avatar team-more">
+                    +{{ (projet.membres?.length || 0) - 3 }}
+                  </div>
+                }
+              </div>
+              <span class="team-label">{{ projet.membres?.length || 0 }} membres</span>
+            </div>
+
+            <!-- Chef -->
+            @if (projet.chefProjet) {
+              <div class="d-flex align-items-center gap-2 mt-2" style="font-size:12px; color:#6c757d;">
+                <span class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold"
+                      style="width:28px;height:28px;font-size:11px;flex-shrink:0;"
+                      [title]="projet.chefProjet">
+                  {{ chefInitials(projet.chefProjet) }}
+                </span>
+                <span>{{ projet.chefProjet }}</span>
+              </div>
+            }
+
+          </div>
+        </div>
+      }
+
+      @if (projetsFiltres.length === 0) {
+        <div class="col-12">
+          <div class="empty-state">
+            <i class="ti ti-folder-off"></i>
+            <p>Aucun projet trouvé</p>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── List View ── -->
+  @if (viewMode === 'list') {
+    <div class="row g-4">
+      @for (projet of projetsFiltres; track projet.id) {
+        <div class="col-12">
+          <app-card class="projet-list-card {{ urgencyClass(projet) }}" (click)="goToTaches(projet)">
+            <div class="list-header">
+              <div class="list-left">
+                <div class="projet-icon" [style.background]="projet.couleur + '20'" [style.color]="projet.couleur">
+                  <i class="ti ti-briefcase"></i>
+                </div>
+                <div class="list-info">
+                  <h3 class="list-title">{{ projet.nom }}</h3>
+                  <p class="list-description">{{ projet.description }}</p>
+                </div>
+              </div>
+              <div class="list-right">
+                <span class="projet-status status-{{ projet.statut }}">
+                  {{ getStatutLabel(projet.statut) }}
+                </span>
+                @if (urgencyLabel(projet)) {
+                  <span class="urgency-chip chip-{{ urgencyClass(projet) }}">
+                    <i class="ti ti-clock"></i>
+                    {{ urgencyLabel(projet) }}
+                  </span>
+                }
+                <button class="btn-detail" (click)="goToTaches(projet); $event.stopPropagation()">
+                  <i class="ti ti-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="list-body">
+              <div class="list-stat">
+                <i class="ti ti-checkbox"></i>
+                <span>{{ projet.tachesCompletees }}/{{ projet.totalTaches }} tâches</span>
+              </div>
+              <div class="list-stat">
+                <i class="ti ti-calendar"></i>
+                <span>Échéance: {{ projet.dateEcheance | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="list-stat">
+                <i class="ti ti-users"></i>
+                <span>{{ projet.membres?.length || 0 }} membres</span>
+              </div>
+              @if (projet.chefProjet) {
+                <div class="list-stat">
+                  <span class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold"
+                        style="width:24px;height:24px;font-size:10px;flex-shrink:0;"
+                        [title]="projet.chefProjet">
+                    {{ chefInitials(projet.chefProjet) }}
+                  </span>
+                  <span>{{ projet.chefProjet }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="list-footer">
+              <div class="team-avatars">
+                @for (membre of (projet.membres || []).slice(0, 5); track membre.id) {
+                  <div class="team-avatar" [title]="membre.nomComplet || membre.nom">
+                    {{ membre.initiales }}
+                  </div>
+                }
+                @if ((projet.membres?.length || 0) > 5) {
+                  <div class="team-avatar team-more">
+                    +{{ (projet.membres?.length || 0) - 5 }}
+                  </div>
+                }
+              </div>
+              <div class="list-progress">
+                <span class="progress-value">{{ projet.progression }}%</span>
+                <div class="progress-bar-mini">
+                  <div class="progress-fill" 
+                       [style.width.%]="projet.progression"
+                       [style.background]="projet.couleur"></div>
+                </div>
+              </div>
+            </div>
+          </app-card>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── My Tasks Section ── -->
+  <div class="mt-5">
+    <app-card>
+      <h4 class="section-title mb-4">
+        <i class="ti ti-checkbox"></i>
+        Mes tâches dans ces projets
+      </h4>
+
+      <div class="tasks-list">
+        @for (tache of mesTachesRecentes; track tache.id) {
+          <div class="task-item">
+            <div class="task-checkbox">
+              <input type="checkbox" 
+                     [id]="'task-' + tache.id"
+                     [checked]="tache.terminee"
+                     (change)="toggleTache(tache.id)" />
+              <label [for]="'task-' + tache.id"></label>
+            </div>
+            <div class="task-info">
+              <h5 [class.task-done]="tache.terminee">{{ tache.titre }}</h5>
+              <div class="task-meta">
+                <span class="task-projet" [style.color]="tache.projetCouleur">
+                  <i class="ti ti-briefcase"></i>
+                  {{ tache.projetNom }}
+                </span>
+                <span class="task-priority priority-{{ tache.priorite.toLowerCase() }}">
+                  {{ tache.priorite }}
+                </span>
+                <span class="task-deadline">
+                  <i class="ti ti-calendar"></i>
+                  {{ tache.echeance | date:'dd/MM' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (mesTachesRecentes.length === 0) {
+          <div class="empty-tasks">
+            <i class="ti ti-checkbox"></i>
+            <p>Aucune tâche assignée</p>
+          </div>
+        }
+      </div>
+    </app-card>
+  </div>
+
+</div>

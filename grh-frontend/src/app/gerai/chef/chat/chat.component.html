@@ -1,0 +1,220 @@
+<app-breadcrumb></app-breadcrumb>
+
+<div class="chat-wrapper">
+
+  <!-- ═════════ SIDEBAR ═════════ -->
+  <div class="chat-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">
+        <h5>Messages</h5>
+        @if (totalNonLus > 0) {
+        <span class="badge-nonlus">{{ totalNonLus }}</span>
+        }
+      </div>
+      <div class="search-box">
+        <i class="ti ti-search"></i>
+        <input type="text" [(ngModel)]="recherche" (input)="onRechercheChange()"
+          placeholder="Rechercher un collègue..." />
+      </div>
+    </div>
+
+    <div class="contacts-list">
+
+      @if (loadingContacts) {
+        @for (_ of [1,2,3]; track $index) {
+        <div class="contact-item contact-skeleton">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line skeleton-name"></div>
+            <div class="skeleton-line skeleton-sub"></div>
+          </div>
+        </div>
+        }
+      } @else if (loadingContactsError) {
+        <div class="contacts-error">
+          <i class="ti ti-wifi-off"></i>
+          <p>Impossible de charger les contacts</p>
+          <button class="btn btn-sm btn-outline-primary" (click)="rechargerContacts()">Réessayer</button>
+        </div>
+      } @else if (contactsFiltres.length === 0 && !recherche) {
+        <div class="contacts-empty">
+          <i class="ti ti-users"></i>
+          <p>Aucun collègue disponible</p>
+        </div>
+      } @else if (contactsFiltres.length === 0 && recherche) {
+        <div class="contacts-empty">
+          <i class="ti ti-search-off"></i>
+          <p>Aucun résultat pour « {{ recherche }} »</p>
+        </div>
+      } @else {
+        @for (contact of contactsFiltres; track contact.employeeId) {
+        <div class="contact-item" [class.active]="contactActif?.employeeId === contact.employeeId"
+          (click)="selectContact(contact)">
+
+          <div class="contact-avatar">
+            {{ contact.initiales }}
+            <span class="statut-dot" [ngClass]="'dot-' + contact.statut"></span>
+          </div>
+
+          <div class="contact-info">
+            <div class="contact-name text-truncate">{{ contact.nom }}</div>
+            <div class="contact-last text-truncate">
+              @if (contact.dernierMessage) {
+              <span [style.fontWeight]="contact.nonLus > 0 ? '700' : '400'"
+                [style.color]="contact.nonLus > 0 ? '#4680FF' : ''">
+                {{ contact.dernierMessage }}
+              </span>
+              }
+            </div>
+          </div>
+
+          @if (contact.nonLus > 0) {
+          <span class="nonlus-badge">{{ contact.nonLus }}</span>
+          }
+        </div>
+        }
+      }
+
+    </div>
+  </div>
+
+  <!-- ═════════ CHAT PRINCIPAL ═════════ -->
+  <div class="chat-main">
+
+    @if (contactActif) {
+
+    <!-- HEADER -->
+    <div class="chat-header">
+      <div class="d-flex align-items-center gap-3">
+        <div class="contact-avatar-lg">{{ contactActif.initiales }}</div>
+        <div>
+          <h6 class="mb-0">{{ contactActif.nom }}</h6>
+          <small class="statut-text" [ngClass]="'text-' + contactActif.statut">
+            <span class="statut-dot-sm" [ngClass]="'dot-' + contactActif.statut"></span>
+            {{ contactActif.statut === 'en-ligne' ? 'En ligne'
+            : contactActif.statut === 'absent' ? 'Absent'
+            : 'Hors ligne' }}
+          </small>
+        </div>
+      </div>
+      <div class="chat-actions">
+        <button class="chat-action-btn" title="Masquer l'historique affiché" (click)="effacerAffichage()">
+          <i class="ti ti-eye-off"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="messages-container" #messagesContainer>
+
+      @if (chargement) {
+      <div class="loading-messages text-center p-3">
+        <div class="spinner-border spinner-border-sm text-primary"></div>
+      </div>
+      }
+
+      @for (msg of messages; track $index) {
+      <div class="message-row" [class.moi]="msg.estMoi">
+
+        @if (!msg.estMoi) {
+        <div class="msg-avatar">{{ msg.initiales }}</div>
+        }
+
+        <div class="message-bubble" [class.bubble-moi]="msg.estMoi" [class.bubble-autre]="!msg.estMoi">
+
+          @if (!msg.estMoi) {
+          <div class="msg-auteur">{{ msg.auteur }}</div>
+          }
+
+          <!-- ✅ Texte -->
+          @if (msg.typeMessage === 'TEXTE' || !msg.typeMessage) {
+          <div class="msg-contenu">{{ msg.contenu }}</div>
+          }
+
+          <!-- ✅ Image -->
+          @if (msg.typeMessage === 'IMAGE' && msg.attachmentUrl) {
+          <img [src]="getBlobUrl(msg.attachmentUrl)" class="msg-image" (click)="ouvrirFichier(msg.attachmentUrl!)" />
+          }
+
+          <!-- ✅ Fichier -->
+          @if (msg.typeMessage === 'FICHIER' && msg.attachmentUrl) {
+          <div class="msg-fichier" (click)="ouvrirFichier(msg.attachmentUrl!)">
+            <i class="ti ti-file-download" style="font-size:24px"></i>
+            <div class="file-details">
+              <span>Fichier</span>
+              <small>Cliquer pour télécharger</small>
+            </div>
+          </div>
+          }
+
+          <div class="msg-heure">
+            {{ msg.heure | date:'HH:mm' }}
+            @if (msg.estMoi) {
+              @if (msg.id < 0) {
+                <i class="ti ti-clock ms-1 text-muted" title="Envoi en cours…"></i>
+              } @else if (msg.lu) {
+                <i class="ti ti-checks ms-1 text-primary" title="Lu"></i>
+              } @else {
+                <i class="ti ti-check ms-1" title="Envoyé"></i>
+              }
+            }
+          </div>
+
+        </div>
+      </div>
+      }
+
+      <!-- ✅ Typing indicator -->
+      @if (isTyping) {
+      <div class="message-row typing-row">
+        <div class="msg-avatar">{{ contactActif.initiales }}</div>
+        <div class="message-bubble bubble-autre typing-bubble">
+          <div class="typing-indicator">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ✅ Aucun message -->
+      @if (!chargement && messages.length === 0 && !isTyping) {
+      <div class="no-messages">
+        <i class="ti ti-message-dots"></i>
+        <p>Dites bonjour à {{ contactActif.nom }} !</p>
+      </div>
+      }
+
+    </div>
+
+    <!-- INPUT -->
+    <div class="chat-input-zone" [class.disabled]="chargement">
+      <label class="input-action-btn" title="Joindre un fichier">
+        <i class="ti ti-paperclip"></i>
+        <input type="file" hidden (change)="onFichierSelectionne($event)" [disabled]="chargement" />
+      </label>
+
+      <div class="input-wrapper">
+        <input #messageInput type="text" [(ngModel)]="newMessage" (keydown.enter)="sendMessage()"
+          (input)="onInputChange()" [disabled]="chargement" placeholder="Tapez votre message ici..."
+          class="message-input" />
+      </div>
+
+      <button class="send-btn" (click)="sendMessage()" [disabled]="!newMessage.trim() || chargement">
+        <i class="ti ti-send"></i>
+      </button>
+    </div>
+
+    } @else {
+
+    <!-- EMPTY STATE -->
+    <div class="empty-chat">
+      <div class="empty-chat-icon"><i class="ti ti-messages"></i></div>
+      <h4>Bienvenue sur SYNAPSE Chat</h4>
+      <p>Sélectionnez un collaborateur pour démarrer une conversation.</p>
+    </div>
+
+    }
+
+  </div>
+
+</div>

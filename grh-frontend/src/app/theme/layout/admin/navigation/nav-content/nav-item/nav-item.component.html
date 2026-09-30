@@ -1,0 +1,22 @@
+<li class="nav-item" routerLinkActive="active">
+
+  <a class="nav-link"
+     [routerLink]="item().url"
+     routerLinkActive="active"
+     [routerLinkActiveOptions]="{ exact: true }">
+
+    @if (item().icon) {
+      <span class="coded-micon">
+        <i class="{{ item().icon }}"></i>
+      </span>
+    }
+
+    <span class="coded-mtext">
+      {{ item().title }}
+    </span>
+  </a>
+  <div style="color:red;font-size:12px">
+  NAV-ITEM OK
+</div>
+
+</li>

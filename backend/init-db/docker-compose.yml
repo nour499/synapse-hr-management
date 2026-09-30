@@ -1,0 +1,17 @@
+services:
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: gerai-flyway
+
+    environment:
+      FLYWAY_URL: jdbc:oracle:thin:@host.docker.internal:1521/FREEPDB1
+      FLYWAY_USER: ${DB_USER}
+      FLYWAY_PASSWORD: ${DB_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql/migrations,filesystem:/flyway/sql/seeds
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+
+    command: migrate
+
+    volumes:
+      - ./migrations:/flyway/sql/migrations
+      - ./seeds:/flyway/sql/seeds

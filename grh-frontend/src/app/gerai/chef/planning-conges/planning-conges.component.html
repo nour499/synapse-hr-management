@@ -1,0 +1,221 @@
+<div style="padding: 24px; display: flex; flex-direction: column; gap: 20px; min-height: 100vh; background: #f8fafc;">
+
+  <!-- ── PAGE HEADER ───────────────────────────────────────── -->
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+
+    <div>
+      <h2 style="margin:0; font-size:20px; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:8px;">
+        <i class="ti ti-calendar-stats" style="color:#6366f1;"></i>
+        Planning Congés Équipe
+      </h2>
+      <p style="margin:4px 0 0; font-size:13px; color:#64748b;">
+        Vue Gantt des absences — navigation mois par mois
+      </p>
+    </div>
+
+    <!-- Month navigator -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button (click)="prevMonth()"
+        style="width:34px;height:34px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569;">
+        <i class="ti ti-chevron-left"></i>
+      </button>
+
+      <div style="min-width:140px; text-align:center; font-size:15px; font-weight:600; color:#1e293b; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:6px 16px;">
+        {{ monthLabel }}
+      </div>
+
+      <button (click)="nextMonth()"
+        style="width:34px;height:34px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569;">
+        <i class="ti ti-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      @for (key of typeKeys; track key) {
+        <div style="display:flex; align-items:center; gap:5px; font-size:12px; color:#475569;">
+          <span style="width:12px; height:12px; border-radius:3px; display:inline-block;"
+                [style.background]="typeMeta[key].color"></span>
+          {{ typeMeta[key].label }}
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── KPI STRIP ─────────────────────────────────────────── -->
+  @if (!loading) {
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:12px; flex:1; min-width:160px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;">
+          <i class="ti ti-users" style="color:#6366f1;font-size:18px;"></i>
+        </div>
+        <div>
+          <div style="font-size:20px;font-weight:700;color:#1e293b;">{{ rows.length }}</div>
+          <div style="font-size:12px;color:#64748b;">Collaborateur(s) absent(s)</div>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:12px; flex:1; min-width:160px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,.1);display:flex;align-items:center;justify-content:center;">
+          <i class="ti ti-calendar-off" style="color:#3b82f6;font-size:18px;"></i>
+        </div>
+        <div>
+          <div style="font-size:20px;font-weight:700;color:#1e293b;">{{ absenceCount() }}</div>
+          <div style="font-size:12px;color:#64748b;">Période(s) d'absence</div>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:12px; flex:1; min-width:160px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;">
+          <i class="ti ti-trending-up" style="color:#f59e0b;font-size:18px;"></i>
+        </div>
+        <div>
+          <div style="font-size:20px;font-weight:700;color:#1e293b;">{{ peakDay() }}</div>
+          <div style="font-size:12px;color:#64748b;">Max absents simultanés</div>
+        </div>
+      </div>
+
+    </div>
+  }
+
+  <!-- ── GANTT CARD ─────────────────────────────────────────── -->
+  <div style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+
+    <!-- Loading -->
+    @if (loading) {
+      <div style="display:flex; align-items:center; justify-content:center; height:200px; gap:10px; color:#64748b;">
+        <i class="ti ti-loader-2" style="font-size:24px; animation: spin 1s linear infinite;"></i>
+        Chargement du planning…
+      </div>
+    }
+
+    @if (!loading) {
+
+      <!-- Empty state -->
+      @if (rows.length === 0) {
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:12px; color:#94a3b8; text-align:center;">
+          <i class="ti ti-calendar-check" style="font-size:48px; color:#c7d2fe;"></i>
+          <p style="font-size:15px; font-weight:600; color:#475569; margin:0;">Toute l'équipe est disponible</p>
+          <p style="font-size:13px; margin:0;">Aucune absence enregistrée pour {{ monthLabel }}.</p>
+        </div>
+      }
+
+      @if (rows.length > 0) {
+        <!-- Gantt layout: sticky left + scrollable right -->
+        <div style="display:flex; overflow:hidden;">
+
+          <!-- ── LEFT: employee names (sticky) ───── -->
+          <div style="min-width:180px; max-width:180px; flex-shrink:0; border-right:1px solid #e2e8f0;">
+
+            <!-- Header cell -->
+            <div style="height:52px; display:flex; align-items:center; padding:0 16px; font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.5px; border-bottom:2px solid #e2e8f0; background:#f8fafc;">
+              Collaborateur
+            </div>
+
+            <!-- Name rows -->
+            @for (row of rows; track row.employeId) {
+              <div style="height:52px; display:flex; align-items:center; padding:0 16px; border-bottom:1px solid #f1f5f9; gap:10px;">
+                <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;">
+                  {{ row.prenom.charAt(0) }}{{ row.nom.charAt(0) }}
+                </div>
+                <div style="overflow:hidden;">
+                  <div style="font-size:13px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    {{ row.prenom }} {{ row.nom }}
+                  </div>
+                  <div style="font-size:11px; color:#94a3b8;">
+                    {{ row.bars.length }} période{{ row.bars.length > 1 ? 's' : '' }}
+                  </div>
+                </div>
+              </div>
+            }
+
+          </div>
+
+          <!-- ── RIGHT: scrollable Gantt grid ─────── -->
+          <div style="overflow-x:auto; flex:1;">
+
+            <!-- Day headers row -->
+            <div style="display:flex; height:52px; border-bottom:2px solid #e2e8f0; background:#f8fafc; min-width:max-content;">
+              @for (d of dayHeaders; track d.day) {
+                <div [style.width.px]="CELL" [style.min-width.px]="CELL"
+                     style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border-right:1px solid #e2e8f0; flex-shrink:0;"
+                     [style.background]="d.isToday ? 'rgba(99,102,241,.08)' : d.isWeekend ? '#f8fafc' : 'transparent'">
+                  <span style="font-size:9px; color:#94a3b8; text-transform:uppercase;">{{ d.dayName }}</span>
+                  <span style="font-size:13px; font-weight:700;"
+                        [style.color]="d.isToday ? '#6366f1' : d.isWeekend ? '#cbd5e1' : '#374151'">
+                    {{ d.day }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <!-- Data rows -->
+            @for (row of rows; track row.employeId) {
+              <div style="position:relative; height:52px; min-width:max-content; border-bottom:1px solid #f1f5f9; display:flex;"
+                   [style.width]="totalWidth">
+
+                <!-- Background grid cells -->
+                @for (d of dayHeaders; track d.day) {
+                  <div [style.width.px]="CELL" [style.min-width.px]="CELL" style="height:100%; border-right:1px solid #f1f5f9; flex-shrink:0;"
+                       [style.background]="d.isToday ? 'rgba(99,102,241,.04)' : d.isWeekend ? '#fafafa' : 'transparent'">
+                  </div>
+                }
+
+                <!-- Gantt bars (absolute) -->
+                @for (bar of row.bars; track bar.colStart) {
+                  <div [title]="bar.tooltip"
+                       style="position:absolute; top:50%; transform:translateY(-50%); height:24px; border-radius:6px; display:flex; align-items:center; padding:0 8px; font-size:11px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; cursor:default; box-shadow:0 1px 4px rgba(0,0,0,.15); transition: opacity .15s;"
+                       [style.left]="barLeft(bar)"
+                       [style.width]="barWidth(bar)"
+                       [style.background]="barColor(bar.type)">
+                    @if (bar.span > 2) {
+                      {{ typeMeta[bar.type]?.label ?? bar.type }}
+                    }
+                  </div>
+                }
+
+              </div>
+            }
+
+            <!-- Today marker line (vertical) -->
+            @for (d of dayHeaders; track d.day) {
+              @if (d.isToday) {
+                <div style="position:absolute; top:52px; width:2px; background:#6366f1; pointer-events:none; z-index:10; opacity:.6;"
+                     [style.left.px]="(d.day - 1) * CELL + CELL / 2"
+                     [style.height]="rows.length * 52 + 'px'">
+                </div>
+              }
+            }
+
+          </div><!-- /right -->
+
+        </div><!-- /flex -->
+
+        <!-- Bottom legend bar -->
+        <div style="display:flex; gap:16px; padding:12px 20px; border-top:1px solid #f1f5f9; background:#fafafa; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:12px; color:#64748b; font-weight:500;">Légende :</span>
+          @for (key of typeKeys; track key) {
+            <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#374151;">
+              <span style="width:20px; height:8px; border-radius:4px; display:inline-block;"
+                    [style.background]="typeMeta[key].color"></span>
+              {{ typeMeta[key].label }}
+            </div>
+          }
+          <div style="margin-left:auto; display:flex; align-items:center; gap:6px; font-size:12px; color:#6366f1;">
+            <span style="width:2px; height:14px; background:#6366f1; border-radius:1px; display:inline-block;"></span>
+            Aujourd'hui
+          </div>
+        </div>
+
+      }
+
+    }
+
+  </div><!-- /card -->
+
+</div>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>

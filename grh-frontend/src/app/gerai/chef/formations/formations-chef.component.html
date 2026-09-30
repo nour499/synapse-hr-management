@@ -1,0 +1,161 @@
+<div class="formations-chef-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2><i class="ti ti-school"></i> Formations – Mon Équipe</h2>
+      <p>Validez ou rejetez les demandes de formation de votre équipe</p>
+    </div>
+    @if (pendingCount > 0) {
+      <div class="pending-alert">
+        <i class="ti ti-clock-exclamation"></i>
+        {{ pendingCount }} demande{{ pendingCount > 1 ? 's' : '' }} en attente de votre validation
+      </div>
+    }
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters">
+    @for (s of statuts; track s.value) {
+      <button class="filter-btn" [class.active]="filterStatut === s.value"
+              (click)="filterStatut = s.value; cdr.markForCheck()">
+        {{ s.label }}
+        @if (s.value === 'EN_ATTENTE' && pendingCount > 0) {
+          <span class="count-badge">{{ pendingCount }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Table -->
+  @if (loading) {
+    <div class="spinner-wrap"><div class="spinner"></div></div>
+  } @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <i class="ti ti-clipboard-off"></i>
+      <p>Aucune demande pour ce filtre</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Formation</th>
+            <th>Type</th>
+            <th>Mode</th>
+            <th>Durée</th>
+            <th>Coût</th>
+            <th>Date demande</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of filtered; track f.id) {
+            <tr [class.pending]="f.statut === 'EN_ATTENTE'">
+              <td>
+                <div class="employe-cell">
+                  <div class="avatar">{{ f.employePrenom[0] }}{{ f.employeNom[0] }}</div>
+                  <div>
+                    <strong>{{ f.employePrenom }} {{ f.employeNom }}</strong>
+                    <small>{{ f.departement }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="titre-cell">
+                  <span>{{ f.titre }}</span>
+                  <small>{{ f.organisme }}</small>
+                </div>
+              </td>
+              <td><span class="type-tag">{{ typeLabels[f.type] }}</span></td>
+              <td>{{ modeLabels[f.mode] }}</td>
+              <td>{{ f.dureeJours }}j</td>
+              <td>{{ f.coutEstime ? (f.coutEstime | number) + ' MAD' : '—' }}</td>
+              <td>{{ f.dateDemande | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <span class="statut-chip"
+                  [style.background]="statutColors[f.statut] + '20'"
+                  [style.color]="statutColors[f.statut]">
+                  {{ statutLabels[f.statut] }}
+                </span>
+              </td>
+              <td>
+                @if (canDecide(f)) {
+                  <button class="btn-decision" (click)="openDecision(f)">
+                    <i class="ti ti-gavel"></i> Décision
+                  </button>
+                } @else if (f.commentaireChef) {
+                  <span class="comment-preview" [title]="f.commentaireChef">
+                    <i class="ti ti-message"></i>
+                  </span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Modal décision -->
+  @if (selected) {
+    <div class="modal-overlay" (click)="closeDecision()"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="ti ti-gavel"></i> Décision sur la demande</h3>
+        <button class="btn-icon" (click)="closeDecision()"><i class="ti ti-x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="demande-recap">
+          <h4>{{ selected.titre }}</h4>
+          <div class="recap-row"><span>Employé</span><strong>{{ selected.employePrenom }} {{ selected.employeNom }}</strong></div>
+          <div class="recap-row"><span>Organisme</span><strong>{{ selected.organisme }}</strong></div>
+          <div class="recap-row"><span>Durée</span><strong>{{ selected.dureeJours }} jour(s)</strong></div>
+          @if (selected.coutEstime) {
+            <div class="recap-row"><span>Coût estimé</span><strong>{{ selected.coutEstime | number }} MAD</strong></div>
+          }
+          @if (selected.dateDebutSouhaitee) {
+            <div class="recap-row"><span>Période</span><strong>{{ selected.dateDebutSouhaitee | date:'dd/MM/yyyy' }} → {{ selected.dateFinSouhaitee | date:'dd/MM/yyyy' }}</strong></div>
+          }
+          <div class="objectifs-box">
+            <label>Objectifs</label>
+            <p>{{ selected.objectifs }}</p>
+          </div>
+        </div>
+
+        <form [formGroup]="decisionForm" (ngSubmit)="submitDecision()">
+          <div class="radio-group">
+            <label class="radio-card" [class.selected]="decisionForm.get('decision')?.value === 'APPROUVE_CHEF'">
+              <input type="radio" formControlName="decision" value="APPROUVE_CHEF">
+              <i class="ti ti-circle-check"></i>
+              <span>Approuver</span>
+            </label>
+            <label class="radio-card reject" [class.selected]="decisionForm.get('decision')?.value === 'REJETE_CHEF'">
+              <input type="radio" formControlName="decision" value="REJETE_CHEF">
+              <i class="ti ti-circle-x"></i>
+              <span>Rejeter</span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label>Commentaire (optionnel)</label>
+            <textarea formControlName="commentaire" rows="3"
+              placeholder="Motivez votre décision…"></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-ghost" (click)="closeDecision()">Annuler</button>
+            <button type="submit" class="btn-primary" [disabled]="submitting">
+              @if (submitting) { <span class="spinner-sm"></span> } @else { <i class="ti ti-send"></i> }
+              Confirmer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

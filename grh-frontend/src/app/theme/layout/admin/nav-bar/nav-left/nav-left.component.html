@@ -1,0 +1,50 @@
+<div class="navbar-content">
+  <ng-scrollbar class="nav-scroll" visibility="hover">
+    <ul class="nav coded-navbar">
+
+      @for (group of navigationItems; track group.id) {
+
+        <!-- ── Group label ───────────────────────────── -->
+        @if (group.type === 'group') {
+          <li class="nav-item pcoded-menu-caption">
+            <label>{{ group.title }}</label>
+          </li>
+
+          @for (item of group.children ?? []; track item.id) {
+
+            <!-- ── Simple item ─────────────────────────── -->
+            @if (item.type === 'item') {
+              <li class="nav-item" routerLinkActive="active">
+                <a class="nav-link"
+                   [routerLink]="item.url"
+                   routerLinkActive="active"
+                   [routerLinkActiveOptions]="{ exact: false }"
+                   (click)="navCollapsedMob()">
+                  @if (item.icon) {
+                    <span class="coded-micon">
+                      <i class="{{ item.icon }}"></i>
+                    </span>
+                  }
+                  <span class="coded-mtext">{{ item.title }}</span>
+                </a>
+              </li>
+            }
+
+          }
+        }
+
+      }
+
+    </ul>
+  </ng-scrollbar>
+
+  <!-- ── Déconnexion (always visible at bottom) ── -->
+  <div class="nav-logout-footer">
+    <a class="nav-link logout-link" href="javascript:void(0)" (click)="logout()">
+      <span class="coded-micon">
+        <i class="ti ti-logout"></i>
+      </span>
+      <span class="coded-mtext">Se déconnecter</span>
+    </a>
+  </div>
+</div>

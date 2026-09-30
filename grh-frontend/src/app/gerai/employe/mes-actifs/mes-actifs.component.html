@@ -1,0 +1,373 @@
+<div style="padding:24px;background:#F8FAFC;min-height:100vh;font-family:'Segoe UI',sans-serif">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 style="margin:0;font-size:24px;font-weight:700;color:#1E293B">Mes actifs</h1>
+      <p style="margin:4px 0 0;color:#64748B;font-size:14px">Matériel et licences qui vous sont attribués</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      @if (pendingCount > 0) {
+        <span style="background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600">
+          {{ pendingCount }} demande{{ pendingCount > 1 ? 's' : '' }} en cours
+        </span>
+      }
+      <button (click)="refreshDemandes()" [disabled]="refreshing"
+        style="border:1px solid #E2E8F0;background:#fff;color:#6366F1;padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;"
+        [style.opacity]="refreshing ? '0.6' : '1'">
+        <i class="ti ti-refresh" [style.animation]="refreshing ? 'spin 1s linear infinite' : 'none'"></i>
+        {{ refreshing ? 'Actualisation…' : 'Actualiser' }}
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div style="text-align:center;padding:60px;color:#64748B">Chargement…</div>
+  }
+
+  @if (!loading) {
+
+    <!-- ════ SECTION : MATÉRIEL (TANGIBLE) ════════════════ -->
+    @if (tangibles.length > 0) {
+      <div style="margin-bottom:28px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <span style="font-size:16px;font-weight:700;color:#1E293B">💻 Matériel</span>
+          <span style="background:#F1F5F9;color:#64748B;font-size:12px;font-weight:600;padding:2px 10px;border-radius:12px">{{ tangibles.length }}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+          @for (actif of tangibles; track actif.id) {
+            <div style="background:#fff;border-radius:14px;border:2px solid"
+                 [style.borderColor]="actif.statut === 'EN_MAINTENANCE' ? '#FCA5A5' : actif.statut === 'HORS_SERVICE' ? '#EF4444' : '#E2E8F0'"
+                 style="box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px">
+
+              <!-- Top row -->
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px"
+                       [style.background]="actif.statut === 'EN_MAINTENANCE' ? '#FEF2F2' : '#EEF2FF'">
+                    <i [class]="typeIcons[actif.type]"
+                       [style.color]="actif.statut === 'EN_MAINTENANCE' ? '#EF4444' : '#6366F1'"></i>
+                  </div>
+                  <div>
+                    <div style="font-weight:700;color:#1E293B;font-size:15px">{{ actif.nom }}</div>
+                    <div style="font-size:12px;color:#64748B">{{ actif.marque }} {{ actif.modele }}</div>
+                  </div>
+                </div>
+                <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;white-space:nowrap"
+                      [style.background]="actif.statut === 'ATTRIBUE' ? '#D1FAE5' : actif.statut === 'EN_MAINTENANCE' ? '#FEE2E2' : '#F1F5F9'"
+                      [style.color]="actif.statut === 'ATTRIBUE' ? '#059669' : actif.statut === 'EN_MAINTENANCE' ? '#EF4444' : '#64748B'">
+                  {{ actif.statut === 'ATTRIBUE' ? 'Attribué' : actif.statut === 'EN_MAINTENANCE' ? 'En maintenance' : 'Hors service' }}
+                </span>
+              </div>
+
+              <!-- Details -->
+              @if (actif.numeroSerie) {
+                <div style="font-size:12px;color:#94A3B8;margin-bottom:8px">
+                  N° série : <span style="font-family:monospace;color:#475569">{{ actif.numeroSerie }}</span>
+                </div>
+              }
+              @if (actif.description) {
+                <div style="font-size:13px;color:#475569;margin-bottom:12px;line-height:1.5">{{ actif.description }}</div>
+              }
+
+              <!-- Request status badge -->
+              @if (demandeForActif(actif.id); as demande) {
+                <div [style.background]="statutColors[demande.statut]+'15'"
+                     [style.borderColor]="statutColors[demande.statut]+'40'"
+                     style="border:1px solid;border-radius:8px;padding:8px 12px;margin-bottom:12px;">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0"
+                          [style.background]="statutColors[demande.statut]"></span>
+                    <span style="font-size:12px;font-weight:700;" [style.color]="statutColors[demande.statut]">
+                      {{ statutLabels[demande.statut] }}
+                    </span>
+                    @if (demande.statut === 'EN_COURS') {
+                      <i class="ti ti-settings" style="color:#6366F1;font-size:14px;"></i>
+                    } @else if (demande.statut === 'RESOLUE') {
+                      <i class="ti ti-circle-check" style="color:#10B981;font-size:14px;"></i>
+                    } @else if (demande.statut === 'REJETEE') {
+                      <i class="ti ti-circle-x" style="color:#EF4444;font-size:14px;"></i>
+                    }
+                  </div>
+                  @if (demande.commentaireAdmin) {
+                    <div style="font-size:11px;color:#475569;padding-left:16px;">
+                      IT : {{ demande.commentaireAdmin }}
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Action -->
+              @if (actif.statut === 'ATTRIBUE' && !hasActiveDemande(actif.id)) {
+                <button (click)="openModal(actif, 'REPARATION')"
+                  style="width:100%;border:none;background:#EF444415;color:#EF4444;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+                  <i class="ti ti-tool"></i> Signaler une panne
+                </button>
+              }
+              @if (actif.statut === 'EN_MAINTENANCE') {
+                <div style="text-align:center;font-size:12px;color:#EF4444;padding:6px;background:#FEF2F2;border-radius:8px">
+                  En cours de réparation
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ════ SECTION : LICENCES & NUMÉRIQUES ══════════════ -->
+    @if (numeriques.length > 0) {
+      <div style="margin-bottom:28px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <span style="font-size:16px;font-weight:700;color:#1E293B">🔑 Licences & accès</span>
+          <span style="background:#F1F5F9;color:#64748B;font-size:12px;font-weight:600;padding:2px 10px;border-radius:12px">{{ numeriques.length }}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+          @for (actif of numeriques; track actif.id) {
+            <div style="background:#fff;border-radius:14px;border:2px solid;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px"
+                 [style.borderColor]="isExpired(actif) ? '#FCA5A5' : isExpiringSoon(actif) ? '#FCD34D' : '#E2E8F0'">
+
+              <!-- Top row -->
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px"
+                       [style.background]="isExpired(actif) ? '#FEF2F2' : isExpiringSoon(actif) ? '#FEF3C7' : '#EEF2FF'">
+                    <i [class]="typeIcons[actif.type]"
+                       [style.color]="isExpired(actif) ? '#EF4444' : isExpiringSoon(actif) ? '#D97706' : '#6366F1'"></i>
+                  </div>
+                  <div>
+                    <div style="font-weight:700;color:#1E293B;font-size:15px">{{ actif.nom }}</div>
+                    <div style="font-size:12px;color:#64748B">{{ typeLabels[actif.type] }} · {{ actif.marque }}</div>
+                  </div>
+                </div>
+                @if (isExpired(actif)) {
+                  <span style="background:#FEE2E2;color:#EF4444;font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;white-space:nowrap">
+                    Expirée
+                  </span>
+                } @else if (isExpiringSoon(actif)) {
+                  <span style="background:#FEF3C7;color:#D97706;font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;white-space:nowrap">
+                    Expire bientôt
+                  </span>
+                } @else {
+                  <span style="background:#D1FAE5;color:#059669;font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px">
+                    Active
+                  </span>
+                }
+              </div>
+
+              <!-- Expiry info -->
+              @if (actif.dateExpiration) {
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;padding:8px 12px;border-radius:8px"
+                     [style.background]="isExpired(actif) ? '#FEF2F2' : isExpiringSoon(actif) ? '#FEF9C3' : '#F0FDF4'">
+                  <i class="ti ti-calendar" style="font-size:14px"
+                     [style.color]="isExpired(actif) ? '#EF4444' : isExpiringSoon(actif) ? '#D97706' : '#10B981'"></i>
+                  <span style="font-size:13px;font-weight:600"
+                        [style.color]="isExpired(actif) ? '#EF4444' : isExpiringSoon(actif) ? '#D97706' : '#10B981'">
+                    @if (isExpired(actif)) {
+                      Expirée le {{ actif.dateExpiration }}
+                    } @else if (isExpiringSoon(actif)) {
+                      Expire dans {{ daysUntilExpiry(actif) }} jours ({{ actif.dateExpiration }})
+                    } @else {
+                      Valide jusqu'au {{ actif.dateExpiration }}
+                    }
+                  </span>
+                </div>
+              }
+
+              @if (actif.description) {
+                <div style="font-size:13px;color:#475569;margin-bottom:12px">{{ actif.description }}</div>
+              }
+
+              <!-- Request status badge -->
+              @if (demandeForActif(actif.id); as demande) {
+                <div [style.background]="statutColors[demande.statut]+'15'"
+                     [style.borderColor]="statutColors[demande.statut]+'40'"
+                     style="border:1px solid;border-radius:8px;padding:8px 12px;margin-bottom:12px;">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0"
+                          [style.background]="statutColors[demande.statut]"></span>
+                    <span style="font-size:12px;font-weight:700;" [style.color]="statutColors[demande.statut]">
+                      {{ statutLabels[demande.statut] }}
+                    </span>
+                    @if (demande.statut === 'EN_COURS') {
+                      <i class="ti ti-settings" style="color:#6366F1;font-size:14px;"></i>
+                    } @else if (demande.statut === 'RESOLUE') {
+                      <i class="ti ti-circle-check" style="color:#10B981;font-size:14px;"></i>
+                    } @else if (demande.statut === 'REJETEE') {
+                      <i class="ti ti-circle-x" style="color:#EF4444;font-size:14px;"></i>
+                    }
+                  </div>
+                  @if (demande.commentaireAdmin) {
+                    <div style="font-size:11px;color:#475569;padding-left:16px;">
+                      IT : {{ demande.commentaireAdmin }}
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Action -->
+              @if ((isExpired(actif) || isExpiringSoon(actif)) && !hasActiveDemande(actif.id)) {
+                <button (click)="openModal(actif, 'RENOUVELLEMENT')"
+                  style="width:100%;border:none;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"
+                  [style.background]="isExpired(actif) ? '#EF444415' : '#FEF3C7'"
+                  [style.color]="isExpired(actif) ? '#EF4444' : '#D97706'">
+                  <i class="ti ti-refresh"></i> Demander le renouvellement
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ════ HISTORIQUE DES DEMANDES ═════════════════════ -->
+    @if (demandes.length > 0) {
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1E293B;margin-bottom:14px">📋 Historique des demandes</div>
+        <div style="background:#fff;border-radius:14px;border:1px solid #E2E8F0;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#F8FAFC;border-bottom:1px solid #E2E8F0">
+                <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B">Actif</th>
+                <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B">Type</th>
+                <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B">Description</th>
+                <th style="padding:12px 16px;text-align:center;font-weight:600;color:#64748B">Urgence</th>
+                <th style="padding:12px 16px;text-align:center;font-weight:600;color:#64748B">Statut</th>
+                <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of demandes; track d.id) {
+                <tr style="border-bottom:1px solid #F8FAFC">
+                  <td style="padding:12px 16px">
+                    <div style="font-weight:600;color:#1E293B">{{ d.actifNom }}</div>
+                    <div style="font-size:11px;color:#94A3B8">{{ typeLabels[d.actifType] }}</div>
+                  </td>
+                  <td style="padding:12px 16px">
+                    <span style="padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600"
+                          [style.background]="d.type === 'REPARATION' ? '#FEE2E2' : '#EEF2FF'"
+                          [style.color]="d.type === 'REPARATION' ? '#EF4444' : '#6366F1'">
+                      {{ d.type === 'REPARATION' ? 'Réparation' : 'Renouvellement' }}
+                    </span>
+                  </td>
+                  <td style="padding:12px 16px;color:#475569;max-width:200px">
+                    <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.description }}</div>
+                    @if (d.commentaireAdmin) {
+                      <div style="font-size:11px;color:#10B981;margin-top:2px">IT : {{ d.commentaireAdmin }}</div>
+                    }
+                  </td>
+                  <td style="padding:12px 16px;text-align:center">
+                    <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600"
+                          [style.background]="d.urgence === 'URGENTE' ? '#FEE2E2' : '#F1F5F9'"
+                          [style.color]="d.urgence === 'URGENTE' ? '#EF4444' : '#64748B'">
+                      {{ d.urgence }}
+                    </span>
+                  </td>
+                  <td style="padding:12px 16px;text-align:center">
+                    <span [style.background]="statutColors[d.statut]+'22'"
+                          [style.color]="statutColors[d.statut]"
+                          style="padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600">
+                      {{ statutLabels[d.statut] }}
+                    </span>
+                  </td>
+                  <td style="padding:12px 16px;color:#64748B;font-size:12px">{{ d.dateCreation }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- ════ MODAL : SOUMETTRE UNE DEMANDE ════════════════ -->
+  @if (showModal && modalActif) {
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px">
+      <div style="background:#fff;border-radius:16px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden">
+
+        <!-- Modal header -->
+        <div style="padding:20px 24px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px"
+               [style.background]="modalType === 'REPARATION' ? '#FEF2F2' : '#EEF2FF'">
+            <i [class]="typeIcons[modalActif.type]"
+               [style.color]="modalType === 'REPARATION' ? '#EF4444' : '#6366F1'"></i>
+          </div>
+          <div>
+            <div style="font-weight:700;color:#1E293B;font-size:16px">
+              {{ modalType === 'REPARATION' ? 'Signaler une panne' : 'Demander un renouvellement' }}
+            </div>
+            <div style="font-size:13px;color:#64748B">{{ modalActif.nom }}</div>
+          </div>
+          <button (click)="closeModal()"
+            style="margin-left:auto;border:none;background:#F1F5F9;color:#475569;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">
+            ✕
+          </button>
+        </div>
+
+        <!-- Modal body -->
+        <form [formGroup]="form" (ngSubmit)="submit()" style="padding:20px 24px">
+
+          <!-- Actif info strip -->
+          <div style="background:#F8FAFC;border-radius:10px;padding:12px 14px;margin-bottom:18px;display:flex;gap:16px;font-size:13px;color:#475569">
+            <div><strong>Type :</strong> {{ typeLabels[modalActif.type] }}</div>
+            @if (modalActif.marque) { <div><strong>Marque :</strong> {{ modalActif.marque }}</div> }
+            @if (modalActif.numeroSerie) { <div><strong>N° série :</strong> {{ modalActif.numeroSerie }}</div> }
+          </div>
+
+          <!-- Description -->
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px">
+              {{ modalType === 'REPARATION' ? 'Décrivez la panne *' : 'Motif du renouvellement *' }}
+            </label>
+            <textarea formControlName="description" rows="4"
+              style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;resize:vertical;font-family:inherit;box-sizing:border-box"
+              [placeholder]="modalType === 'REPARATION' ? 'Décrivez le problème observé, quand il est apparu…' : 'Expliquez pourquoi le renouvellement est nécessaire…'">
+            </textarea>
+            @if (form.get('description')?.invalid && form.get('description')?.touched) {
+              <small style="color:#EF4444;font-size:12px">Au moins 10 caractères requis</small>
+            }
+          </div>
+
+          <!-- Urgence -->
+          <div style="margin-bottom:20px">
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">Niveau d'urgence</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              @for (u of [
+                {value:'NORMALE', label:'Normale', desc:'Peut attendre quelques jours', color:'#6366F1'},
+                {value:'URGENTE', label:'Urgente', desc:'Bloquant pour mon travail', color:'#EF4444'}
+              ]; track u.value) {
+                <label style="cursor:pointer">
+                  <input type="radio" formControlName="urgence" [value]="u.value" style="display:none">
+                  <div [style.borderColor]="form.get('urgence')?.value === u.value ? u.color : '#E2E8F0'"
+                       [style.background]="form.get('urgence')?.value === u.value ? u.color+'12' : '#F8FAFC'"
+                       style="border:2px solid;border-radius:10px;padding:12px;text-align:center;transition:all .2s">
+                    <div [style.color]="u.color" style="font-weight:700;font-size:14px">{{ u.label }}</div>
+                    <div style="font-size:11px;color:#64748B;margin-top:2px">{{ u.desc }}</div>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;justify-content:flex-end;gap:10px">
+            <button type="button" (click)="closeModal()"
+              style="border:1px solid #E2E8F0;background:#fff;color:#475569;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px">
+              Annuler
+            </button>
+            <button type="submit" [disabled]="saving"
+              style="border:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer"
+              [style.background]="modalType === 'REPARATION' ? '#EF4444' : '#6366F1'"
+              style="color:#fff"
+              [style.opacity]="saving ? '0.6' : '1'">
+              {{ saving ? 'Envoi…' : 'Envoyer la demande' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

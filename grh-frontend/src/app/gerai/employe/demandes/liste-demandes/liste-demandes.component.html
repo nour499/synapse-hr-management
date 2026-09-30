@@ -1,0 +1,294 @@
+<div class="demandes-page">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header mb-4">
+    <div class="header-left">
+      <h2 class="page-title">Mes demandes</h2>
+      <p class="page-subtitle">Consultez et suivez l'état de vos demandes</p>
+    </div>
+    <button class="btn-new-demande" (click)="nouvelleDemande()">
+      <i class="ti ti-plus"></i>
+      Nouvelle demande
+    </button>
+  </div>
+
+  <!-- ── Stats Cards ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-total">
+        <div class="stat-icon"><i class="ti ti-file-text"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalDemandes }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-pending">
+        <div class="stat-icon"><i class="ti ti-clock"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ enAttente }}</span>
+          <span class="stat-label">En attente</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-approved">
+        <div class="stat-icon"><i class="ti ti-check"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ validees }}</span>
+          <span class="stat-label">Validées</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card stat-rejected">
+        <div class="stat-icon"><i class="ti ti-x"></i></div>
+        <div class="stat-info">
+          <span class="stat-value">{{ refusees }}</span>
+          <span class="stat-label">Refusées</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <div style="display:flex;gap:4px;background:#fff;border-radius:12px;padding:5px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:20px;width:fit-content">
+    <button (click)="setTab('demandes')"
+      [style.background]="activeTab === 'demandes' ? '#6366F1' : 'transparent'"
+      [style.color]="activeTab === 'demandes' ? '#fff' : '#64748B'"
+      style="border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">
+      Mes demandes
+    </button>
+    <button (click)="setTab('calendrier')"
+      [style.background]="activeTab === 'calendrier' ? '#6366F1' : 'transparent'"
+      [style.color]="activeTab === 'calendrier' ? '#fff' : '#64748B'"
+      style="border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">
+      📅 Calendrier équipe
+    </button>
+  </div>
+
+  <!-- ── Calendar Tab ── -->
+  @if (activeTab === 'calendrier') {
+    <div style="background:#fff;border-radius:14px;border:1px solid #E2E8F0;overflow:hidden">
+
+      <!-- Calendar header -->
+      <div style="padding:16px 20px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;justify-content:space-between">
+        <button (click)="prevMonth()"
+          style="border:1px solid #E2E8F0;background:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px">
+          ‹
+        </button>
+        <div style="font-weight:700;color:#1E293B;font-size:16px">
+          {{ MONTH_NAMES[calMonth] }} {{ calYear }}
+        </div>
+        <button (click)="nextMonth()"
+          style="border:1px solid #E2E8F0;background:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px">
+          ›
+        </button>
+      </div>
+
+        <!-- Day headers -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);background:#F8FAFC;border-bottom:1px solid #F1F5F9">
+          @for (d of DAY_LABELS; track d) {
+            <div style="text-align:center;padding:8px 4px;font-size:11px;font-weight:700;color:#94A3B8;letter-spacing:.5px">
+              {{ d }}
+            </div>
+          }
+        </div>
+
+        <!-- Day cells -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr)">
+          @for (day of calDays; track $index) {
+            <div [style.background]="day.isToday ? '#EEF2FF' : day.isWeekend && day.date ? '#FAFAFA' : '#fff'"
+                 [style.borderColor]="day.isToday ? '#6366F1' : '#F1F5F9'"
+                 style="min-height:80px;border:1px solid #F1F5F9;padding:6px;position:relative">
+
+              @if (day.date) {
+                <div [style.color]="day.isToday ? '#6366F1' : day.isWeekend ? '#94A3B8' : '#1E293B'"
+                     [style.fontWeight]="day.isToday ? '800' : '500'"
+                     style="font-size:13px;margin-bottom:4px;text-align:right">
+                  {{ day.dayNum }}
+                </div>
+
+                @if (day.isToday) {
+                  <div style="position:absolute;top:4px;left:4px;width:6px;height:6px;border-radius:50%;background:#6366F1"></div>
+                }
+
+                <!-- Leave chips -->
+                @for (a of day.absences; track $index) {
+                  <div [style.background]="a.type === 'MALADIE' ? '#FEE2E2' : '#EEF2FF'"
+                       [style.color]="a.type === 'MALADIE' ? '#EF4444' : '#6366F1'"
+                       style="font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                       [title]="a.nom + ' (' + a.type + ')'">
+                    {{ a.nom }}
+                  </div>
+                }
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Legend -->
+        <div style="padding:12px 20px;border-top:1px solid #F1F5F9;display:flex;gap:16px;font-size:12px;color:#64748B">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EEF2FF;margin-right:4px"></span>Congé annuel</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#FEE2E2;margin-right:4px"></span>Maladie</span>
+        </div>
+    </div>
+  }
+
+  <!-- ── Main Content Card ── -->
+  @if (activeTab === 'demandes') {
+  <app-card>
+
+    <!-- Filters Bar -->
+    <div class="filters-bar mb-3">
+      <div class="search-box">
+        <i class="ti ti-search"></i>
+        <input type="text"
+               placeholder="Rechercher une demande..."
+               [(ngModel)]="searchTerm"
+               (input)="filterDemandes()" />
+      </div>
+
+      <div class="filter-group">
+        <label>Type :</label>
+        <select [(ngModel)]="selectedType" (change)="filterDemandes()" class="filter-select">
+          <option value="">Tous</option>
+          <option value="Congé">Congé</option>
+          <option value="Formation">Formation</option>
+          <option value="Document">Document</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Statut :</label>
+        <select [(ngModel)]="selectedStatut" (change)="filterDemandes()" class="filter-select">
+          <option value="">Tous</option>
+          <option value="EN_ATTENTE">En attente</option>
+          <option value="VALIDEE">Validée</option>
+          <option value="REFUSEE">Refusée</option>
+        </select>
+      </div>
+
+      <button class="btn-reset" (click)="resetFilters()">
+        <i class="ti ti-filter-off"></i>
+        Réinitialiser
+      </button>
+      <button class="btn-reset" (click)="refresh()">
+        <i class="ti ti-refresh"></i>
+        Actualiser
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="demandes-table">
+        <thead>
+          <tr>
+            <th (click)="sortBy('type')" class="sortable">Type</th>
+            <th (click)="sortBy('dateDemande')" class="sortable">Date de demande</th>
+            <th>Période</th>
+            <th (click)="sortBy('statut')" class="sortable">Statut</th>
+            <th>Validé par</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (demandesFiltrees.length === 0) {
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <i class="ti ti-inbox empty-state__icon"></i>
+                  <p class="empty-state__title">Aucune demande trouvée</p>
+                  <p class="empty-state__subtitle">Aucune demande ne correspond à votre recherche ou filtre actif.</p>
+                </div>
+              </td>
+            </tr>
+          } @else {
+            @for (demande of demandesPage; track demande.id) {
+              <tr (click)="voirDetail(demande.id)" class="cursor-pointer">
+                <td>
+                  <div class="type-cell">
+                    <i [class]="typeIcon(demande.type)" [style.color]="typeColor(demande.type)"></i>
+                    {{ demande.typeLabel || typeLabel(demande.type) }}
+                  </div>
+                </td>
+                <td>{{ demande.dateCreation | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  @if (demande.dateDebut && demande.dateFin && demande.type !== 'FORMATION' && demande.type !== 'CREDIT' && demande.type !== 'PRET' && demande.type !== 'DOCUMENT_ADMINISTRATIF') {
+                    @if (demande.dateDebut && demande.dateFin) {
+                      <small>{{ demande.dateDebut | date:'dd/MM/yyyy' }} – {{ demande.dateFin | date:'dd/MM/yyyy' }}</small>
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  } @else if (demande.type === 'FORMATION') {
+                    @if (demande.dateDebut) {
+                      <small><i class="ti ti-calendar" style="color:#10B981;margin-right:4px"></i>{{ demande.dateDebut | date:'dd/MM/yyyy' }}</small>
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  } @else if (demande.type === 'CREDIT' || demande.type === 'PRET') {
+                    @if (demande.amount) {
+                      <small>{{ demande.amount | number:'1.0-0' }} {{ demande.currency || 'TND' }} / {{ demande.durationMonths }} mois</small>
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+                <td>
+                  <span class="status-chip" [ngClass]="statutChip(demande.statut).cls">
+                    <i [class]="statutChip(demande.statut).icon" aria-hidden="true"></i>
+                    {{ statutChip(demande.statut).label }}
+                  </span>
+                </td>
+                <td>
+                  <span class="text-muted">{{ demande.validateurNom || demande.validateurNomRh || demande.validateurNomChef || '—' }}</span>
+                </td>
+                <td class="text-end">
+                  <div class="action-buttons">
+                    <button class="btn-action btn-view"
+                            (click)="voirDetail(demande.id); $event.stopPropagation()"
+                            title="Voir détail">
+                      <i class="ti ti-eye"></i>
+                    </button>
+                    @if (demande.statut === 'EN_ATTENTE') {
+                      <button class="btn-action btn-cancel"
+                              (click)="annulerDemande(demande.id); $event.stopPropagation()"
+                              title="Annuler">
+                        <i class="ti ti-x"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (demandesFiltrees.length > 0) {
+      <div class="pagination-bar d-flex justify-content-between align-items-center mt-3">
+        <div class="pagination-info">
+          Affichage de {{ demandesPage.length }} / {{ demandesFiltrees.length }} demande(s)
+        </div>
+        <div class="pagination-controls">
+          <button class="btn btn-light btn-sm me-2" (click)="prevPage()" [disabled]="currentPage === 1">
+            <i class="ti ti-chevron-left"></i> Précédent
+          </button>
+          <span>Page {{ currentPage }} / {{ totalPages }}</span>
+          <button class="btn btn-light btn-sm ms-2" (click)="nextPage()" [disabled]="currentPage === totalPages">
+            Suivant <i class="ti ti-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    }
+
+  </app-card>
+  } <!-- end @if activeTab === 'demandes' -->
+
+</div>

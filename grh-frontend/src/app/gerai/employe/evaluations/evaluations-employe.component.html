@@ -1,0 +1,477 @@
+<!-- ============================================================ -->
+<!-- Mes Évaluations — Vue Employé                               -->
+<!-- ============================================================ -->
+
+<div class="evaluations-page">
+
+  <!-- ── Loading ── -->
+  @if (loading) {
+    <div class="ev-loading">
+      <div class="spinner-border ev-spinner"></div>
+      <p class="ev-loading-text">Chargement de vos évaluations…</p>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- VUE LISTE                                                   -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  @if (!loading && view === 'liste') {
+
+    <!-- Header -->
+    <div class="ev-header">
+      <div class="ev-page-icon">
+        <i class="ti ti-chart-bar"></i>
+      </div>
+      <div>
+        <h1 class="ev-page-title">Mes Évaluations</h1>
+        <p class="ev-page-sub">Suivez vos évaluations de performance et vos résultats</p>
+      </div>
+    </div>
+
+    <!-- Section : Évaluations en cours -->
+    <div class="ev-section">
+      <h2 class="ev-section-hd">
+        <i class="ti ti-clock ev-icon-amber"></i>
+        Évaluations en cours
+        <span class="ev-count-active">{{ active.length }}</span>
+      </h2>
+
+      @if (active.length === 0) {
+        <div class="ev-empty-dashed">
+          <i class="ti ti-chart-bar-off ev-empty-icon"></i>
+          <p class="ev-empty-text">Aucune évaluation en cours pour le moment.</p>
+        </div>
+      } @else {
+        <div class="ev-cards-grid">
+          @for (e of active; track e.id) {
+            <div class="ev-eval-card">
+
+              <!-- Card header -->
+              <div class="ev-card-top">
+                <div>
+                  <h3 class="ev-card-title">{{ e.campagneTitre }}</h3>
+                  <p class="ev-card-meta">
+                    <i class="ti ti-calendar"></i>
+                    {{ periodeLabels[e.periode] }} {{ e.annee }}
+                  </p>
+                </div>
+                <span class="ev-statut"
+                      [style.background]="statutColors[e.statut] + '20'"
+                      [style.color]="statutColors[e.statut]">
+                  {{ statutLabels[e.statut] }}
+                </span>
+              </div>
+
+              <!-- Actions -->
+              <div class="ev-card-actions">
+                @if (canFillAutoEval(e)) {
+                  <button (click)="openForm(e)" class="ev-btn-fill ev-btn-fill-primary">
+                    <i class="ti ti-pencil"></i>
+                    Remplir mon évaluation
+                  </button>
+                }
+                @if (e.statut === 'VALIDEE_RH' || e.statut === 'CLOTUREE') {
+                  <button (click)="openResult(e)" class="ev-btn-fill ev-btn-fill-success">
+                    <i class="ti ti-eye"></i>
+                    Voir résultat
+                  </button>
+                } @else {
+                  <button (click)="openResult(e)" class="ev-btn-fill ev-btn-fill-indigo">
+                    <i class="ti ti-info-circle"></i>
+                    Voir détail
+                  </button>
+                }
+              </div>
+
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Section : Évaluations archivées -->
+    <div class="ev-section">
+      <h2 class="ev-section-hd">
+        <i class="ti ti-archive ev-icon-slate"></i>
+        Historique
+        <span class="ev-count-archive">{{ archived.length }}</span>
+      </h2>
+
+      @if (archived.length === 0) {
+        <p class="ev-empty-simple">Aucune évaluation archivée.</p>
+      } @else {
+        <div class="ev-table-wrap">
+          <table class="ev-table">
+            <thead>
+              <tr class="ev-thead-row">
+                <th class="ev-th">Campagne</th>
+                <th class="ev-th">Période</th>
+                <th class="ev-th center">Mention</th>
+                <th class="ev-th center">Score final</th>
+                <th class="ev-th center">Résultat</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of archived; track e.id) {
+                <tr class="ev-tr">
+                  <td class="ev-td ev-td-name">{{ e.campagneTitre }}</td>
+                  <td class="ev-td ev-td-meta">{{ periodeLabels[e.periode] }} {{ e.annee }}</td>
+                  <td class="ev-td center">
+                    @if (e.mention) {
+                      <span class="ev-statut"
+                            [style.background]="mentionColors[e.mention] + '20'"
+                            [style.color]="mentionColors[e.mention]">
+                        {{ mentionLabels[e.mention] }}
+                      </span>
+                    } @else {
+                      <span class="ev-score-empty">—</span>
+                    }
+                  </td>
+                  <td class="ev-td center">
+                    <span class="ev-score-cell"
+                          [style.color]="getMentionColor(e)">
+                      {{ scoreFinal(e) }}<span>/100</span>
+                    </span>
+                  </td>
+                  <td class="ev-td center">
+                    <button (click)="openResult(e)" class="ev-btn-view">
+                      <i class="ti ti-eye"></i> Détail
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+  }
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- VUE FORMULAIRE — AUTO-ÉVALUATION                          -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  @if (!loading && view === 'form' && selected) {
+
+    <div class="ev-inner">
+
+      <!-- Back + Title -->
+      <div class="ev-form-header">
+        <button (click)="back()" class="ev-btn-back">
+          <i class="ti ti-arrow-left"></i> Retour
+        </button>
+        <h1 class="ev-form-title">Auto-évaluation — {{ selected.campagneTitre }}</h1>
+        <p class="ev-form-sub">{{ periodeLabels[selected.periode] }} {{ selected.annee }}</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+
+        <!-- Section 1 : Critères de performance -->
+        <div class="ev-card">
+          <h2 class="ev-section-title">
+            <i class="ti ti-target" style="color:#6366F1;"></i>
+            Critères de performance
+          </h2>
+
+          @for (c of criteres; track c.key) {
+            <div class="ev-crit-form-row">
+              <span class="ev-crit-label-form">{{ c.label }}</span>
+              <div class="ev-stars-form">
+                @for (i of [0,1,2,3,4]; track i) {
+                  <button type="button"
+                    (click)="setNote(c.key, i + 1)"
+                    class="ev-star-btn"
+                    [style.color]="form.get(c.key)?.value >= (i + 1) ? '#F59E0B' : '#CBD5E1'">
+                    @if (form.get(c.key)?.value >= (i + 1)) {
+                      <i class="ti ti-star-filled"></i>
+                    } @else {
+                      <i class="ti ti-star"></i>
+                    }
+                  </button>
+                }
+              </div>
+              <span class="ev-crit-score">{{ form.get(c.key)?.value || 0 }}/5</span>
+            </div>
+          }
+        </div>
+
+        <!-- Section 2 : Développement -->
+        <div class="ev-card">
+          <h2 class="ev-section-title">
+            <i class="ti ti-school" style="color:#10B981;"></i>
+            Développement professionnel
+          </h2>
+
+          <div class="ev-dev-grid">
+            <div>
+              <label class="ev-form-label">Formations complétées</label>
+              <input type="number" formControlName="formationsCompletees" readonly class="ev-input-readonly" />
+              <p class="ev-input-hint">Renseigné automatiquement</p>
+            </div>
+            <div>
+              <label class="ev-form-label">Nouvelles compétences acquises</label>
+              <input type="text" formControlName="nouvellesCompetences"
+                placeholder="Ex : React, gestion de projet…" class="ev-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3 : Bilan -->
+        <div class="ev-card">
+          <h2 class="ev-section-title">
+            <i class="ti ti-notes" style="color:#F59E0B;"></i>
+            Bilan de la période
+          </h2>
+
+          <div class="ev-form-grid">
+            <div>
+              <label class="ev-form-label">Réussites de la période</label>
+              <textarea formControlName="reussitesPeriode" rows="3"
+                placeholder="Décrivez vos principales réalisations…"
+                class="ev-textarea"></textarea>
+            </div>
+            <div>
+              <label class="ev-form-label">Défis rencontrés</label>
+              <textarea formControlName="defisRencontres" rows="3"
+                placeholder="Quels obstacles avez-vous surmontés ?"
+                class="ev-textarea"></textarea>
+            </div>
+            <div>
+              <label class="ev-form-label">Objectifs pour la prochaine période</label>
+              <textarea formControlName="objectifsSuivante" rows="3"
+                placeholder="Quels sont vos objectifs pour la prochaine période ?"
+                class="ev-textarea"></textarea>
+            </div>
+            <div>
+              <label class="ev-form-label">Commentaire libre</label>
+              <textarea formControlName="commentaireLibre" rows="3"
+                placeholder="Tout autre commentaire ou remarque…"
+                class="ev-textarea"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="ev-form-actions">
+          <button type="button" (click)="back()" class="ev-btn-cancel">Annuler</button>
+          <button type="submit" [disabled]="saving" class="ev-btn-submit">
+            @if (saving) {
+              <span class="spinner-border spinner-border-sm"></span>
+            }
+            <i class="ti ti-send"></i>
+            Soumettre mon auto-évaluation
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  }
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- VUE RÉSULTAT                                               -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  @if (!loading && view === 'resultat' && selected) {
+
+    <div class="ev-result-inner">
+
+      <!-- Back -->
+      <button (click)="back()" class="ev-btn-back-pill">
+        <i class="ti ti-arrow-left"></i> Retour à mes évaluations
+      </button>
+
+      <!-- Status + info card -->
+      <div class="ev-result-info">
+        <div class="ev-result-info-main">
+          <h2 class="ev-result-title">{{ selected.campagneTitre }}</h2>
+          <p class="ev-result-meta">
+            <i class="ti ti-calendar"></i>{{ periodeLabels[selected.periode] }} {{ selected.annee }}
+            @if (selected.chefNom) {
+              <span class="ev-meta-sep"><i class="ti ti-user"></i>Évaluateur : {{ selected.chefNom }}</span>
+            }
+          </p>
+        </div>
+        <span class="ev-statut"
+              [style.background]="statutColors[selected.statut] + '20'"
+              [style.color]="statutColors[selected.statut]">
+          {{ statutLabels[selected.statut] }}
+        </span>
+      </div>
+
+      <!-- Score Hero (only when score is finalized) -->
+      @if (selected.scoreFinal) {
+        <div class="ev-score-hero">
+          <div>
+            <div class="ev-score-ring">
+              <span class="ev-score-ring-val">{{ scoreFinal(selected) }}</span>
+              <span class="ev-score-ring-denom">/100</span>
+            </div>
+            <p class="ev-score-circle-label">Score final</p>
+          </div>
+          <div class="ev-score-hero-content">
+            <h2 class="ev-hero-title">{{ selected.campagneTitre }}</h2>
+            <p class="ev-hero-sub">{{ periodeLabels[selected.periode] }} {{ selected.annee }}</p>
+            @if (selected.mention) {
+              <span class="ev-hero-mention">{{ mentionLabels[selected.mention] }}</span>
+            }
+          </div>
+        </div>
+      } @else {
+        <!-- In-progress indicator -->
+        <div class="ev-inprogress">
+          <i class="ti ti-clock ev-inprogress-icon"></i>
+          <div>
+            <p class="ev-inprogress-title">Évaluation en cours</p>
+            <p class="ev-inprogress-sub">Le score final sera disponible une fois que toutes les étapes d'évaluation seront complétées.</p>
+          </div>
+        </div>
+      }
+
+      <!-- Score breakdown (only when scores are available) -->
+      @if (selected.scoreFinal) {
+        @let bd = getBreakdown(selected);
+        <div class="ev-card">
+          <h3 class="ev-breakdown-title">Répartition du score</h3>
+
+          <!-- Objectifs /40 -->
+          <div class="ev-bar-row ev-bar-indigo">
+            <div class="ev-bar-hd">
+              <span class="ev-bar-label">Objectifs</span>
+              <span class="ev-bar-val">{{ bd.scoreObjectifs }} / 40</span>
+            </div>
+            <div class="ev-bar-track">
+              <div class="ev-bar-fill" [style.width]="scoreBar(bd.scoreObjectifs, 40) + '%'"></div>
+            </div>
+          </div>
+
+          <!-- Compétences /30 -->
+          <div class="ev-bar-row ev-bar-green">
+            <div class="ev-bar-hd">
+              <span class="ev-bar-label">Compétences</span>
+              <span class="ev-bar-val">{{ bd.scoreCompetences }} / 30</span>
+            </div>
+            <div class="ev-bar-track">
+              <div class="ev-bar-fill" [style.width]="scoreBar(bd.scoreCompetences, 30) + '%'"></div>
+            </div>
+          </div>
+
+          <!-- Formations /20 -->
+          <div class="ev-bar-row ev-bar-amber">
+            <div class="ev-bar-hd">
+              <span class="ev-bar-label">Formations</span>
+              <span class="ev-bar-val">{{ bd.scoreFormations }} / 20</span>
+            </div>
+            <div class="ev-bar-track">
+              <div class="ev-bar-fill" [style.width]="scoreBar(bd.scoreFormations, 20) + '%'"></div>
+            </div>
+          </div>
+
+          <!-- Présence /10 -->
+          <div class="ev-bar-row ev-bar-red">
+            <div class="ev-bar-hd">
+              <span class="ev-bar-label">Présence</span>
+              <span class="ev-bar-val">{{ bd.scorePresence }} / 10</span>
+            </div>
+            <div class="ev-bar-track">
+              <div class="ev-bar-fill" [style.width]="scoreBar(bd.scorePresence, 10) + '%'"></div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Recommandation du chef -->
+      @if (selected.recommandation) {
+        <div class="ev-reco-block">
+          <i class="ti ti-user-check ev-reco-icon"></i>
+          <div>
+            <p class="ev-reco-label">Recommandation de votre chef</p>
+            <p class="ev-reco-val">{{ recommandationLabels[selected.recommandation] }}</p>
+          </div>
+        </div>
+      }
+
+      <!-- Auto-éval recap -->
+      @if (selected.autoEval) {
+        <div class="ev-card">
+          <h3 class="ev-section-title-sm">Votre auto-évaluation</h3>
+          @for (c of criteres; track c.key) {
+            <div class="ev-crit-row">
+              <span class="ev-crit-label">{{ c.label }}</span>
+              <div class="ev-stars">
+                @for (s of stars(selected.autoEval?.[c.key]); track s) {
+                  <i class="ti ti-star-filled"></i>
+                }
+              </div>
+            </div>
+          }
+          @if (selected.autoEval?.reussitesPeriode) {
+            <div class="ev-text-block">
+              <p class="ev-text-block-label">Réussites</p>
+              <p class="ev-text-block-body">{{ selected.autoEval.reussitesPeriode }}</p>
+            </div>
+          }
+          @if (selected.autoEval?.defisRencontres) {
+            <div class="ev-text-block">
+              <p class="ev-text-block-label">Défis rencontrés</p>
+              <p class="ev-text-block-body">{{ selected.autoEval.defisRencontres }}</p>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="ev-no-autoeval">
+          <i class="ti ti-clipboard"></i>
+          <p>Auto-évaluation non encore soumise.</p>
+        </div>
+      }
+
+      <!-- Feedback chef -->
+      @if (selected.evalChef) {
+        <div class="ev-chef-fb">
+          <h3 class="ev-chef-fb-title">
+            <i class="ti ti-message-circle" style="color:#6366F1;"></i>
+            Retour de votre chef
+          </h3>
+          @if (selected.evalChef.pointsForts) {
+            <div class="ev-fb-item">
+              <p class="ev-fb-label-strong">Points forts</p>
+              <p class="ev-fb-text">{{ selected.evalChef.pointsForts }}</p>
+            </div>
+          }
+          @if (selected.evalChef.axesAmelioration) {
+            <div class="ev-fb-item">
+              <p class="ev-fb-label-warn">Axes d'amélioration</p>
+              <p class="ev-fb-text">{{ selected.evalChef.axesAmelioration }}</p>
+            </div>
+          }
+          @if (selected.evalChef.commentaireGlobal) {
+            <div class="ev-fb-item">
+              <p class="ev-fb-label-muted">Commentaire global</p>
+              <p class="ev-fb-text">{{ selected.evalChef.commentaireGlobal }}</p>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Commentaire RH -->
+      @if (selected.commentaireRh) {
+        <div class="ev-rh-block">
+          <h3 class="ev-rh-title">
+            <i class="ti ti-building"></i>
+            Commentaire RH
+          </h3>
+          <p class="ev-rh-text">{{ selected.commentaireRh }}</p>
+        </div>
+      }
+
+      <!-- Bottom back button -->
+      <div class="ev-result-footer">
+        <button (click)="back()" class="ev-btn-back-pill">
+          <i class="ti ti-arrow-left"></i> Retour à mes évaluations
+        </button>
+      </div>
+
+    </div>
+
+  }
+
+</div>

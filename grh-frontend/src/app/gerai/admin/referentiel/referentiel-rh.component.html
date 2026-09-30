@@ -1,0 +1,386 @@
+<div class="ref-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1><i class="ti ti-settings-2"></i> Référentiel RH</h1>
+      <p>Configurez les données de base utilisées dans tout le système</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-bar">
+    @for (tab of tabs; track tab.key) {
+      <button class="tab-btn" [class.active]="activeTab === tab.key" (click)="setTab(tab.key)">
+        <i [class]="tab.icon"></i>
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  @if (loading) {
+    <div class="loading-state"><i class="ti ti-loader-2 spin"></i> Chargement…</div>
+  } @else {
+
+    <!-- ═══════════════════════════════════════════════
+         ONGLET 1 : TYPES DE CONGÉ
+    ═══════════════════════════════════════════════ -->
+    @if (activeTab === 'conges') {
+      <div class="tab-content">
+        <div class="content-header">
+          <span class="count-badge">{{ typesConge.length }} types configurés</span>
+          <button class="btn-add" (click)="openCongeForm()">
+            <i class="ti ti-plus"></i> Ajouter un type
+          </button>
+        </div>
+
+        <!-- Form -->
+        @if (showForm) {
+          <div class="inline-form">
+            <h4>{{ editingId ? 'Modifier le type' : 'Nouveau type de congé' }}</h4>
+            <form [formGroup]="congeForm" (ngSubmit)="saveConge()">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Code *</label>
+                  <input formControlName="code" placeholder="ex: CA" maxlength="5" class="input-sm" />
+                </div>
+                <div class="form-group fg-3">
+                  <label>Libellé *</label>
+                  <input formControlName="libelle" placeholder="Congé annuel" class="input-sm" />
+                </div>
+                <div class="form-group">
+                  <label>Jours *</label>
+                  <input type="number" formControlName="nombreJours" min="1" class="input-sm" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group fg-2">
+                  <label>Description</label>
+                  <input formControlName="description" placeholder="Description…" class="input-sm" />
+                </div>
+                <div class="form-group">
+                  <label>Couleur</label>
+                  <div class="color-picker">
+                    @for (c of couleurOptions; track c) {
+                      <span class="color-dot" [style.background]="c"
+                        [class.selected]="congeForm.value.couleur === c"
+                        (click)="congeForm.patchValue({couleur: c})"></span>
+                    }
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Payé</label>
+                  <label class="toggle">
+                    <input type="checkbox" formControlName="paye" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>Actif</label>
+                  <label class="toggle">
+                    <input type="checkbox" formControlName="actif" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn-save" [disabled]="congeForm.invalid">Enregistrer</button>
+                <button type="button" class="btn-cancel" (click)="cancelEdit()">Annuler</button>
+              </div>
+            </form>
+          </div>
+        }
+
+        <!-- Cards grid -->
+        <div class="conge-grid">
+          @for (tc of typesConge; track tc.id) {
+            <div class="conge-card" [class.inactive]="!tc.actif" [style.border-top-color]="tc.couleur">
+              <div class="conge-header">
+                <div class="conge-icon" [style.background]="tc.couleur + '22'" [style.color]="tc.couleur">
+                  <i [class]="tc.icone"></i>
+                </div>
+                <div class="conge-titles">
+                  <span class="conge-code" [style.color]="tc.couleur">{{ tc.code }}</span>
+                  <span class="conge-libelle">{{ tc.libelle }}</span>
+                </div>
+                <div class="conge-badges">
+                  @if (!tc.actif) { <span class="badge-inactive">Inactif</span> }
+                </div>
+              </div>
+              @if (tc.description) {
+                <p class="conge-desc">{{ tc.description }}</p>
+              }
+              <div class="conge-footer">
+                <span class="jours-chip" [style.background]="tc.couleur + '18'" [style.color]="tc.couleur">
+                  <i class="ti ti-calendar"></i> {{ tc.nombreJours }} j
+                </span>
+                <span class="paye-chip" [class.paye]="tc.paye" [class.non-paye]="!tc.paye">
+                  {{ tc.paye ? 'Payé' : 'Non payé' }}
+                </span>
+                <div class="card-actions">
+                  <button class="btn-icon-sm" (click)="toggleCongeActif(tc)" [title]="tc.actif ? 'Désactiver' : 'Activer'">
+                    <i class="ti" [class.ti-toggle-right]="tc.actif" [class.ti-toggle-left]="!tc.actif"></i>
+                  </button>
+                  <button class="btn-icon-sm" (click)="openCongeForm(tc)"><i class="ti ti-pencil"></i></button>
+                  <button class="btn-icon-sm danger" (click)="deleteConge(tc.id)"><i class="ti ti-trash"></i></button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ═══════════════════════════════════════════════
+         ONGLET 2 : JOURS FÉRIÉS
+    ═══════════════════════════════════════════════ -->
+    @if (activeTab === 'feries') {
+      <div class="tab-content">
+        <div class="content-header">
+          <span class="count-badge">{{ joursFeries.length }} jours fériés</span>
+          <button class="btn-add" (click)="openFerieForm()">
+            <i class="ti ti-plus"></i> Ajouter
+          </button>
+        </div>
+
+        @if (showForm) {
+          <div class="inline-form">
+            <h4>{{ editingId ? 'Modifier' : 'Nouveau jour férié' }}</h4>
+            <form [formGroup]="ferieForm" (ngSubmit)="saveFerie()">
+              <div class="form-row">
+                <div class="form-group fg-2">
+                  <label>Libellé *</label>
+                  <input formControlName="libelle" placeholder="Fête du Trône" class="input-sm" />
+                </div>
+                <div class="form-group">
+                  <label>Date *</label>
+                  <input type="date" formControlName="date" class="input-sm" />
+                </div>
+                <div class="form-group">
+                  <label>Récurrent</label>
+                  <label class="toggle">
+                    <input type="checkbox" formControlName="recurrent" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group fg-3">
+                  <label>Description</label>
+                  <input formControlName="description" placeholder="Description…" class="input-sm" />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn-save" [disabled]="ferieForm.invalid">Enregistrer</button>
+                <button type="button" class="btn-cancel" (click)="cancelEdit()">Annuler</button>
+              </div>
+            </form>
+          </div>
+        }
+
+        <div class="ferie-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Jour férié</th>
+                <th>Description</th>
+                <th>Récurrence</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (jf of joursFeries; track jf.id) {
+                <tr [class.row-today]="isToday(jf.date)" [class.row-past]="isPast(jf.date)">
+                  <td>
+                    <div class="date-cell">
+                      <span class="date-day">{{ jf.date | date:'dd' }}</span>
+                      <span class="date-month">{{ jf.date | date:'MMM yyyy' }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="ferie-name">{{ jf.libelle }}</span>
+                    @if (isToday(jf.date)) { <span class="today-badge">Aujourd'hui</span> }
+                  </td>
+                  <td class="desc-cell">{{ jf.description || '—' }}</td>
+                  <td>
+                    <span class="recurrent-badge" [class.yes]="jf.recurrent" [class.no]="!jf.recurrent">
+                      <i class="ti" [class.ti-repeat]="jf.recurrent" [class.ti-repeat-off]="!jf.recurrent"></i>
+                      {{ jf.recurrent ? 'Annuel' : 'Unique' }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      <button class="btn-icon-sm" (click)="openFerieForm(jf)"><i class="ti ti-pencil"></i></button>
+                      <button class="btn-icon-sm danger" (click)="deleteFerie(jf.id)"><i class="ti ti-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- ═══════════════════════════════════════════════
+         ONGLET 3 : GRILLE SALARIALE
+    ═══════════════════════════════════════════════ -->
+    @if (activeTab === 'grille') {
+      <div class="tab-content">
+        <div class="content-header">
+          <span class="count-badge">{{ grilleSalariale.length }} niveaux</span>
+          <span class="hint-text"><i class="ti ti-info-circle"></i> Cliquez sur un niveau pour modifier</span>
+        </div>
+
+        <div class="grille-grid">
+          @for (gs of grilleSalariale; track gs.id) {
+            <div class="grille-card">
+              <div class="grille-header">
+                <div class="niveau-badge">{{ niveauLabels[gs.niveau] }}</div>
+                <span class="grille-intitule">{{ gs.intitule }}</span>
+              </div>
+
+              @if (editGrilleId === gs.id) {
+                <form [formGroup]="grilleForm" (ngSubmit)="saveGrille(gs)" class="grille-form">
+                  <div class="grille-form-row">
+                    <div class="form-group">
+                      <label>Min (MAD)</label>
+                      <input type="number" formControlName="salaireMin" class="input-sm" />
+                    </div>
+                    <div class="form-group">
+                      <label>Base (MAD)</label>
+                      <input type="number" formControlName="salaireBase" class="input-sm" />
+                    </div>
+                    <div class="form-group">
+                      <label>Max (MAD)</label>
+                      <input type="number" formControlName="salaireMax" class="input-sm" />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Avantages (séparés par virgule)</label>
+                    <input formControlName="avantages" placeholder="Mutuelle, Transport…" class="input-sm" />
+                  </div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn-save btn-sm">Enregistrer</button>
+                    <button type="button" class="btn-cancel btn-sm" (click)="editGrilleId = null">Annuler</button>
+                  </div>
+                </form>
+              } @else {
+                <div class="grille-body">
+                  <div class="salaire-range">
+                    <span class="range-label">Fourchette</span>
+                    <span class="range-val">{{ formatSalaire(gs.salaireMin) }} – {{ formatSalaire(gs.salaireMax) }}</span>
+                  </div>
+                  <div class="salaire-base">
+                    <span class="range-label">Base</span>
+                    <span class="base-val">{{ formatSalaire(gs.salaireBase) }}</span>
+                  </div>
+                  <div class="grille-progress">
+                    <div class="progress-track">
+                      <div class="progress-base" [style.left.%]="((gs.salaireBase - gs.salaireMin) / (gs.salaireMax - gs.salaireMin)) * 100 - 2" style="position:absolute;width:4px;height:100%;background:#6366F1;border-radius:2px;"></div>
+                    </div>
+                  </div>
+                  @if (gs.avantages?.length) {
+                    <div class="avantages">
+                      @for (av of gs.avantages; track av) {
+                        <span class="av-chip">{{ av }}</span>
+                      }
+                    </div>
+                  }
+                  <button class="btn-edit-grille" (click)="startEditGrille(gs)">
+                    <i class="ti ti-pencil"></i> Modifier
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ═══════════════════════════════════════════════
+         ONGLET 4 : COMPÉTENCES
+    ═══════════════════════════════════════════════ -->
+    @if (activeTab === 'competences') {
+      <div class="tab-content">
+        <div class="content-header">
+          <div class="comp-toolbar">
+            <div class="search-box">
+              <i class="ti ti-search"></i>
+              <input [(ngModel)]="searchComp" placeholder="Rechercher…" />
+            </div>
+            <select [(ngModel)]="filterCateg" class="cat-filter">
+              <option value="">Toutes catégories</option>
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ categorieLabels[cat] }}</option>
+              }
+            </select>
+          </div>
+          <button class="btn-add" (click)="openCompetenceForm()">
+            <i class="ti ti-plus"></i> Ajouter
+          </button>
+        </div>
+
+        @if (showForm) {
+          <div class="inline-form">
+            <h4>{{ editingId ? 'Modifier' : 'Nouvelle compétence' }}</h4>
+            <form [formGroup]="competenceForm" (ngSubmit)="saveCompetence()">
+              <div class="form-row">
+                <div class="form-group fg-2">
+                  <label>Nom *</label>
+                  <input formControlName="nom" placeholder="Angular, Leadership…" class="input-sm" />
+                </div>
+                <div class="form-group fg-2">
+                  <label>Catégorie *</label>
+                  <select formControlName="categorie" class="input-sm">
+                    @for (cat of categories; track cat) {
+                      <option [value]="cat">{{ categorieLabels[cat] }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Actif</label>
+                  <label class="toggle">
+                    <input type="checkbox" formControlName="actif" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn-save" [disabled]="competenceForm.invalid">Enregistrer</button>
+                <button type="button" class="btn-cancel" (click)="cancelEdit()">Annuler</button>
+              </div>
+            </form>
+          </div>
+        }
+
+        <div class="comp-groups">
+          @for (group of filteredCompetenceGroups; track group.cat) {
+            <div class="comp-group">
+              <div class="comp-group-title" [style.color]="group.color">
+                <span class="cat-dot" [style.background]="group.color"></span>
+                {{ group.label }}
+                <span class="cat-count" [style.background]="group.color + '22'" [style.color]="group.color">{{ group.items.length }}</span>
+              </div>
+              <div class="comp-chips">
+                @for (c of group.items; track c.id) {
+                    <div class="comp-chip" [class.chip-inactive]="!c.actif"
+                      [style.border-color]="group.color + '44'"
+                      [style.background]="group.color + '0d'">
+                      <span class="chip-nom" [style.color]="c.actif ? group.color : '#94a3b8'">{{ c.nom }}</span>
+                      <div class="chip-actions">
+                        <button class="chip-btn" (click)="openCompetenceForm(c)" title="Modifier"><i class="ti ti-pencil"></i></button>
+                        <button class="chip-btn danger" (click)="deleteCompetence(c.id)" title="Supprimer"><i class="ti ti-x"></i></button>
+                      </div>
+                    </div>
+                  }
+                </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+  }
+</div>

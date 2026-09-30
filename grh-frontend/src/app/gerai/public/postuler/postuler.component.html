@@ -1,0 +1,357 @@
+<div class="careers-page">
+
+  <!-- ── Header ───────────────────────────────────────── -->
+  <header class="careers-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-logo">S</span>
+        <span class="brand-name">SYNAPSE</span>
+      </div>
+      <p class="header-tagline">Rejoignez notre équipe et construisez l'avenir avec nous</p>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- ÉTAPE 1 — Liste des offres                        -->
+  <!-- ══════════════════════════════════════════════════ -->
+  @if (step === 'jobs') {
+    <main class="careers-main">
+      <div class="section-title">
+        <h2>Nos offres d'emploi</h2>
+        <p>{{ jobs.length }} poste(s) ouvert(s)</p>
+      </div>
+
+      @if (loading) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Chargement des offres…</p>
+        </div>
+      } @else if (jobs.length === 0) {
+        <div class="empty-state">
+          <span class="empty-icon">📭</span>
+          <p>Aucune offre disponible pour le moment. Revenez bientôt !</p>
+        </div>
+      } @else {
+        <div class="jobs-grid">
+          @for (job of jobs; track job.id) {
+            <div class="job-card">
+              <div class="job-card__top">
+                <div class="job-card__info">
+                  <h3 class="job-title">{{ job.titre }}</h3>
+                  <div class="job-meta">
+                    <span class="meta-tag"><i class="ti ti-building"></i> {{ job.departement }}</span>
+                    <span class="meta-tag"><i class="ti ti-map-pin"></i> {{ job.lieu || 'Non précisé' }}</span>
+                    <span class="meta-tag type-tag">{{ typeLabel(job.typeContrat) }}</span>
+                    <span class="meta-tag level-tag">{{ roleLabel(job.role) }}</span>
+                  </div>
+                </div>
+                <span class="postes-badge">{{ job.postes }} poste(s)</span>
+              </div>
+
+              @if (job.description) {
+                <div class="job-desc" [class.expanded]="expandedId === job.id">
+                  <p>{{ job.description }}</p>
+                </div>
+                <button class="btn-toggle-desc" (click)="toggleDesc(job.id)">
+                  {{ expandedId === job.id ? 'Voir moins' : 'Voir plus' }}
+                  <i class="ti" [class.ti-chevron-down]="expandedId !== job.id" [class.ti-chevron-up]="expandedId === job.id"></i>
+                </button>
+              }
+
+              <div class="job-card__footer">
+                <span class="posted-date">Publié le {{ job.datePublication | date:'dd/MM/yyyy' }}</span>
+                <button class="btn-postuler" (click)="openForm(job)">
+                  Postuler <i class="ti ti-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </main>
+  }
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- ÉTAPE — Questions éliminatoires (killer)          -->
+  <!-- ══════════════════════════════════════════════════ -->
+  @if (step === 'killer' && selectedJob) {
+    <main class="careers-main form-main">
+      <button class="btn-back" (click)="backFromKiller()">
+        <i class="ti ti-arrow-left"></i> Retour aux offres
+      </button>
+
+      <div class="form-card">
+        <!-- Job banner -->
+        <div class="form-job-banner">
+          <div>
+            <span class="form-job-title">{{ selectedJob.titre }}</span>
+            <span class="form-job-meta">{{ selectedJob.departement }} · {{ typeLabel(selectedJob.typeContrat) }}</span>
+          </div>
+        </div>
+
+        <!-- Step indicator -->
+        <div class="step-indicator">
+          <span class="step-badge step-badge--active">Étape {{ stepNumber }}/{{ totalSteps }}</span>
+          <span class="step-label">Critères d'éligibilité</span>
+        </div>
+
+        <div class="screening-intro">
+          <div class="screening-intro__icon"><i class="ti ti-shield-check"></i></div>
+          <div>
+            <h3>Vérification des critères obligatoires</h3>
+            <p>Ces questions sont indispensables pour ce poste. Une réponse incorrecte entraînera la non-recevabilité de votre candidature.</p>
+          </div>
+        </div>
+
+        <div class="questions-list">
+          @for (kq of killerQuestions; track kq.id; let i = $index) {
+            <div class="question-card question-card--killer">
+              <p class="question-text">
+                <span class="question-num">{{ i + 1 }}.</span>
+                {{ kq.question }}
+                <span class="req">*</span>
+              </p>
+              <div class="yn-group">
+                <label class="yn-option" [class.selected]="killerAnswers[kq.id] === 'OUI'">
+                  <input type="radio" [name]="'killer_' + kq.id" value="OUI"
+                         [(ngModel)]="killerAnswers[kq.id]" hidden />
+                  <i class="ti ti-check"></i> Oui
+                </label>
+                <label class="yn-option" [class.selected]="killerAnswers[kq.id] === 'NON'">
+                  <input type="radio" [name]="'killer_' + kq.id" value="NON"
+                         [(ngModel)]="killerAnswers[kq.id]" hidden />
+                  <i class="ti ti-x"></i> Non
+                </label>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (killerError) {
+          <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ killerError }}</div>
+        }
+
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="backFromKiller()" [disabled]="killerValidating">Annuler</button>
+          <button class="btn-submit" (click)="submitKillerAnswers()" [disabled]="killerValidating">
+            @if (killerValidating) { <span class="spinner-sm"></span> Vérification… }
+            @else { Continuer <i class="ti ti-arrow-right"></i> }
+          </button>
+        </div>
+      </div>
+    </main>
+  }
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- ÉTAPE — Candidature refusée (killer failed)       -->
+  <!-- ══════════════════════════════════════════════════ -->
+  @if (step === 'rejected') {
+    <main class="careers-main success-main">
+      <div class="success-card rejected-card">
+        <div class="rejected-icon"><i class="ti ti-circle-x"></i></div>
+        <h2>Candidature non retenue</h2>
+        <p>Votre profil ne correspond pas aux critères obligatoires pour ce poste.</p>
+        <p class="success-sub">Nous vous encourageons à consulter nos autres offres qui pourraient mieux correspondre à votre situation.</p>
+        <button class="btn-postuler" (click)="backToList()">Voir d'autres offres</button>
+      </div>
+    </main>
+  }
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- ÉTAPE — Questions de présélection (screening)     -->
+  <!-- ══════════════════════════════════════════════════ -->
+  @if (step === 'screening' && selectedJob) {
+    <main class="careers-main form-main">
+      <button class="btn-back" (click)="backFromScreening()">
+        <i class="ti ti-arrow-left"></i> Retour
+      </button>
+
+      <div class="form-card">
+        <div class="form-job-banner">
+          <div>
+            <span class="form-job-title">{{ selectedJob.titre }}</span>
+            <span class="form-job-meta">{{ selectedJob.departement }} · {{ typeLabel(selectedJob.typeContrat) }}</span>
+          </div>
+        </div>
+
+        <div class="step-indicator">
+          <span class="step-badge step-badge--active">Étape {{ stepNumber }}/{{ totalSteps }}</span>
+          <span class="step-label">Questions de présélection</span>
+        </div>
+
+        <div class="screening-intro">
+          <div class="screening-intro__icon screening-intro__icon--blue"><i class="ti ti-list-check"></i></div>
+          <div>
+            <h3>Évaluation de votre profil</h3>
+            <p>Ces réponses nous aident à mieux vous évaluer. Répondez honnêtement — elles contribuent à votre score de matching.</p>
+          </div>
+        </div>
+
+        <div class="questions-list">
+          @for (sq of screeningQuestions; track sq.id; let i = $index) {
+            <div class="question-card">
+              <p class="question-text">
+                <span class="question-num">{{ i + 1 }}.</span>
+                {{ sq.question }}
+                <span class="weight-badge" [title]="'Importance : ' + sq.weight + '/10'">×{{ sq.weight }}</span>
+              </p>
+
+              @if (sq.type === 'YES_NO') {
+                <div class="yn-group">
+                  <label class="yn-option" [class.selected]="screeningAnswers[sq.id] === 'OUI'">
+                    <input type="radio" [name]="'sq_' + sq.id" value="OUI"
+                           [(ngModel)]="screeningAnswers[sq.id]" hidden />
+                    <i class="ti ti-check"></i> Oui
+                  </label>
+                  <label class="yn-option" [class.selected]="screeningAnswers[sq.id] === 'NON'">
+                    <input type="radio" [name]="'sq_' + sq.id" value="NON"
+                           [(ngModel)]="screeningAnswers[sq.id]" hidden />
+                    <i class="ti ti-x"></i> Non
+                  </label>
+                </div>
+              }
+
+              @if (sq.type === 'SINGLE_CHOICE') {
+                <div class="choices-group">
+                  @for (opt of sq.options; track opt) {
+                    <label class="choice-option" [class.selected]="screeningAnswers[sq.id] === opt">
+                      <input type="radio" [name]="'sq_' + sq.id" [value]="opt"
+                             [(ngModel)]="screeningAnswers[sq.id]" hidden />
+                      {{ opt }}
+                    </label>
+                  }
+                </div>
+              }
+
+              @if (sq.type === 'NUMBER_SCALE') {
+                <div class="number-input-wrap">
+                  <input type="number" min="0" placeholder="Votre réponse…"
+                         [(ngModel)]="screeningAnswers[sq.id]"
+                         class="number-input" />
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="backFromScreening()">Retour</button>
+          <button class="btn-submit" (click)="submitScreeningAnswers()">
+            Continuer <i class="ti ti-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </main>
+  }
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- ÉTAPE — Formulaire de candidature                 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  @if (step === 'form' && selectedJob) {
+    <main class="careers-main form-main">
+      <button class="btn-back" (click)="backFromForm()">
+        <i class="ti ti-arrow-left"></i> Retour
+      </button>
+
+      <div class="form-card">
+        <div class="form-job-banner">
+          <div>
+            <span class="form-job-title">{{ selectedJob.titre }}</span>
+            <span class="form-job-meta">{{ selectedJob.departement }} · {{ typeLabel(selectedJob.typeContrat) }} · {{ roleLabel(selectedJob.role) }}</span>
+          </div>
+          <span class="meta-tag type-tag">{{ selectedJob.postes }} poste(s)</span>
+        </div>
+
+        @if (totalSteps > 1) {
+          <div class="step-indicator">
+            <span class="step-badge step-badge--active">Étape {{ stepNumber }}/{{ totalSteps }}</span>
+            <span class="step-label">Vos informations</span>
+          </div>
+        }
+
+        <h3 class="form-section-title">Informations personnelles</h3>
+        <div class="form-row-2">
+          <div class="field">
+            <label>Prénom <span class="req">*</span></label>
+            <input [(ngModel)]="form.prenom" placeholder="Votre prénom" />
+          </div>
+          <div class="field">
+            <label>Nom <span class="req">*</span></label>
+            <input [(ngModel)]="form.nom" placeholder="Votre nom" />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="field">
+            <label>Email <span class="req">*</span></label>
+            <input type="email" [(ngModel)]="form.email" placeholder="votre@email.com" />
+          </div>
+          <div class="field">
+            <label>Téléphone</label>
+            <input [(ngModel)]="form.telephone" placeholder="+212 6XX XX XX XX" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Localisation</label>
+          <input [(ngModel)]="form.localisation" placeholder="Ville, Pays" />
+        </div>
+
+        <h3 class="form-section-title">Profil professionnel</h3>
+        <div class="form-row-2">
+          <div class="field">
+            <label>Années d'expérience</label>
+            <input type="number" [(ngModel)]="form.experience" min="0" placeholder="0" />
+          </div>
+          <div class="field">
+            <label>LinkedIn</label>
+            <input [(ngModel)]="form.linkedin" placeholder="linkedin.com/in/votre-profil" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Compétences <span class="opt">(séparées par des virgules)</span></label>
+          <input [(ngModel)]="form.competences" placeholder="JavaScript, React, Spring Boot…" />
+        </div>
+
+        <h3 class="form-section-title">CV <span class="opt">(optionnel — PDF recommandé)</span></h3>
+        <label class="cv-upload-zone">
+          <input type="file" accept=".pdf,.doc,.docx" (change)="onCvChange($event)" hidden />
+          @if (cvFile) {
+            <span class="cv-chosen"><i class="ti ti-file-check"></i> {{ cvFile.name }}</span>
+          } @else {
+            <span class="cv-placeholder"><i class="ti ti-upload"></i> Cliquez pour sélectionner votre CV</span>
+          }
+        </label>
+
+        @if (errorMsg) {
+          <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+        }
+
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="backFromForm()" [disabled]="submitting">Retour</button>
+          <button class="btn-submit" (click)="submit()" [disabled]="submitting">
+            @if (submitting) { <span class="spinner-sm"></span> Envoi en cours… }
+            @else { <i class="ti ti-send"></i> Envoyer ma candidature }
+          </button>
+        </div>
+      </div>
+    </main>
+  }
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- ÉTAPE — Confirmation                              -->
+  <!-- ══════════════════════════════════════════════════ -->
+  @if (step === 'success') {
+    <main class="careers-main success-main">
+      <div class="success-card">
+        <div class="success-icon">✓</div>
+        <h2>Candidature envoyée !</h2>
+        <p>Merci <strong>{{ form.prenom }} {{ form.nom }}</strong>, votre candidature pour le poste <strong>{{ selectedJob?.titre }}</strong> a bien été reçue.</p>
+        <p class="success-sub">Notre équipe RH examinera votre profil et vous contactera à l'adresse <strong>{{ form.email }}</strong> dans les meilleurs délais.</p>
+        <button class="btn-postuler" (click)="backToList()">Voir d'autres offres</button>
+      </div>
+    </main>
+  }
+
+  <footer class="careers-footer">
+    <p>© 2025 SYNAPSE · Tous droits réservés</p>
+  </footer>
+</div>

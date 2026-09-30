@@ -1,0 +1,398 @@
+<div class="candidats-page">
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <span class="kpi-value">{{ kpiTotal }}</span>
+      <span class="kpi-label">Total candidats</span>
+    </div>
+    <div class="kpi-card accent-violet">
+      <span class="kpi-value">{{ kpiShortlist }}</span>
+      <span class="kpi-label">Shortlistés</span>
+    </div>
+    <div class="kpi-card accent-amber">
+      <span class="kpi-value">{{ kpiInterviewe }}</span>
+      <span class="kpi-label">En entretien</span>
+    </div>
+    <div class="kpi-card accent-green">
+      <span class="kpi-value">{{ kpiEmbauche }}</span>
+      <span class="kpi-label">Embauchés</span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <i class="ti ti-search"></i>
+      <input [(ngModel)]="search" (ngModelChange)="applyFilter()" placeholder="Rechercher un candidat…" />
+    </div>
+    <select [(ngModel)]="filterStatut" (ngModelChange)="applyFilter()">
+      <option value="">Tous les statuts</option>
+      @for (s of statuts; track s) {
+        <option [value]="s">{{ statutLabels[s] }}</option>
+      }
+    </select>
+    <select [(ngModel)]="filterDept" (ngModelChange)="applyFilter()">
+      <option value="">Tous les départements</option>
+      @for (d of departements; track d) {
+        <option [value]="d">{{ d }}</option>
+      }
+    </select>
+    <span class="result-count">{{ filtered.length }} résultat(s)</span>
+  </div>
+
+  <!-- Table -->
+  @if (loading) {
+    <div class="loading-state"><i class="ti ti-loader-2 spin"></i> Chargement…</div>
+  } @else {
+    <div class="table-wrapper">
+      <table class="cand-table">
+        <thead>
+          <tr>
+            <th>Candidat</th>
+            <th>Poste</th>
+            <th>Département</th>
+            <th>Statut</th>
+            <th>Expérience</th>
+            <th>Score</th>
+            <th>Postulation</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of filtered; track c.id) {
+            <tr [class.row-embauche]="c.statut === 'EMBAUCHE'" [class.row-rejete]="c.statut === 'REJETE'">
+              <td>
+                <div class="cand-identity">
+                  @if (c.photo) {
+                    <img [src]="c.photo" [alt]="c.nom" class="avatar" />
+                  } @else {
+                    <span class="avatar-initials">{{ initials(c) }}</span>
+                  }
+                  <div>
+                    <span class="cand-name">{{ c.prenom }} {{ c.nom }}</span>
+                    <span class="cand-email">{{ c.email }}</span>
+                  </div>
+                  @if (isShortlisted(c)) {
+                    <i class="ti ti-star-filled shortlist-icon" title="Shortlisté"></i>
+                  }
+                </div>
+              </td>
+              <td class="job-titre">{{ c.jobTitre }}</td>
+              <td>{{ c.departement }}</td>
+              <td>
+                <span class="statut-badge" [style.background]="statutColor(c.statut) + '22'" [style.color]="statutColor(c.statut)" [style.border-color]="statutColor(c.statut) + '44'">
+                  {{ statutLabels[c.statut] }}
+                </span>
+              </td>
+              <td>{{ c.experience }} an(s)</td>
+              <td>
+                <div class="score-cell">
+                  @if (c.screeningScore != null) {
+                    <span class="score-chip screening-score" [ngClass]="scoreClass(c.screeningScore)"
+                          title="Score présélection">
+                      <i class="ti ti-list-check"></i> {{ c.screeningScore }}%
+                    </span>
+                  }
+                  @if (c.score) {
+                    <span class="score-chip" [ngClass]="scoreClass(c.score)" title="Score recruteur">{{ c.score }}/100</span>
+                  }
+                  @if (!c.screeningScore && !c.score) {
+                    <span class="text-muted">—</span>
+                  }
+                </div>
+              </td>
+              <td class="date-cell">{{ c.datePostulation | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-icon" (click)="openDetail(c)" title="Détail">
+                    <i class="ti ti-eye"></i>
+                  </button>
+                  <button class="btn-icon" [class.starred]="isShortlisted(c)" (click)="toggleShortlist(c)" title="Shortlist">
+                    <i class="ti" [class.ti-star]="!isShortlisted(c)" [class.ti-star-filled]="isShortlisted(c)"></i>
+                  </button>
+                  <button class="btn-icon btn-icon--danger" (click)="deleteCandidate(c, $event)" title="Supprimer">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+          @if (filtered.length === 0) {
+            <tr><td colspan="8" class="empty-state">Aucun candidat trouvé</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- Detail Drawer -->
+@if (selected) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <aside class="detail-drawer">
+    <div class="drawer-header">
+      <div class="drawer-identity">
+        @if (selected.photo) {
+          <img [src]="selected.photo" [alt]="selected.nom" class="avatar-lg" />
+        } @else {
+          <span class="avatar-initials-lg">{{ initials(selected) }}</span>
+        }
+        <div>
+          <h3>{{ selected.prenom }} {{ selected.nom }}</h3>
+          <p class="drawer-email">{{ selected.email }}</p>
+          <p class="drawer-phone">{{ selected.telephone }}</p>
+          @if (selected.localisation) {
+            <p class="drawer-loc"><i class="ti ti-map-pin"></i> {{ selected.localisation }}</p>
+          }
+        </div>
+      </div>
+      <button class="btn-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="drawer-section">
+        <h4>Poste visé</h4>
+        <p>{{ selected.jobTitre }} — <em>{{ selected.departement }}</em></p>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Statut</h4>
+        <div class="statut-select-group">
+          @for (s of statuts; track s) {
+            <button class="statut-pill"
+              [style.background]="selected.statut === s ? statutColor(s) : 'transparent'"
+              [style.color]="selected.statut === s ? '#fff' : statutColor(s)"
+              [style.border-color]="statutColor(s)"
+              (click)="changeStatut(selected, s)">
+              {{ statutLabels[s] }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Expérience</h4>
+        <p>{{ selected.experience }} an(s)</p>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Compétences</h4>
+        <div class="competences-list">
+          @for (comp of selected.competences; track comp) {
+            <span class="competence-tag">{{ comp }}</span>
+          }
+        </div>
+      </div>
+
+      @if (selected.score) {
+        <div class="drawer-section">
+          <h4>Score</h4>
+          <div class="score-bar-container">
+            <div class="score-bar" [style.width.%]="selected.score" [ngClass]="scoreClass(selected.score)"></div>
+            <span>{{ selected.score }}/100</span>
+          </div>
+        </div>
+      }
+
+      <div class="drawer-section">
+        <div class="section-header-row">
+          <h4>Note recruteur</h4>
+          <button class="btn-edit-note" (click)="editNote = !editNote">
+            <i class="ti" [class.ti-pencil]="!editNote" [class.ti-x]="editNote"></i>
+          </button>
+        </div>
+        @if (editNote) {
+          <textarea [(ngModel)]="noteEdit" rows="3" class="note-textarea" placeholder="Ajouter une note…"></textarea>
+          <button class="btn-save-note" (click)="saveNote()">Enregistrer</button>
+        } @else {
+          <p class="note-text">{{ selected.noteRecruteur || 'Aucune note' }}</p>
+        }
+      </div>
+
+      <div class="drawer-links">
+        @if (selected.cvUrl) {
+          <a [href]="selected.cvUrl" target="_blank" class="drawer-link">
+            <i class="ti ti-file-cv"></i> Voir le CV
+          </a>
+        }
+        @if (selected.linkedin) {
+          <a [href]="'https://' + selected.linkedin" target="_blank" class="drawer-link">
+            <i class="ti ti-brand-linkedin"></i> LinkedIn
+          </a>
+        }
+      </div>
+
+      <!-- AI Actions -->
+      <div class="drawer-section drawer-ai-section">
+        <h4><i class="ti ti-sparkles"></i> Actions IA</h4>
+        <button class="btn-schedule" (click)="planifierEntretien(selected)">
+          <i class="ti ti-calendar-plus"></i> Planifier entretien
+        </button>
+        <button class="btn-ai-action" (click)="generateInterviewQuestions(selected)" [disabled]="generatingQuestions">
+          @if (generatingQuestions) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-help-circle"></i> }
+          Questions d'entretien
+        </button>
+        <div class="email-ai-group">
+          <select class="email-type-select" [(ngModel)]="emailType">
+            <option value="REJET">Email de refus</option>
+            <option value="OFFRE">Email d'offre</option>
+          </select>
+          @if (emailType === 'OFFRE') {
+            <input type="date" [(ngModel)]="offreDateDebut" class="sched-input offer-input"
+              [class.offer-input--error]="offreDateError" (change)="offreDateError = false" />
+          }
+          <button class="btn-ai-action" (click)="generateEmail(selected)" [disabled]="generatingEmail">
+            @if (generatingEmail) { <span class="spinner-border spinner-border-sm"></span> }
+            @else { <i class="ti ti-mail"></i> }
+            Rédiger
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+}
+
+<!-- Schedule Interview Modal -->
+@if (scheduleModal && scheduleCandidate) {
+  <div class="ai-modal-overlay" (click)="closeScheduleModal()">
+    <div class="schedule-modal" (click)="$event.stopPropagation()">
+      <div class="ai-modal__header">
+        <span class="ai-modal__title"><i class="ti ti-calendar-plus"></i> Planifier un entretien</span>
+        <button class="ai-modal__close" (click)="closeScheduleModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="schedule-modal__banner">
+        @if (scheduleCandidate.photo) {
+          <img [src]="scheduleCandidate.photo" [alt]="scheduleCandidate.nom" class="banner-avatar" />
+        } @else {
+          <span class="banner-initials">{{ initials(scheduleCandidate) }}</span>
+        }
+        <div>
+          <span class="banner-name">{{ scheduleCandidate.prenom }} {{ scheduleCandidate.nom }}</span>
+          <span class="banner-poste">{{ scheduleCandidate.jobTitre }} — {{ scheduleCandidate.departement }}</span>
+        </div>
+      </div>
+      <div class="schedule-modal__body">
+        <div class="sched-form-row">
+          <div class="sched-field">
+            <label>Type d'entretien</label>
+            <select [(ngModel)]="scheduleForm.type" class="sched-select">
+              @for (t of interviewTypes; track t) {
+                <option [value]="t">{{ typeLabels[t] }}</option>
+              }
+            </select>
+          </div>
+          <div class="sched-field">
+            <label>Date</label>
+            <input type="date" [(ngModel)]="scheduleForm.date" class="sched-input" />
+          </div>
+        </div>
+        <div class="sched-form-row">
+          <div class="sched-field">
+            <label>Heure début</label>
+            <input type="time" [(ngModel)]="scheduleForm.heureDebut" class="sched-input" />
+          </div>
+          <div class="sched-field">
+            <label>Heure fin</label>
+            <input type="time" [(ngModel)]="scheduleForm.heureFin" class="sched-input" />
+          </div>
+        </div>
+        <div class="sched-field sched-field--full">
+          <label>Intervieweur</label>
+          <input type="text" [(ngModel)]="scheduleForm.intervieweur" class="sched-input" placeholder="Nom de l'intervieweur" />
+        </div>
+        @if (scheduleForm.type === 'PRESENTIEL') {
+          <div class="sched-field sched-field--full">
+            <label>Lieu</label>
+            <input type="text" [(ngModel)]="scheduleForm.lieu" class="sched-input" placeholder="Salle / adresse" />
+          </div>
+        }
+        @if (scheduleForm.type === 'VISIO' || scheduleForm.type === 'TECHNIQUE') {
+          <div class="sched-field sched-field--full">
+            <label>Lien visioconférence</label>
+            <input type="text" [(ngModel)]="scheduleForm.lienVisio" class="sched-input" placeholder="https://meet.google.com/…" />
+          </div>
+        }
+        @if (scheduleError) {
+          <div class="sched-error"><i class="ti ti-alert-circle"></i> {{ scheduleError }}</div>
+        }
+        @if (invitationSent) {
+          <div class="sched-success"><i class="ti ti-circle-check"></i> Invitation envoyée à {{ scheduleCandidate.email }}</div>
+        }
+      </div>
+      <div class="ai-modal__footer">
+        <button class="btn-cancel-sched" (click)="closeScheduleModal()" [disabled]="scheduling">Annuler</button>
+        @if (!invitationSent) {
+          <button class="btn-submit-sched" (click)="submitSchedule()" [disabled]="scheduling">
+            @if (scheduling) { <span class="spinner-border spinner-border-sm"></span> En cours… }
+            @else { <i class="ti ti-send"></i> Planifier et envoyer l'invitation }
+          </button>
+        } @else {
+          <button class="btn-submit-sched btn-submit-sched--done" (click)="closeScheduleModal()">
+            <i class="ti ti-check"></i> Fermer
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Interview Questions Modal -->
+@if (questionsModal) {
+  <div class="ai-modal-overlay" (click)="closeQuestionsModal()">
+    <div class="ai-modal" (click)="$event.stopPropagation()">
+      <div class="ai-modal__header">
+        <span class="ai-modal__title"><i class="ti ti-help-circle"></i> Questions d'entretien — {{ questionsModal.candidate.prenom }} {{ questionsModal.candidate.nom }}</span>
+        <button class="ai-modal__close" (click)="closeQuestionsModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="ai-modal__body">
+        @for (q of questionsModal.questions; track $index) {
+          <div class="question-item">
+            <span class="question-cat"><i class="ti" [ngClass]="categoryIcon(q.categorie)"></i> {{ q.categorie }}</span>
+            <p class="question-text">{{ q.question }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Email Draft Modal -->
+@if (emailModal) {
+  <div class="ai-modal-overlay" (click)="closeEmailModal()">
+    <div class="ai-modal" (click)="$event.stopPropagation()">
+      <div class="ai-modal__header">
+        <span class="ai-modal__title"><i class="ti ti-mail"></i> Email — {{ emailModal.candidate.prenom }} {{ emailModal.candidate.nom }}</span>
+        <button class="ai-modal__close" (click)="closeEmailModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="ai-modal__body">
+        <div class="email-field">
+          <label>Objet</label>
+          <p class="email-objet">{{ emailModal.draft.objet }}</p>
+        </div>
+        <div class="email-field">
+          <label>Corps</label>
+          <pre class="email-corps">{{ emailModal.draft.corps }}</pre>
+        </div>
+      </div>
+      @if (emailSendError) {
+        <div class="email-send-error"><i class="ti ti-alert-circle"></i> {{ emailSendError }}</div>
+      }
+      @if (emailSent) {
+        <div class="email-send-success"><i class="ti ti-circle-check"></i> Email envoyé à {{ emailModal.candidate.email }}</div>
+      }
+      <div class="ai-modal__footer">
+        <button class="btn-copy" (click)="copyEmail()" [disabled]="sendingEmail">
+          @if (emailCopied) { <i class="ti ti-check"></i> Copié ! }
+          @else { <i class="ti ti-copy"></i> Copier }
+        </button>
+        <button class="btn-send-email" (click)="sendEmail()" [disabled]="sendingEmail || emailSent">
+          @if (sendingEmail) { <span class="spinner-border spinner-border-sm"></span> Envoi… }
+          @else if (emailSent) { <i class="ti ti-circle-check"></i> Envoyé }
+          @else { <i class="ti ti-send"></i> Envoyer à {{ emailModal.candidate.email }} }
+        </button>
+      </div>
+    </div>
+  </div>
+}

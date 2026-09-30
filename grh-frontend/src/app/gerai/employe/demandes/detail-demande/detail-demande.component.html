@@ -1,0 +1,254 @@
+@if (loading) {
+  <div class="detail-loading">
+    <div class="spinner-border text-primary"></div>
+    <p>Chargement de la demande…</p>
+  </div>
+}
+
+@if (error) {
+  <div class="alert alert-danger">
+    <i class="ti ti-alert-circle me-2"></i>
+    Impossible de charger cette demande.
+  </div>
+}
+
+@if (!loading && !error && demande) {
+
+  <!-- Back -->
+  <button class="btn-back" (click)="goBack()">
+    <i class="ti ti-arrow-left"></i>
+    Retour à mes demandes
+  </button>
+
+  <!-- Hero Header -->
+  <div class="detail-hero" [style.borderTopColor]="typeColor(demande.type)">
+    <div class="detail-hero-left">
+      <div class="hero-icon" [style.background]="typeColorLight(demande.type)">
+        <i [class]="typeIcon(demande.type)" [style.color]="typeColor(demande.type)"></i>
+      </div>
+      <div class="hero-info">
+        <span class="hero-type">{{ typeLabel(demande.type) }}</span>
+        <span class="hero-id">#{{ demande.id }}</span>
+        <span class="hero-date">Soumise le {{ demande.dateCreation | date:'dd MMMM yyyy' }}</span>
+      </div>
+    </div>
+    <span class="status-chip" [ngClass]="statutChip(demande.statut).cls">
+      <i [class]="statutChip(demande.statut).icon" aria-hidden="true"></i>
+      {{ statutChip(demande.statut).label }}
+    </span>
+  </div>
+
+  <!-- Main Card -->
+  <div class="detail-card">
+
+    <!-- ── Période ──────────────────────────────────── -->
+    @if (isLeave && demande.dateDebut) {
+      <div class="detail-section">
+        <h6 class="section-title"><i class="ti ti-calendar-time"></i> Période</h6>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Date de début</span>
+            <span class="info-value">{{ demande.dateDebut | date:'dd MMMM yyyy' }}</span>
+          </div>
+          @if (demande.dateFin) {
+            <div class="info-item">
+              <span class="info-label">Date de fin</span>
+              <span class="info-value">{{ demande.dateFin | date:'dd MMMM yyyy' }}</span>
+            </div>
+          }
+          @if (demande.joursOuvres) {
+            <div class="info-item">
+              <span class="info-label">Durée</span>
+              <span class="info-value"><strong>{{ demande.joursOuvres }}</strong> jour{{ demande.joursOuvres > 1 ? 's' : '' }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── FORMATION détails ─────────────────────── -->
+    @if (isFormation) {
+      <div class="detail-section">
+        <h6 class="section-title"><i class="ti ti-school"></i> Détails de la formation</h6>
+        <div class="info-grid">
+          @if (demande.trainingTitle) {
+            <div class="info-item info-item--wide">
+              <span class="info-label">Intitulé</span>
+              <span class="info-value"><strong>{{ demande.trainingTitle }}</strong></span>
+            </div>
+          }
+          @if (demande.provider) {
+            <div class="info-item">
+              <span class="info-label">Organisme / prestataire</span>
+              <span class="info-value">{{ demande.provider }}</span>
+            </div>
+          }
+          @if (demande.lieu) {
+            <div class="info-item">
+              <span class="info-label">Lieu</span>
+              <span class="info-value">{{ demande.lieu }}</span>
+            </div>
+          }
+          @if (demande.modeFormation) {
+            <div class="info-item">
+              <span class="info-label">Mode</span>
+              <span class="mode-chip mode-chip--{{ (demande.modeFormation || '') | lowercase }}">{{ demande.modeFormation }}</span>
+            </div>
+          }
+          @if (demande.durationDays) {
+            <div class="info-item">
+              <span class="info-label">Durée</span>
+              <span class="info-value">{{ demande.durationDays }} jour{{ demande.durationDays > 1 ? 's' : '' }}</span>
+            </div>
+          }
+          @if (demande.estimatedCost) {
+            <div class="info-item">
+              <span class="info-label">Budget estimé</span>
+              <span class="info-value">{{ demande.estimatedCost | number:'1.0-0' }} TND</span>
+            </div>
+          }
+          @if (demande.dateDebut) {
+            <div class="info-item">
+              <span class="info-label">Date prévue</span>
+              <span class="info-value">{{ demande.dateDebut | date:'dd MMMM yyyy' }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── CRÉDIT détails ────────────────────────── -->
+    @if (isCredit) {
+      <div class="detail-section">
+        <h6 class="section-title"><i class="ti ti-credit-card"></i> Détails du crédit</h6>
+        <div class="info-grid">
+          @if (demande.amount) {
+            <div class="info-item">
+              <span class="info-label">Montant demandé</span>
+              <span class="info-value credit-amount">{{ demande.amount | number:'1.0-0' }} {{ demande.currency || 'TND' }}</span>
+            </div>
+          }
+          @if (demande.durationMonths) {
+            <div class="info-item">
+              <span class="info-label">Durée de remboursement</span>
+              <span class="info-value">{{ demande.durationMonths }} mois</span>
+            </div>
+          }
+          @if (demande.montantApprouve) {
+            <div class="info-item">
+              <span class="info-label">Montant approuvé</span>
+              <span class="info-value credit-approved">{{ demande.montantApprouve | number:'1.0-0' }} {{ demande.currency || 'TND' }}</span>
+            </div>
+          }
+          @if (demande.nbTranches) {
+            <div class="info-item">
+              <span class="info-label">Nombre de tranches</span>
+              <span class="info-value">{{ demande.nbTranches }}</span>
+            </div>
+          }
+          @if (demande.montantTranche) {
+            <div class="info-item">
+              <span class="info-label">Montant par tranche</span>
+              <span class="info-value">{{ demande.montantTranche | number:'1.0-0' }} TND</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── Description / Motif ─────────────────── -->
+    <div class="detail-section">
+      <h6 class="section-title"><i class="ti ti-file-description"></i> Description / Motif</h6>
+      <p class="detail-description">{{ demande.description }}</p>
+    </div>
+
+    <!-- ── Timeline ────────────────────────────── -->
+    <div class="detail-section">
+      <h6 class="section-title"><i class="ti ti-git-branch"></i> Suivi de la demande</h6>
+      <div class="detail-timeline">
+        @for (step of timeline; track step.label; let last = $last) {
+          <div class="tl-step" [class.tl-step--active]="step.active" [class.tl-step--rejected]="step.rejected">
+            <div class="tl-dot">
+              <i [class]="step.icon"></i>
+            </div>
+            @if (!last) {
+              <div class="tl-connector"></div>
+            }
+            <div class="tl-label">{{ step.label }}</div>
+            @if (step.date) {
+              <div class="tl-date">{{ step.date | date:'dd/MM/yyyy' }}</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Validation info ─────────────────────── -->
+    @if (demande.validateurNomChef || demande.validateurNomRh || demande.validateurNom) {
+      <div class="detail-section">
+        <h6 class="section-title"><i class="ti ti-user-check"></i> Traitement</h6>
+        <div class="info-grid">
+          @if (demande.validateurNomChef) {
+            <div class="info-item">
+              <span class="info-label">Validé par (chef)</span>
+              <span class="info-value">{{ demande.validateurNomChef }}</span>
+            </div>
+          }
+          @if (demande.validateurNomRh) {
+            <div class="info-item">
+              <span class="info-label">Validé par (RH)</span>
+              <span class="info-value">{{ demande.validateurNomRh }}</span>
+            </div>
+          }
+          @if (!demande.validateurNomChef && !demande.validateurNomRh && demande.validateurNom) {
+            <div class="info-item">
+              <span class="info-label">Traité par</span>
+              <span class="info-value">{{ demande.validateurNom }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── Commentaires ─────────────────────────── -->
+    @if (demande.commentaireChef || demande.commentaireRh || demande.dgComment) {
+      <div class="detail-section">
+        <h6 class="section-title"><i class="ti ti-message-circle"></i> Commentaires</h6>
+        @if (demande.commentaireChef) {
+          <div class="comment-block comment-chef">
+            <div class="comment-author"><i class="ti ti-user-check"></i> Chef d'équipe</div>
+            <p>{{ demande.commentaireChef }}</p>
+          </div>
+        }
+        @if (demande.commentaireRh) {
+          <div class="comment-block" [class.comment-rejected]="demande.statut === 'REJETEE'" [class.comment-rh]="demande.statut !== 'REJETEE'">
+            <div class="comment-author"><i class="ti ti-building-community"></i> Ressources Humaines</div>
+            <p>{{ demande.commentaireRh }}</p>
+          </div>
+        }
+        @if (demande.dgComment) {
+          <div class="comment-block comment-dg">
+            <div class="comment-author"><i class="ti ti-crown"></i> Direction Générale</div>
+            <p>{{ demande.dgComment }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── Pièces jointes ──────────────────────── -->
+    @if (demande.pieceJointes && demande.pieceJointes.length > 0) {
+      <div class="detail-section">
+        <h6 class="section-title"><i class="ti ti-paperclip"></i> Pièces jointes</h6>
+        <ul class="attachments-list">
+          @for (pj of demande.pieceJointes; track pj) {
+            <li class="attachment-item">
+              <i class="ti ti-file"></i>
+              <span>{{ pj }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+  </div>
+}

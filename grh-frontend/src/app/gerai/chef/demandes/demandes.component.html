@@ -1,0 +1,173 @@
+<div class="row">
+  <div class="col-sm-12">
+    <app-card cardTitle="Demandes">
+
+      <!-- Chargement -->
+      @if (loading) {
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <tbody>
+              @for (_ of [1,2,3,4,5]; track $index) {
+                <tr>
+                  <td><div class="d-flex align-items-center gap-2"><span class="sk sk-av"></span><span class="sk sk-md" style="width:120px"></span></div></td>
+                  <td><span class="sk sk-md" style="width:90px"></span></td>
+                  <td><span class="sk sk-md" style="width:80px"></span></td>
+                  <td><span class="sk sk-pill"></span></td>
+                  <td class="text-end"><span class="sk sk-btn"></span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- Erreur liaison compte -->
+      @if (loadError) {
+        <div class="alert alert-danger d-flex align-items-start gap-2">
+          <i class="ti ti-alert-circle fs-5 flex-shrink-0 mt-1"></i>
+          <span>{{ loadError }}</span>
+        </div>
+      }
+
+      <!-- Filtre actif -->
+      @if (employeIdFiltre) {
+      <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+        <span>
+          <i class="ti ti-filter me-2"></i>
+          Demandes de <strong>{{ employeNomFiltre }}</strong>
+        </span>
+        <button class="btn btn-sm btn-outline-secondary" (click)="voirToutesDemandes()">
+          <i class="ti ti-x me-1"></i>Voir toutes
+        </button>
+      </div>
+      }
+
+      <!-- Filtres par statut -->
+      @if (!loading && !loadError) {
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        @for (s of statuts; track s.valeur) {
+          <button
+            class="btn btn-sm"
+            [class.btn-primary]="filtreStatut === s.valeur"
+            [class.btn-outline-secondary]="filtreStatut !== s.valeur"
+            (click)="setFiltreStatut(s.valeur)">
+            {{ s.label }}
+            <span class="badge ms-1"
+              [class.bg-white]="filtreStatut === s.valeur"
+              [class.text-primary]="filtreStatut === s.valeur"
+              [class.bg-secondary]="filtreStatut !== s.valeur">
+              {{ countParStatut(s.valeur) }}
+            </span>
+          </button>
+        }
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              @if (!employeIdFiltre) { <th>Employé</th> }
+              <th>Type</th>
+              <th>Date</th>
+              <th>Statut</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (demandesFiltrees.length === 0) {
+            <tr>
+              <td [attr.colspan]="employeIdFiltre ? 4 : 5">
+                <div class="empty-state">
+                  <i class="ti ti-inbox empty-state__icon"></i>
+                  <p class="empty-state__title">Aucune demande trouvée</p>
+                  <p class="empty-state__subtitle">Aucune demande ne correspond au filtre sélectionné.</p>
+                </div>
+              </td>
+            </tr>
+            } @else {
+           @for (d of demandesFiltrees; track d.id) {
+              <tr>
+                <!-- Photo + Nom (uniquement si pas de filtre employé) -->
+                @if (!employeIdFiltre) {
+                  <td class="d-flex align-items-center gap-2">
+                    @if (d.employePhoto) {
+                      <img [src]="d.employePhoto"
+                           alt="{{ d.employePrenom }} {{ d.employeNom }}"
+                           width="36" height="36"
+                           class="rounded-circle object-fit-cover flex-shrink-0">
+                    } @else {
+                      <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                            style="width:36px;height:36px;font-size:.8rem;font-weight:600">
+                        {{ d.employeInitiales || ((d.employePrenom?.[0] ?? '') + (d.employeNom?.[0] ?? '')) | uppercase }}
+                      </span>
+                    }
+                    <span>{{ d.employePrenom }} {{ d.employeNom }}</span>
+                  </td>
+                }
+
+                <!-- Type -->
+                <td>{{ d.typeLabel }}</td>
+
+                <!-- Date -->
+                <td>{{ d.dateCreation | date:'dd/MM/yyyy' }}</td>
+
+                <!-- Statut -->
+                <td>
+                  <span class="status-chip" [ngClass]="statutChip(d.statut).cls">
+                    <i [class]="statutChip(d.statut).icon" aria-hidden="true"></i>
+                    {{ statutChip(d.statut).label }}
+                  </span>
+                </td>
+                <!-- Actions -->
+                <td class="text-end">
+                  <button class="btn btn-info btn-sm me-1" (click)="voirDemande(d)">
+                    <i class="ti ti-eye"></i> Détails
+                  </button>
+                  @if (d.statut === 'EN_ATTENTE') {
+                    <button class="btn btn-success btn-sm me-1" (click)="valider(d.id)">
+                      <i class="ti ti-check"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" (click)="openReject(d.id)">
+                      <i class="ti ti-x"></i>
+                    </button>
+                  } @else {
+                    <span class="text-muted small">Traité</span>
+                  }
+                </td>
+              </tr>
+            }
+            }
+          </tbody>
+        </table>
+      </div>
+      } <!-- end @if !loading && !loadError -->
+
+    </app-card>
+  </div>
+</div>
+
+<!-- ── Reject Modal ── -->
+@if (rejectTarget) {
+  <div class="reject-overlay" (click)="cancelReject()">
+    <div class="reject-box" (click)="$event.stopPropagation()">
+      <div class="reject-head">
+        <h6><i class="ti ti-circle-x me-2"></i>Refuser la demande</h6>
+        <button class="reject-close" (click)="cancelReject()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="reject-body">
+        <p class="reject-desc">
+          Motif de refus pour la demande de
+          <strong>{{ rejectTarget.employePrenom }} {{ rejectTarget.employeNom }}</strong> :
+        </p>
+        <textarea class="form-control" rows="3" placeholder="Saisissez le motif de refus…"
+                  [(ngModel)]="rejectMotif"></textarea>
+      </div>
+      <div class="reject-foot">
+        <button class="btn btn-outline-secondary btn-sm" (click)="cancelReject()">Annuler</button>
+        <button class="btn btn-danger btn-sm" (click)="confirmReject()" [disabled]="!rejectMotif.trim()">
+          <i class="ti ti-circle-x me-1"></i>Confirmer le refus
+        </button>
+      </div>
+    </div>
+  </div>
+}

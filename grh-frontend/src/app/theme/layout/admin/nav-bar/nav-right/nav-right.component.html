@@ -1,0 +1,125 @@
+<div class="nav-right-wrapper">
+  <ul class="nav-right-list">
+
+    <!-- ── Notifications ─────────────────────────── -->
+    <li>
+      <div class="dropdown pc-h-item" ngbDropdown>
+        <a class="nav-icon-btn" href="javascript:" ngbDropdownToggle>
+          <i class="ti ti-bell"></i>
+          @if (unreadCount > 0) {
+            <span class="notif-badge">{{ unreadCount }}</span>
+          }
+        </a>
+
+        <div class="dropdown-menu dropdown-notif dropdown-menu-end" ngbDropdownMenu>
+
+          <!-- Header -->
+          <div class="notif-dropdown-header">
+            <h6>Notifications
+              @if (unreadCount > 0) {
+                <span class="badge bg-warning ms-2">{{ unreadCount }}</span>
+              }
+            </h6>
+            @if (unreadCount > 0) {
+              <a href="javascript:" class="link-mark-read" (click)="markAllAsRead()">
+                <i class="ti ti-checks"></i> Tout lire
+              </a>
+            }
+          </div>
+
+          <!-- Liste -->
+          <ng-scrollbar style="height: 320px" visibility="hover">
+            <div class="notif-list">
+              @for (notif of notifications; track notif.id) {
+                <a class="notif-item" [class.unread]="!notif.lue"
+                  href="javascript:" (click)="markAsRead(notif.id)">
+                  <div class="notif-icon-wrap" [ngClass]="getNotifIconClass(notif.type)">
+                    <i [class]="notif.icone"></i>
+                  </div>
+                  <div class="notif-body">
+                    <div class="notif-top">
+                      <span class="notif-title">{{ notif.titre }}</span>
+                      <span class="notif-time">{{ tempsRelatif(notif.heure) }}</span>
+                    </div>
+                    <p class="notif-desc">{{ notif.message }}</p>
+                  </div>
+                </a>
+              }
+              @if (notifications.length === 0) {
+                <div class="notif-empty">
+                  <i class="ti ti-bell-off"></i>
+                  <p>Aucune notification</p>
+                </div>
+              }
+            </div>
+          </ng-scrollbar>
+
+          <!-- Footer -->
+          <div class="notif-dropdown-footer">
+            <a [routerLink]="['/notifications']">
+              Voir toutes les notifications <i class="ti ti-arrow-right"></i>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </li>
+
+    <!-- ── Profil utilisateur ────────────────────── -->
+    <li>
+      <div class="dropdown pc-h-item" ngbDropdown>
+        <a class="nav-avatar-btn" href="javascript:" ngbDropdownToggle>
+          <div class="avatar-initiales">{{ auth.initials }}</div>
+          <span class="settings-badge"><i class="ti ti-settings"></i></span>
+        </a>
+
+        <div class="dropdown-menu dropdown-profile dropdown-menu-end" ngbDropdownMenu>
+
+          <!-- Header profil -->
+          <div class="profile-dropdown-header">
+            <div class="profile-avatar-lg">{{ auth.initials }}</div>
+            <div class="profile-info">
+              <h6>Bonjour, <strong>{{ auth.fullName }}</strong></h6>
+              <p class="profile-poste">{{ auth.postLabel }}</p>
+              @if (auth.email) {
+                <p class="profile-email">{{ auth.email }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="profile-divider"></div>
+
+          <!-- Liens dynamiques selon le rôle -->
+          <div class="profile-links">
+            @for (link of profileLinks; track link.route) {
+              <a [routerLink]="[link.route]" class="profile-link-item">
+                <i [class]="link.icon"></i>
+                <span>{{ link.label }}</span>
+              </a>
+            }
+
+            <div class="profile-divider"></div>
+
+            <!-- Badge rôle -->
+            <div class="role-badge-wrap">
+              <span class="role-badge"
+                    [class.role-admin]="userRole === 'admin'"
+                    [class.role-chef]="userRole === 'chef'">
+                <i [class]="roleIcon"></i>
+                {{ roleLabel }}
+              </span>
+            </div>
+
+            <div class="profile-divider"></div>
+            <a href="javascript:" class="profile-link-item danger" (click)="logout()">
+              <i class="ti ti-logout"></i>
+              <span>Déconnexion</span>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </li>
+
+  </ul>
+</div>

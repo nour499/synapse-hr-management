@@ -1,0 +1,289 @@
+<div class="att-page">
+
+  <!-- ── Header ── -->
+  <div class="att-header mb-4">
+    <div class="att-header-left">
+      <h4 class="att-title">
+        <i class="ti ti-trending-down me-2"></i>
+        Prédiction d'Attrition
+      </h4>
+      <p class="att-subtitle">Analyse prédictive du risque de départ par employé</p>
+    </div>
+    <button class="att-refresh-btn" (click)="onRefresh()" [disabled]="refreshing || loading">
+      <i class="ti ti-refresh" [class.spin]="refreshing"></i>
+      {{ refreshing ? 'Recalcul…' : 'Recalculer les scores' }}
+    </button>
+  </div>
+
+  <!-- ── KPI Cards ── -->
+  @if (loading) {
+    <div class="att-kpi-row mb-4">
+      @for (_ of [1,2,3,4]; track $index) {
+        <div class="att-kpi-card"><div class="sk sk-xl"></div><div class="sk sk-md mt-2"></div></div>
+      }
+    </div>
+  } @else if (summary) {
+    <div class="att-kpi-row mb-4">
+      <div class="att-kpi-card att-kpi--total">
+        <div class="att-kpi-icon"><i class="ti ti-users"></i></div>
+        <div class="att-kpi-body">
+          <span class="att-kpi-val">{{ summary.totalEmployes }}</span>
+          <span class="att-kpi-lbl">Total analysés</span>
+        </div>
+      </div>
+      <div class="att-kpi-card att-kpi--high" (click)="filterRisk = filterRisk === 'ELEVE' ? '' : 'ELEVE'; applyFilters()">
+        <div class="att-kpi-icon"><i class="ti ti-alert-triangle"></i></div>
+        <div class="att-kpi-body">
+          <span class="att-kpi-val">{{ summary.risqueEleve }}</span>
+          <span class="att-kpi-lbl">Risque élevé</span>
+        </div>
+      </div>
+      <div class="att-kpi-card att-kpi--mid" (click)="filterRisk = filterRisk === 'MOYEN' ? '' : 'MOYEN'; applyFilters()">
+        <div class="att-kpi-icon"><i class="ti ti-alert-circle"></i></div>
+        <div class="att-kpi-body">
+          <span class="att-kpi-val">{{ summary.risqueMoyen }}</span>
+          <span class="att-kpi-lbl">Risque moyen</span>
+        </div>
+      </div>
+      <div class="att-kpi-card att-kpi--low" (click)="filterRisk = filterRisk === 'FAIBLE' ? '' : 'FAIBLE'; applyFilters()">
+        <div class="att-kpi-icon"><i class="ti ti-circle-check"></i></div>
+        <div class="att-kpi-body">
+          <span class="att-kpi-val">{{ summary.risqueFaible }}</span>
+          <span class="att-kpi-lbl">Risque faible</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Dept Heatmap ── -->
+  @if (!loading && summary && summary.deptStats.length > 0) {
+    <div class="att-card mb-4">
+      <div class="att-card-head">
+        <h6 class="att-card-title">
+          <i class="ti ti-building me-2"></i>
+          Risque par département
+        </h6>
+        <span class="att-badge">Score moyen global : {{ summary.avgScore | number:'1.0-0' }}</span>
+      </div>
+      <div class="att-dept-list">
+        @for (d of summary.deptStats; track d.departement) {
+          <div class="att-dept-row">
+            <span class="att-dept-name">{{ d.departement }}</span>
+            <div class="att-dept-track">
+              <div class="att-dept-fill"
+                   [class.fill-high]="d.avgScore >= 70"
+                   [class.fill-mid]="d.avgScore >= 40 && d.avgScore < 70"
+                   [class.fill-low]="d.avgScore < 40"
+                   [style.width.%]="d.avgScore">
+              </div>
+            </div>
+            <span class="att-dept-score">{{ d.avgScore | number:'1.0-0' }}</span>
+            @if (d.risqueEleve > 0) {
+              <span class="att-dept-alert">{{ d.risqueEleve }} à risque</span>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── Filters + Table ── -->
+  <div class="att-card">
+    <div class="att-card-head mb-3">
+      <h6 class="att-card-title">
+        <i class="ti ti-table me-2"></i>
+        Employés — scores individuels
+      </h6>
+      <span class="att-badge">{{ filtered.length }} / {{ predictions.length }}</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="att-filters mb-3">
+      <div class="att-search">
+        <i class="ti ti-search"></i>
+        <input type="text" placeholder="Rechercher un employé…"
+               [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()">
+      </div>
+      <select [(ngModel)]="filterRisk" (ngModelChange)="applyFilters()" class="att-select">
+        <option value="">Tous les risques</option>
+        <option value="ELEVE">Élevé</option>
+        <option value="MOYEN">Moyen</option>
+        <option value="FAIBLE">Faible</option>
+      </select>
+      <select [(ngModel)]="filterDept" (ngModelChange)="applyFilters()" class="att-select">
+        <option value="">Tous les départements</option>
+        @for (d of departments; track d) {
+          <option [value]="d">{{ d }}</option>
+        }
+      </select>
+      @if (filterRisk || filterDept || searchQuery) {
+        <button class="att-clear-btn" (click)="filterRisk=''; filterDept=''; searchQuery=''; applyFilters()">
+          <i class="ti ti-x me-1"></i>Effacer
+        </button>
+      }
+    </div>
+
+    <!-- Table -->
+    @if (loading) {
+      <div class="att-skel-table">
+        @for (_ of [1,2,3,4,5]; track $index) {
+          <div class="att-skel-row">
+            <div class="sk sk-av"></div>
+            <div class="sk sk-md"></div>
+            <div class="sk sk-md"></div>
+            <div class="sk sk-pill"></div>
+          </div>
+        }
+      </div>
+    } @else if (filtered.length === 0) {
+      <div class="empty-state">
+        <i class="ti ti-mood-empty empty-state__icon"></i>
+        <p class="empty-state__title">Aucun résultat</p>
+        <p class="empty-state__subtitle">Aucun employé ne correspond aux filtres sélectionnés.</p>
+      </div>
+    } @else {
+      <div class="att-table-wrap">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="toggleSort('nom')">
+                Employé <i class="{{ sortIcon('nom') }}"></i>
+              </th>
+              <th>Département</th>
+              <th>Poste</th>
+              <th class="sortable" (click)="toggleSort('riskScore')">
+                Score <i class="{{ sortIcon('riskScore') }}"></i>
+              </th>
+              <th>Niveau</th>
+              <th>Facteurs clés</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filtered; track p.employeId) {
+              <tr class="att-tr" (click)="openDetail(p)">
+                <td>
+                  <div class="att-emp-cell">
+                    <div class="att-avatar {{ riskClass(p.riskLevel) }}-avatar">
+                      {{ (p.prenom[0] + p.nom[0]).toUpperCase() }}
+                    </div>
+                    <span class="att-emp-name">{{ p.prenom }} {{ p.nom }}</span>
+                  </div>
+                </td>
+                <td class="text-muted small">{{ p.departement }}</td>
+                <td class="text-muted small">{{ p.poste }}</td>
+                <td>
+                  <div class="att-score-cell">
+                    <div class="att-score-bar">
+                      <div class="att-score-fill {{ riskClass(p.riskLevel) }}-fill"
+                           [style.width.%]="p.riskScore"></div>
+                    </div>
+                    <span class="att-score-num">{{ p.riskScore }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="att-risk-badge {{ riskClass(p.riskLevel) }}">
+                    {{ riskLabel(p.riskLevel) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="att-factors-preview">
+                    @for (f of p.facteurs.slice(0, 3); track f.label) {
+                      <span class="att-factor-chip" [title]="f.label + ' (+' + f.impact + ' pts)'">
+                        <i class="{{ f.icon }}"></i>
+                      </span>
+                    }
+                    @if (p.facteurs.length > 3) {
+                      <span class="att-factor-more">+{{ p.facteurs.length - 3 }}</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <button class="att-detail-btn" (click)="$event.stopPropagation(); openDetail(p)">
+                    <i class="ti ti-eye"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+</div>
+
+<!-- ── Detail Modal ── -->
+@if (selected) {
+  <div class="att-overlay" (click)="closeDetail()">
+    <div class="att-modal" (click)="$event.stopPropagation()">
+
+      <div class="att-modal-head">
+        <div class="att-modal-avatar {{ riskClass(selected.riskLevel) }}-avatar att-modal-avatar--lg">
+          {{ (selected.prenom[0] + selected.nom[0]).toUpperCase() }}
+        </div>
+        <div class="att-modal-info">
+          <h5 class="att-modal-name">{{ selected.prenom }} {{ selected.nom }}</h5>
+          <p class="att-modal-meta">{{ selected.poste }} · {{ selected.departement }}</p>
+        </div>
+        <button class="att-modal-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+      </div>
+
+      <!-- Gauge -->
+      <div class="att-gauge-wrap">
+        <div class="att-gauge" [style.background]="gaugeGradient(selected.riskScore)">
+          <div class="att-gauge-inner">
+            <span class="att-gauge-score">{{ selected.riskScore }}</span>
+            <span class="att-gauge-label">/ 100</span>
+          </div>
+        </div>
+        <span class="att-risk-badge {{ riskClass(selected.riskLevel) }} att-badge-lg">
+          Risque {{ riskLabel(selected.riskLevel) }}
+        </span>
+      </div>
+
+      <!-- Risk factors -->
+      <div class="att-section">
+        <h6 class="att-section-title">
+          <i class="ti ti-alert-circle me-2"></i>Facteurs de risque identifiés
+        </h6>
+        <div class="att-factors-list">
+          @for (f of selected.facteurs; track f.label) {
+            <div class="att-factor-row">
+              <div class="att-factor-icon"><i class="{{ f.icon }}"></i></div>
+              <div class="att-factor-body">
+                <span class="att-factor-label">{{ f.label }}</span>
+                <div class="att-factor-bar">
+                  <div class="att-factor-fill" [style.width.%]="(f.impact / 25) * 100"></div>
+                </div>
+              </div>
+              <span class="att-factor-pts">+{{ f.impact }} pts</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Recommendations -->
+      @if (selected.recommandations.length > 0) {
+        <div class="att-section">
+          <h6 class="att-section-title">
+            <i class="ti ti-bulb me-2"></i>Recommandations RH
+          </h6>
+          <ul class="att-reco-list">
+            @for (r of selected.recommandations; track r) {
+              <li class="att-reco-item">
+                <i class="ti ti-circle-check"></i>
+                <span>{{ r }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <p class="att-modal-updated">
+        <i class="ti ti-refresh me-1"></i>Mis à jour le {{ selected.lastUpdated | date:'dd/MM/yyyy HH:mm' }}
+      </p>
+
+    </div>
+  </div>
+}

@@ -1,0 +1,281 @@
+// =====================================================
+// 💼 Mes Projets - Employé
+// =====================================================
+
+
+:host ::ng-deep {
+
+  .projets-page { font-family: 'Plus Jakarta Sans', sans-serif !important; padding: 8px 0 24px !important; }
+
+  .page-header { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 24px !important; }
+  .header-left { flex: 1 !important; }
+  .page-title    { font-size: 24px !important; font-weight: 700 !important; color: #1E293B !important; margin: 0 0 4px !important; }
+  .page-subtitle { font-size: 14px !important; color: #64748B !important; margin: 0 !important; }
+  .header-actions { display: flex !important; gap: 8px !important; }
+
+  .btn-view {
+    display: flex !important; align-items: center !important; gap: 8px !important;
+    padding: 8px 16px !important; background: white !important; border: 1.5px solid #E2E8F0 !important;
+    border-radius: 8px !important; font-size: 14px !important; font-weight: 600 !important; color: #64748B !important;
+    cursor: pointer !important; transition: all 0.2s !important;
+    &.active { background: #3B82F6 !important; border-color: #3B82F6 !important; color: white !important; }
+    &:hover:not(.active) { border-color: #CBD5E1 !important; background: #F8FAFC !important; }
+  }
+
+  .stat-card {
+    display: flex !important; align-items: center !important; gap: 16px !important;
+    padding: 20px !important; background: white !important; border-radius: 12px !important;
+    border: 1px solid #E2E8F0 !important; transition: all 0.2s !important;
+    &:hover { border-color: #CBD5E1 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important; }
+  }
+  .stat-icon { width: 48px !important; height: 48px !important; border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 22px !important; }
+  .stat-total      .stat-icon { background: #EFF6FF !important; color: #3B82F6 !important; }
+  .stat-progress   .stat-icon { background: #FEF3C7 !important; color: #F59E0B !important; }
+  .stat-tasks      .stat-icon { background: #F0FDF4 !important; color: #10B981 !important; }
+  .stat-completion .stat-icon { background: #F3E8FF !important; color: #8B5CF6 !important; }
+  .stat-info  { display: flex !important; flex-direction: column !important; }
+  .stat-value { font-size: 24px !important; font-weight: 700 !important; color: #1E293B !important; line-height: 1 !important; }
+  .stat-label { font-size: 13px !important; color: #64748B !important; margin-top: 4px !important; }
+
+  .filters-bar {
+    display: flex !important; align-items: center !important; gap: 12px !important;
+    flex-wrap: wrap !important; padding: 16px !important; background: #F8FAFC !important; border-radius: 10px !important;
+  }
+  .search-box {
+    position: relative !important; flex: 1 !important; min-width: 250px !important;
+    i { position: absolute !important; left: 12px !important; top: 50% !important; transform: translateY(-50%) !important; color: #94A3B8 !important; font-size: 18px !important; }
+    input { width: 100% !important; padding: 10px 12px 10px 40px !important; border: 1px solid #E2E8F0 !important; border-radius: 8px !important; font-size: 14px !important; transition: all 0.2s !important; background: white !important; color: #1e293b !important; &:focus { outline: none !important; border-color: #3B82F6 !important; box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important; } }
+  }
+  .filter-group { display: flex !important; align-items: center !important; gap: 8px !important; label { font-size: 13px !important; font-weight: 600 !important; color: #475569 !important; margin: 0 !important; } }
+  .filter-select { padding: 8px 12px !important; border: 1px solid #E2E8F0 !important; border-radius: 8px !important; font-size: 14px !important; cursor: pointer !important; min-width: 140px !important; background: white !important; color: #1e293b !important; &:focus { outline: none !important; border-color: #3B82F6 !important; } }
+  .btn-reset { display: flex !important; align-items: center !important; gap: 6px !important; padding: 8px 14px !important; background: white !important; border: 1px solid #E2E8F0 !important; border-radius: 8px !important; font-size: 13px !important; font-weight: 600 !important; color: #64748B !important; cursor: pointer !important; transition: all 0.2s !important; &:hover { background: #F1F5F9 !important; border-color: #CBD5E1 !important; } }
+
+  // ── Grid view ──
+  .projet-card {
+    background: white !important; border: 1px solid #E2E8F0 !important;
+    border-radius: 16px !important; padding: 24px !important;
+    cursor: pointer !important; transition: all 0.3s !important; height: 100% !important;
+    display: flex !important; flex-direction: column !important;
+    &:hover { border-color: #CBD5E1 !important; box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important; transform: translateY(-4px) !important; }
+  }
+  .projet-header { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 16px !important; }
+  .projet-icon   { width: 48px !important; height: 48px !important; border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 22px !important; }
+  .projet-status {
+    padding: 5px 12px !important; border-radius: 100px !important; font-size: 12px !important; font-weight: 600 !important;
+    &.status-EN_COURS  { background: #FEF3C7 !important; color: #D97706 !important; }
+    &.status-EN_PAUSE  { background: #F3F4F6 !important; color: #6B7280 !important; }
+    &.status-TERMINE   { background: #D1FAE5 !important; color: #059669 !important; }
+    &.status-EN_RETARD { background: #FEE2E2 !important; color: #DC2626 !important; }
+  }
+
+  .header-badges { display: flex !important; align-items: center !important; gap: 6px !important; flex-wrap: wrap !important; justify-content: flex-end !important; }
+
+  .urgency-chip {
+    display: inline-flex !important; align-items: center !important; gap: 4px !important;
+    padding: 4px 10px !important; border-radius: 100px !important; font-size: 11px !important; font-weight: 700 !important;
+    i { font-size: 12px !important; }
+    &.chip-card-overdue { background: #FEE2E2 !important; color: #DC2626 !important; }
+    &.chip-card-urgent  { background: #FEE2E2 !important; color: #DC2626 !important; }
+    &.chip-card-warning { background: #FEF3C7 !important; color: #D97706 !important; }
+  }
+
+  .projet-card {
+    &.card-overdue { border-left: 4px solid #EF4444 !important; }
+    &.card-urgent  { border-left: 4px solid #F97316 !important; }
+    &.card-warning { border-left: 4px solid #F59E0B !important; }
+  }
+
+  .stat-item {
+    &.deadline-late { color: #DC2626 !important; font-weight: 600 !important; i { color: #DC2626 !important; } }
+    &.deadline-soon { color: #D97706 !important; font-weight: 600 !important; i { color: #D97706 !important; } }
+  }
+  .projet-title       { font-size: 18px !important; font-weight: 700 !important; color: #1E293B !important; margin: 0 0 8px !important; line-height: 1.3 !important; }
+  .projet-description { font-size: 13px !important; color: #64748B !important; margin: 0 0 16px !important; line-height: 1.5 !important; flex: 1 !important; }
+  .projet-stats { display: flex !important; gap: 16px !important; margin-bottom: 16px !important; padding-bottom: 16px !important; border-bottom: 1px solid #F1F5F9 !important; .stat-item { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 13px !important; color: #64748B !important; i { font-size: 16px !important; } } }
+  .projet-progress { margin-bottom: 16px !important; }
+  .progress-header { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 8px !important; }
+  .progress-label { font-size: 12px !important; font-weight: 600 !important; color: #64748B !important; }
+  .progress-value { font-size: 13px !important; font-weight: 700 !important; color: #1E293B !important; }
+  .progress-bar  { height: 8px !important; background: #F1F5F9 !important; border-radius: 100px !important; overflow: hidden !important; }
+  .progress-fill { height: 100% !important; border-radius: 100px !important; transition: width 0.3s !important; }
+  .projet-team   { display: flex !important; align-items: center !important; justify-content: space-between !important; }
+  .team-avatars  { display: flex !important; margin-left: -6px !important; }
+  .team-avatar   { width: 32px !important; height: 32px !important; border-radius: 50% !important; background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important; border: 2px solid white !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 11px !important; font-weight: 700 !important; color: white !important; margin-left: -6px !important; transition: transform 0.2s !important; &:hover { transform: translateY(-2px) scale(1.1) !important; z-index: 1 !important; } &.team-more { background: #E2E8F0 !important; color: #64748B !important; } }
+  .team-label    { font-size: 12px !important; color: #64748B !important; }
+
+  // ── List view ──
+  .projet-list-card { cursor: pointer !important; transition: all 0.2s !important; &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important; } }
+  .list-header { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 16px !important; }
+  .list-left   { display: flex !important; align-items: center !important; gap: 16px !important; flex: 1 !important; }
+  .list-info   { flex: 1 !important; }
+  .list-title       { font-size: 16px !important; font-weight: 700 !important; color: #1E293B !important; margin: 0 0 4px !important; }
+  .list-description { font-size: 13px !important; color: #64748B !important; margin: 0 !important; }
+  .list-right  { display: flex !important; align-items: center !important; gap: 12px !important; }
+  .btn-detail  { width: 36px !important; height: 36px !important; border-radius: 8px !important; border: none !important; background: #F8FAFC !important; color: #3B82F6 !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; transition: all 0.2s !important; &:hover { background: #3B82F6 !important; color: white !important; transform: translateX(2px) !important; } }
+  .list-body   { display: flex !important; gap: 24px !important; margin-bottom: 16px !important; padding-bottom: 16px !important; border-bottom: 1px solid #F1F5F9 !important; }
+  .list-stat   { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 13px !important; color: #64748B !important; i { font-size: 16px !important; } }
+  .list-footer { display: flex !important; align-items: center !important; justify-content: space-between !important; }
+  .list-progress { display: flex !important; align-items: center !important; gap: 12px !important; }
+  .progress-bar-mini { width: 120px !important; height: 6px !important; background: #F1F5F9 !important; border-radius: 100px !important; overflow: hidden !important; }
+
+  // ── Tasks section ──
+  .section-title { display: flex !important; align-items: center !important; gap: 10px !important; font-size: 18px !important; font-weight: 700 !important; color: #1E293B !important; margin: 0 !important; i { font-size: 22px !important; color: #3B82F6 !important; } }
+  .tasks-list  { display: flex !important; flex-direction: column !important; gap: 12px !important; }
+  .task-item   { display: flex !important; align-items: flex-start !important; gap: 14px !important; padding: 14px !important; background: #F8FAFC !important; border-radius: 10px !important; transition: all 0.2s !important; &:hover { background: #EFF6FF !important; } }
+  .task-info   { flex: 1 !important; h5 { font-size: 14px !important; font-weight: 600 !important; color: #1E293B !important; margin: 0 0 6px !important; &.task-done { text-decoration: line-through !important; color: #94A3B8 !important; } } }
+  .task-meta   { display: flex !important; align-items: center !important; gap: 12px !important; flex-wrap: wrap !important; }
+  .task-priority {
+    padding: 3px 8px !important; border-radius: 100px !important; font-size: 11px !important; font-weight: 700 !important;
+    &.priority-haute   { background: #FEE2E2 !important; color: #DC2626 !important; }
+    &.priority-moyenne { background: #FEF3C7 !important; color: #D97706 !important; }
+    &.priority-basse   { background: #D1FAE5 !important; color: #059669 !important; }
+  }
+  .task-deadline { display: flex !important; align-items: center !important; gap: 4px !important; font-size: 12px !important; color: #64748B !important; i { font-size: 14px !important; } }
+
+  .empty-state, .empty-tasks { text-align: center !important; padding: 60px 20px !important; color: #CBD5E1 !important; i { font-size: 64px !important; margin-bottom: 16px !important; } p { font-size: 14px !important; margin: 0 !important; } }
+
+  @media (max-width: 768px) {
+    .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
+    .filters-bar { flex-direction: column !important; align-items: stretch !important; }
+    .search-box  { min-width: 100% !important; }
+    .projet-stats, .list-body { flex-direction: column !important; gap: 8px !important; }
+  }
+// ══════════════════════════════════════════════════
+// 🌙 DARK MODE COMPLET - MES PROJETS
+// ══════════════════════════════════════════════════
+
+:host-context(.dark), body.dark {
+
+  // --- 1. LE HEADER (Blindage contre le fond blanc) ---
+  .page-header {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+
+    .page-title { 
+      color: #ffffff !important; 
+      font-weight: 700 !important;
+    }
+    .page-subtitle { 
+      color: #94a3b8 !important; 
+    }
+  }
+
+  // --- 2. STATS CARDS ---
+  .stat-card {
+    background: #1e2536 !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    
+    .stat-value { color: #ffffff !important; }
+    .stat-label { color: #94a3b8 !important; }
+
+    .stat-total .stat-icon      { background: rgba(59, 130, 246, 0.15) !important; color: #60a5fa !important; }
+    .stat-progress .stat-icon   { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+    .stat-tasks .stat-icon      { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; }
+    .stat-completion .stat-icon { background: rgba(139, 92, 246, 0.15) !important; color: #a78bfa !important; }
+  }
+
+  // --- 3. FILTRES & VUES ---
+  .filters-bar {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .search-box input, .filter-select, .btn-reset, .btn-view {
+    background: #1a1f2e !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+  }
+
+  .btn-view.active {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+  }
+
+  .filter-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2360a5fa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 12px 12px !important;
+  }
+
+  // --- 4. CARTES DE PROJET (GRID & LIST) ---
+  .projet-card, .projet-list-card {
+    background: #1e2536 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    
+    &:hover {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .projet-title, .list-title, .progress-value { 
+      color: #ffffff !important; 
+    }
+
+    .projet-description, .list-description, .progress-label, .team-label, .list-stat, .stat-item {
+      color: #94a3b8 !important;
+    }
+
+    .projet-stats, .list-body {
+      border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .progress-bar, .progress-bar-mini {
+      background: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .team-avatar {
+      border-color: #1e2536 !important;
+      &.team-more { background: #2d3748 !important; color: #cbd5e0 !important; }
+    }
+  }
+
+  .btn-detail {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: #60a5fa !important;
+    &:hover { background: #3b82f6 !important; color: #ffffff !important; }
+  }
+
+  // --- 5. TÂCHES DU PROJET ---
+  .section-title { 
+    color: #ffffff !important; 
+    i { color: #3b82f6 !important; }
+  }
+
+  .task-item {
+    background: rgba(255, 255, 255, 0.02) !important;
+    &:hover { background: rgba(59, 130, 246, 0.05) !important; }
+    
+    .task-info h5 { 
+      color: #ffffff !important; 
+      &.task-done { color: #475569 !important; }
+    }
+    .task-deadline { color: #64748b !important; }
+  }
+
+  // --- 6. BADGES DE STATUT & PRIORITÉ ---
+  .projet-status, .task-priority {
+    &.status-EN_COURS, &.priority-moyenne  { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+    &.status-TERMINE, &.priority-basse    { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; }
+    &.status-EN_PAUSE                     { background: rgba(148, 163, 184, 0.15) !important; color: #94a3b8 !important; }
+    &.status-EN_RETARD, &.priority-haute  { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
+  }
+
+  .urgency-chip {
+    &.chip-card-overdue, &.chip-card-urgent { background: rgba(239,68,68,0.15) !important; color: #f87171 !important; }
+    &.chip-card-warning { background: rgba(245,158,11,0.15) !important; color: #fbbf24 !important; }
+  }
+
+  .stat-item {
+    &.deadline-late { color: #f87171 !important; i { color: #f87171 !important; } }
+    &.deadline-soon { color: #fbbf24 !important; i { color: #fbbf24 !important; } }
+  }
+
+  .empty-state, .empty-tasks {
+    color: #475569 !important;
+  }
+}}

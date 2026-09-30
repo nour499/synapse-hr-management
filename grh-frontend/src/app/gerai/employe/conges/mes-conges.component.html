@@ -1,0 +1,345 @@
+<!-- ================================================ -->
+<!-- 🏖️ Mes Congés - Vue Optimisée                    -->
+<!-- ================================================ -->
+
+<div class="conges-page">
+
+    <!-- ── Loading State ── -->
+    @if (isLoading) {
+      <div class="page-header mb-4">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span class="sk sk-xl" style="width:200px"></span>
+          <span class="sk sk-md" style="width:300px"></span>
+        </div>
+      </div>
+      <div class="solde-grid mb-4">
+        @for (_ of [1,2,3,4]; track $index) {
+          <div style="background:#fff;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:14px;border:1px solid #E2E8F0">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="sk sk-av" style="width:36px;height:36px"></span>
+              <span class="sk sk-md" style="width:110px"></span>
+            </div>
+            <span class="sk sk-xl" style="width:64px;height:28px"></span>
+            <span class="sk sk-md" style="width:140px"></span>
+          </div>
+        }
+      </div>
+      <div style="background:#fff;border-radius:14px;border:1px solid #E2E8F0;overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid #F1F5F9">
+          <span class="sk sk-xl" style="width:160px"></span>
+        </div>
+        <div style="padding:0 16px">
+          <table class="table align-middle mb-0">
+            <tbody>
+              @for (_ of [1,2,3,4]; track $index) {
+                <tr>
+                  <td><span class="sk sk-pill"></span></td>
+                  <td><span class="sk sk-md" style="width:80px"></span></td>
+                  <td><span class="sk sk-md" style="width:80px"></span></td>
+                  <td><span class="sk sk-md" style="width:80px"></span></td>
+                  <td><span class="sk sk-pill"></span></td>
+                  <td><span class="sk sk-btn"></span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- ── Content ── -->
+    @if (!isLoading && solde) {
+
+    <!-- Header -->
+    <div class="page-header mb-4">
+        <div class="header-left">
+            <h2 class="page-title">Mes Congés</h2>
+            <p class="page-subtitle">
+                <i class="ti ti-calendar-stats"></i>
+                {{ statistiques?.totalDemandes || 0 }} demandes cette année
+                · {{ solde.pris }} jours pris
+                · {{ solde.annuel + solde.maladie + solde.rtt }} jours restants
+            </p>
+        </div>
+        <button class="btn-nouvelle-demande" [routerLink]="['/employe/demandes/deposer']">
+            <i class="ti ti-plus"></i>
+            <span>Nouvelle demande</span>
+        </button>
+    </div>
+
+    <!-- Solde Cards -->
+    <div class="solde-grid mb-4">
+
+        <!-- Congés Annuels -->
+        <div class="solde-card card-annuel">
+            <div class="card-header-solde">
+                <div class="icon-wrapper">
+                    <i class="ti ti-sun"></i>
+                </div>
+                <h3>Congés Annuels</h3>
+            </div>
+            <div class="card-body-solde">
+                <div class="solde-value">
+                    <span class="value">{{ solde.annuel }}</span>
+                    <span class="total">/ {{ solde.annuelTotal }}</span>
+                </div>
+                <div class="progress-bar-modern">
+                    <div class="progress-fill"
+                        [style.width.%]="getProgression(solde.annuelTotal - solde.annuel, solde.annuelTotal)">
+                    </div>
+                </div>
+                <p class="progress-label">
+                    {{ getProgression(solde.annuelTotal - solde.annuel, solde.annuelTotal) }}% utilisés
+                </p>
+            </div>
+        </div>
+
+        <!-- RTT -->
+        <div class="solde-card card-rtt">
+            <div class="card-header-solde">
+                <div class="icon-wrapper">
+                    <i class="ti ti-clock"></i>
+                </div>
+                <h3>RTT</h3>
+            </div>
+            <div class="card-body-solde">
+                <div class="solde-value">
+                    <span class="value">{{ solde.rtt }}</span>
+                    <span class="total">/ {{ solde.rttTotal }}</span>
+                </div>
+                <div class="progress-bar-modern">
+                    <div class="progress-fill"
+                        [style.width.%]="getProgression(solde.rttTotal - solde.rtt, solde.rttTotal)">
+                    </div>
+                </div>
+                <p class="progress-label">
+                    {{ getProgression(solde.rttTotal - solde.rtt, solde.rttTotal) }}% utilisés
+                </p>
+            </div>
+        </div>
+
+        <!-- Maladie -->
+        <div class="solde-card card-maladie">
+            <div class="card-header-solde">
+                <div class="icon-wrapper">
+                    <i class="ti ti-stethoscope"></i>
+                </div>
+                <h3>Maladie</h3>
+            </div>
+            <div class="card-body-solde">
+                <div class="solde-value">
+                    <span class="value">{{ solde.maladie }}</span>
+                    <span class="total">/ {{ solde.maladieTotal }}</span>
+                </div>
+                <div class="progress-bar-modern">
+                    <div class="progress-fill"
+                        [style.width.%]="getProgression(solde.maladieTotal - solde.maladie, solde.maladieTotal)">
+                    </div>
+                </div>
+                <p class="progress-label">
+                    {{ getProgression(solde.maladieTotal - solde.maladie, solde.maladieTotal) }}% utilisés
+                </p>
+            </div>
+        </div>
+
+        <!-- Total Pris -->
+        <div class="solde-card card-pris">
+            <div class="card-header-solde">
+                <div class="icon-wrapper">
+                    <i class="ti ti-calendar-check"></i>
+                </div>
+                <h3>Total Pris</h3>
+            </div>
+            <div class="card-body-solde">
+                <div class="solde-value">
+                    <span class="value">{{ solde.pris }}</span>
+                    <span class="unit">jours</span>
+                </div>
+                @if (statistiques?.prochainConge) {
+                <p class="next-conge">
+                    <i class="ti ti-calendar-event"></i>
+                    Prochain: {{ formatDate(statistiques.prochainConge.dateDebut) }}
+                </p>
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Statistiques -->
+    @if (statistiques) {
+    <div class="stats-row mb-4">
+        <div class="stat-item">
+            <i class="ti ti-clock-pause text-warning"></i>
+            <div class="stat-info">
+                <span class="stat-value">{{ statistiques.enAttente }}</span>
+                <span class="stat-label">En attente</span>
+            </div>
+        </div>
+        <div class="stat-item">
+            <i class="ti ti-circle-check text-success"></i>
+            <div class="stat-info">
+                <span class="stat-value">{{ statistiques.approuvees }}</span>
+                <span class="stat-label">Approuvées</span>
+            </div>
+        </div>
+        <div class="stat-item">
+            <i class="ti ti-circle-x text-danger"></i>
+            <div class="stat-info">
+                <span class="stat-value">{{ statistiques.rejetees }}</span>
+                <span class="stat-label">Rejetées</span>
+            </div>
+        </div>
+        <div class="stat-item">
+            <i class="ti ti-chart-pie text-primary"></i>
+            <div class="stat-info">
+                <span class="stat-value">{{ statistiques.tauxUtilisation }}%</span>
+                <span class="stat-label">Taux d'utilisation</span>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Tableau des demandes -->
+    <app-card>
+        <div class="card-header-custom">
+            <h3>
+                <i class="ti ti-history"></i>
+                Historique de mes demandes
+            </h3>
+            <span class="badge-count">{{ demandes.length }}</span>
+        </div>
+
+        @if (demandes.length > 0) {
+        <div class="table-responsive">
+            <table class="demandes-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Période</th>
+                        <th>Durée</th>
+                        <th>Statut</th>
+                        <th>Validé par</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (demande of demandes; track demande.id) {
+                    <tr [class.row-en-attente]="demande.statut === 'EN_ATTENTE'">
+                        <!-- Type -->
+                        <td>
+                            <div class="type-cell">
+                                <i [class]="getTypeIcon(demande.type)"></i>
+                                <span>{{ getTypeLabel(demande.type) }}</span>
+                            </div>
+                        </td>
+
+                        <!-- Période -->
+                        <td>
+                            <div class="periode-cell">
+                                <span class="date-range">
+                                    {{ formatDate(demande.dateDebut) }} → {{ formatDate(demande.dateFin) }}
+                                </span>
+                                @if (demande.motif) {
+                                <span class="motif-hint" [title]="demande.motif">
+                                    <i class="ti ti-info-circle"></i>
+                                </span>
+                                }
+                            </div>
+                        </td>
+
+                        <!-- Durée -->
+                        <td>
+                            <div class="duree-cell">
+                                <span class="jours-total">{{ demande.jours }}j</span>
+                                <span class="jours-ouvres">({{ demande.joursOuvres }} ouvrés)</span>
+                            </div>
+                        </td>
+
+                        <!-- Statut -->
+                        <td>
+                            <span class="status-chip" [ngClass]="statutChip(demande.statut).cls">
+                                <i [class]="statutChip(demande.statut).icon" aria-hidden="true"></i>
+                                {{ statutChip(demande.statut).label }}
+                            </span>
+                        </td>
+
+                        <!-- Validateur -->
+                        <td>
+                            @if (demande.validateurNom) {
+                            <div class="validateur-cell">
+                                <i class="ti ti-user-check"></i>
+                                <span>{{ demande.validateurNom }}</span>
+                            </div>
+                            } @else {
+                            <span class="text-muted">-</span>
+                            }
+                        </td>
+
+                        <!-- Actions -->
+                        <td>
+                            @if (canAnnuler(demande)) {
+                            <button class="btn-action btn-annuler" (click)="annulerDemande(demande)"
+                                title="Annuler la demande">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                            } @else {
+                            <span class="text-muted">-</span>
+                            }
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        } @else {
+        <div class="empty-state">
+            <i class="ti ti-calendar-off empty-state__icon"></i>
+            <p class="empty-state__title">Aucune demande de congé</p>
+            <p class="empty-state__subtitle">Vous n'avez pas encore soumis de demande de congé.</p>
+            <button class="btn-empty-action" [routerLink]="['/employe/demandes/deposer']" style="margin-top:8px">
+                <i class="ti ti-plus"></i>
+                Créer ma première demande
+            </button>
+        </div>
+        }
+    </app-card>
+
+    }
+
+</div>
+
+<!-- ── Error banner ── -->
+@if (cancelError) {
+  <div class="cancel-error-bar">
+    <i class="ti ti-alert-circle"></i>
+    {{ cancelError }}
+    <button class="cancel-error-close" (click)="cancelError = ''"><i class="ti ti-x"></i></button>
+  </div>
+}
+
+<!-- ── Cancel Modal ── -->
+@if (cancelTarget) {
+  <div class="cancel-overlay" (click)="closeCancelModal()">
+    <div class="cancel-box" (click)="$event.stopPropagation()">
+      <div class="cancel-head">
+        <div class="cancel-icon"><i class="ti ti-trash"></i></div>
+        <h6>Annuler la demande</h6>
+      </div>
+      <div class="cancel-body">
+        <p>
+          Voulez-vous vraiment annuler cette demande de
+          <strong>{{ getTypeLabel(cancelTarget.type) }}</strong>
+          du <strong>{{ formatDate(cancelTarget.dateDebut) }}</strong> ?
+        </p>
+        <p class="cancel-warn"><i class="ti ti-info-circle me-1"></i>Cette action est irréversible.</p>
+      </div>
+      <div class="cancel-foot">
+        <button class="btn-modal-secondary" (click)="closeCancelModal()">Garder la demande</button>
+        <button class="btn-modal-danger" (click)="confirmAnnuler()">
+          <i class="ti ti-trash me-1"></i>Oui, annuler
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,435 @@
+<div class="comite-page">
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon"><i class="ti ti-users-group"></i></div>
+      <div>
+        <h1 class="page-title">Comité de crédit</h1>
+        <p class="page-sub">Votes collectifs sur les demandes de prêt</p>
+      </div>
+    </div>
+    <div class="header-badge" *ngIf="kpi.enAttente > 0">
+      <span class="pulse-dot"></span>
+      {{ kpi.enAttente }} en attente
+    </div>
+  </div>
+
+  <!-- ── KPI strip ────────────────────────────────────────── -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <span class="kpi-val amber">{{ kpi.enAttente }}</span>
+      <span class="kpi-lbl">En attente de vote</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-val blue">{{ fmtAmount(kpi.montantAttente) }}</span>
+      <span class="kpi-lbl">Montant en attente</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-val green">{{ fmtAmount(kpi.montantApprouve) }}</span>
+      <span class="kpi-lbl">Montant approuvé</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-val purple" *ngIf="kpi.tauxApprobation != null; else noTaux">
+        {{ kpi.tauxApprobation }}%
+      </span>
+      <ng-template #noTaux><span class="kpi-val gray">—</span></ng-template>
+      <span class="kpi-lbl">Taux d'approbation</span>
+    </div>
+  </div>
+
+  <!-- ── Tabs ─────────────────────────────────────────────── -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab==='pending'" (click)="setTab('pending')">
+      <i class="ti ti-clock-hour-4"></i> En attente
+      <span class="tab-count" *ngIf="pending.length">{{ pending.length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='history'" (click)="setTab('history')">
+      <i class="ti ti-history"></i> Historique
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='stats'" (click)="setTab('stats')">
+      <i class="ti ti-chart-bar"></i> Statistiques
+    </button>
+  </div>
+
+  <!-- ═══════════════════ TAB: EN ATTENTE ═══════════════════ -->
+  <div class="tab-content" *ngIf="activeTab==='pending'">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" placeholder="Rechercher…" [(ngModel)]="searchPend" class="search-inp">
+      </div>
+    </div>
+
+    <div class="loading-block" *ngIf="loading">
+      <span class="spinner"></span> Chargement…
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && filteredPending.length === 0">
+      <i class="ti ti-circle-check"></i>
+      <p>Aucune demande en attente de vote</p>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading && filteredPending.length > 0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Montant demandé</th>
+            <th>Durée</th>
+            <th>Motif</th>
+            <th>Votes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of filteredPending" (click)="openDetail(d)" class="row-clickable">
+            <td>
+              <div class="emp-cell">
+                <div class="avatar" [attr.data-init]="initials(d)">
+                  <img *ngIf="d.employePhoto" [src]="d.employePhoto" alt="">
+                  <span *ngIf="!d.employePhoto">{{ initials(d) }}</span>
+                </div>
+                <div>
+                  <span class="emp-name">{{ d.employePrenom }} {{ d.employeNom }}</span>
+                  <span class="emp-id">#{{ d.employeId }}</span>
+                </div>
+              </div>
+            </td>
+            <td><strong class="amount-cell">{{ fmtAmount(d.amount) }}</strong></td>
+            <td>{{ d.durationMonths ?? '—' }} mois</td>
+            <td class="reason-cell">{{ d.description | slice:0:60 }}</td>
+            <td>
+              <div class="vote-tally">
+                <span class="tally approve">
+                  <i class="ti ti-thumb-up"></i> {{ approveCount(d) }}/2
+                </span>
+                <span class="tally reject">
+                  <i class="ti ti-thumb-down"></i> {{ rejectCount(d) }}/2
+                </span>
+              </div>
+            </td>
+            <td (click)="$event.stopPropagation()">
+              <div class="action-btns">
+                <button class="btn-vote approve" (click)="openVoteApprove(d, $event)" title="Voter APPROUVER">
+                  <i class="ti ti-thumb-up"></i>
+                </button>
+                <button class="btn-vote reject" (click)="openVoteReject(d, $event)" title="Voter REFUSER">
+                  <i class="ti ti-thumb-down"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ TAB: HISTORIQUE ═══════════════════ -->
+  <div class="tab-content" *ngIf="activeTab==='history'">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" placeholder="Rechercher…" [(ngModel)]="searchHist" class="search-inp">
+      </div>
+      <select class="filter-sel" [(ngModel)]="filterHist">
+        <option value="">Tous</option>
+        <option value="VALIDEE_DG">Approuvés</option>
+        <option value="REJETEE">Refusés</option>
+      </select>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredHistory.length === 0">
+      <i class="ti ti-history"></i>
+      <p>Aucun historique</p>
+    </div>
+
+    <div class="table-wrap" *ngIf="filteredHistory.length > 0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Demandé</th>
+            <th>Accordé</th>
+            <th>Mensualité</th>
+            <th>Décision</th>
+            <th>Date décision</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of filteredHistory">
+            <td>
+              <div class="emp-cell">
+                <div class="avatar" [attr.data-init]="initials(d)">
+                  <img *ngIf="d.employePhoto" [src]="d.employePhoto" alt="">
+                  <span *ngIf="!d.employePhoto">{{ initials(d) }}</span>
+                </div>
+                <div>
+                  <span class="emp-name">{{ d.employePrenom }} {{ d.employeNom }}</span>
+                </div>
+              </div>
+            </td>
+            <td>{{ fmtAmount(d.amount) }}</td>
+            <td>{{ d.montantApprouve ? fmtAmount(d.montantApprouve) : '—' }}</td>
+            <td>{{ d.montantTranche ? fmtAmount(d.montantTranche) : '—' }}</td>
+            <td>
+              <span class="stat-badge" [class.green]="d.statut==='VALIDEE_DG'||d.statut==='VALIDEE_RH'" [class.red]="d.statut==='REJETEE'">
+                {{ d.statut === 'REJETEE' ? 'Refusé' : 'Approuvé' }}
+              </span>
+            </td>
+            <td class="date-cell">{{ (d.dateValidationDg ?? '') | slice:0:10 }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ TAB: STATS ═══════════════════════ -->
+  <div class="tab-content stats-tab" *ngIf="activeTab==='stats'">
+    <div class="stats-grid">
+
+      <!-- Monthly bar chart -->
+      <div class="stat-card">
+        <h3 class="stat-card-title"><i class="ti ti-chart-bar"></i> Évolution mensuelle</h3>
+        <div class="bar-chart" *ngIf="statsMonthly.length > 0; else noStats">
+          <div class="bar-group" *ngFor="let m of statsMonthly">
+            <div class="bars">
+              <div class="bar approve-bar"
+                [style.height.%]="statsMaxMonth ? (m.approved / statsMaxMonth) * 100 : 0"
+                title="{{ m.approved }} approuvé(s)"></div>
+              <div class="bar reject-bar"
+                [style.height.%]="statsMaxMonth ? (m.rejected / statsMaxMonth) * 100 : 0"
+                title="{{ m.rejected }} refusé(s)"></div>
+            </div>
+            <span class="bar-label">{{ m.label }}</span>
+          </div>
+        </div>
+        <ng-template #noStats>
+          <p class="no-data-msg">Pas encore de données</p>
+        </ng-template>
+        <div class="chart-legend">
+          <span class="legend-dot green"></span> Approuvés
+          <span class="legend-dot red ml"></span> Refusés
+        </div>
+      </div>
+
+      <!-- Motifs breakdown -->
+      <div class="stat-card">
+        <h3 class="stat-card-title"><i class="ti ti-tag"></i> Répartition par motif</h3>
+        <div class="motif-list">
+          <div class="motif-row" *ngFor="let m of statsByMotif">
+            <span class="motif-name">{{ m.motif }}</span>
+            <div class="motif-bar-wrap">
+              <div class="motif-bar" [style.width.%]="m.pct" [style.background]="motifColor(m.motif)"></div>
+            </div>
+            <span class="motif-pct">{{ m.pct }}%</span>
+            <span class="motif-count">({{ m.count }})</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary numbers -->
+      <div class="stat-card summary-card">
+        <h3 class="stat-card-title"><i class="ti ti-report-analytics"></i> Résumé</h3>
+        <div class="summary-rows">
+          <div class="sum-row">
+            <span>Total traités</span>
+            <strong>{{ kpi.totalApproved + kpi.totalRejected }}</strong>
+          </div>
+          <div class="sum-row">
+            <span>Approuvés</span>
+            <strong class="green">{{ kpi.totalApproved }}</strong>
+          </div>
+          <div class="sum-row">
+            <span>Refusés</span>
+            <strong class="red">{{ kpi.totalRejected }}</strong>
+          </div>
+          <div class="sum-row">
+            <span>Taux d'approbation</span>
+            <strong>{{ kpi.tauxApprobation != null ? kpi.tauxApprobation + '%' : '—' }}</strong>
+          </div>
+          <div class="sum-row">
+            <span>Montant total approuvé</span>
+            <strong>{{ fmtAmount(kpi.montantApprouve) }}</strong>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- DETAIL DRAWER                                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="drawer-overlay" *ngIf="detailItem" (click)="closeDetail()"></div>
+<div class="drawer" *ngIf="detailItem">
+  <div class="drawer-header">
+    <h2><i class="ti ti-file-description"></i> Demande #{{ detailItem.id }}</h2>
+    <button class="close-btn" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="drawer-body">
+
+    <!-- Employee -->
+    <div class="emp-card">
+      <div class="emp-avatar lg">
+        <img *ngIf="detailItem.employePhoto" [src]="detailItem.employePhoto" alt="">
+        <span *ngIf="!detailItem.employePhoto">{{ initials(detailItem) }}</span>
+      </div>
+      <div>
+        <p class="emp-fullname">{{ detailItem.employePrenom }} {{ detailItem.employeNom }}</p>
+        <p class="emp-id-label">Employé #{{ detailItem.employeId }}</p>
+      </div>
+    </div>
+
+    <!-- Loan details -->
+    <div class="detail-section">
+      <h4>Détails du crédit</h4>
+      <div class="detail-grid">
+        <div class="detail-item"><span>Montant demandé</span><strong>{{ fmtAmount(detailItem.amount) }}</strong></div>
+        <div class="detail-item"><span>Durée</span><strong>{{ detailItem.durationMonths }} mois</strong></div>
+        <div class="detail-item"><span>Motif</span><strong>{{ detailItem.description }}</strong></div>
+        <div class="detail-item" *ngIf="detailItem.montantApprouve">
+          <span>Montant accordé</span>
+          <strong class="green">{{ fmtAmount(detailItem.montantApprouve) }}</strong>
+        </div>
+        <div class="detail-item" *ngIf="detailItem.nbTranches">
+          <span>Mensualités</span>
+          <strong>{{ detailItem.nbTranches }} mois</strong>
+        </div>
+        <div class="detail-item" *ngIf="detailItem.montantTranche">
+          <span>Mensualité</span>
+          <strong>{{ fmtAmount(detailItem.montantTranche) }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Repayment preview -->
+    <div class="detail-section" *ngIf="installmentRows.length > 0">
+      <h4>Aperçu remboursement</h4>
+      <table class="repay-table">
+        <thead><tr><th>Mois</th><th>Montant</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of installmentRows">
+            <td>Mois {{ r.num }}</td>
+            <td>{{ fmtAmount(r.montant) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Votes list -->
+    <div class="detail-section">
+      <h4>Votes du comité ({{ detailVotes.length }})</h4>
+      <div class="loading-block small" *ngIf="loadingVotes">
+        <span class="spinner sm"></span> Chargement…
+      </div>
+      <div class="vote-list" *ngIf="!loadingVotes">
+        <div class="empty-state sm" *ngIf="detailVotes.length === 0">
+          <i class="ti ti-hourglass-empty"></i>
+          <p>Aucun vote encore</p>
+        </div>
+        <div class="vote-entry" *ngFor="let v of detailVotes" [class.approve]="v.vote==='FAVORABLE'" [class.reject]="v.vote==='DEFAVORABLE'">
+          <div class="vote-icon">
+            <i [class]="v.vote==='FAVORABLE' ? 'ti ti-thumb-up' : 'ti ti-thumb-down'"></i>
+          </div>
+          <div class="vote-info">
+            <span class="vote-member">{{ v.memberNom }}</span>
+            <span class="vote-comment" *ngIf="v.commentaire">{{ v.commentaire }}</span>
+            <span class="vote-amount" *ngIf="v.montantSuggere">Suggère {{ fmtAmount(v.montantSuggere) }} / {{ v.nbTranchesSuggeres }} mois</span>
+          </div>
+          <span class="vote-label" [class.approve]="v.vote==='FAVORABLE'" [class.reject]="v.vote==='DEFAVORABLE'">
+            {{ v.vote === 'FAVORABLE' ? 'Favorable' : 'Défavorable' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="drawer-footer" *ngIf="detailItem.statut === 'EN_ETUDE_COMMISSION' || detailItem.statut === 'EN_ETUDE_DG'">
+    <button class="btn-approve" (click)="openVoteApprove(detailItem, $event); closeDetail()">
+      <i class="ti ti-thumb-up"></i> Avis favorable
+    </button>
+    <button class="btn-reject" (click)="openVoteReject(detailItem, $event); closeDetail()">
+      <i class="ti ti-thumb-down"></i> Avis défavorable
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- VOTE DRAWER                                             -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="drawer-overlay" *ngIf="voteItem" (click)="closeVote()"></div>
+<div class="drawer vote-drawer" *ngIf="voteItem">
+  <div class="drawer-header" [class.approve-header]="isApproving" [class.reject-header]="!isApproving">
+    <h2>
+      <i [class]="isApproving ? 'ti ti-thumb-up' : 'ti ti-thumb-down'"></i>
+      {{ isApproving ? 'Vote : Approuver' : 'Vote : Refuser' }}
+    </h2>
+    <button class="close-btn" (click)="closeVote()"><i class="ti ti-x"></i></button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="emp-card small">
+      <div class="emp-avatar">
+        <span>{{ initials(voteItem) }}</span>
+      </div>
+      <div>
+        <p class="emp-fullname">{{ voteItem.employePrenom }} {{ voteItem.employeNom }}</p>
+        <p class="emp-id-label">Crédit demandé : {{ fmtAmount(voteItem.amount) }} — {{ voteItem.durationMonths }} mois</p>
+      </div>
+    </div>
+
+    <!-- APPROVE form -->
+    <form *ngIf="isApproving" [formGroup]="voteApproveForm" class="vote-form">
+      <div class="form-group">
+        <label>Montant suggéré (TND) <span class="required">*</span></label>
+        <input type="number" formControlName="montantSuggere" class="form-inp" [class.inp-err]="hasErr('approve','montantSuggere')">
+        <span class="err-msg" *ngIf="hasErr('approve','montantSuggere')">Montant requis</span>
+      </div>
+      <div class="form-group">
+        <label>Nombre de mensualités <span class="required">*</span></label>
+        <input type="number" formControlName="nbTranchesSuggeres" class="form-inp" [class.inp-err]="hasErr('approve','nbTranchesSuggeres')">
+        <span class="err-msg" *ngIf="hasErr('approve','nbTranchesSuggeres')">Durée requise</span>
+      </div>
+      <div class="tranche-preview" *ngIf="suggestedTranche > 0">
+        Mensualité estimée : <strong>{{ fmtAmount(suggestedTranche) }}</strong>
+      </div>
+      <div class="form-group">
+        <label>Commentaire</label>
+        <textarea formControlName="commentaire" class="form-inp textarea" rows="3" placeholder="Observations éventuelles…"></textarea>
+      </div>
+    </form>
+
+    <!-- REJECT form -->
+    <form *ngIf="!isApproving" [formGroup]="voteRejectForm" class="vote-form">
+      <div class="form-group">
+        <label>Motif du refus <span class="required">*</span></label>
+        <textarea formControlName="commentaire" class="form-inp textarea" rows="4"
+          placeholder="Expliquez la raison du refus…"
+          [class.inp-err]="hasErr('reject','commentaire')"></textarea>
+        <span class="err-msg" *ngIf="hasErr('reject','commentaire')">Motif requis (min. 5 caractères)</span>
+      </div>
+    </form>
+
+    <p class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</p>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="btn-cancel" (click)="closeVote()" [disabled]="saving">Annuler</button>
+    <button *ngIf="isApproving"
+      class="btn-approve" (click)="submitApprove()" [disabled]="saving">
+      <span class="spinner sm" *ngIf="saving"></span>
+      <i class="ti ti-check" *ngIf="!saving"></i>
+      {{ saving ? 'Envoi…' : 'Confirmer le vote' }}
+    </button>
+    <button *ngIf="!isApproving"
+      class="btn-reject" (click)="submitReject()" [disabled]="saving">
+      <span class="spinner sm" *ngIf="saving"></span>
+      <i class="ti ti-x" *ngIf="!saving"></i>
+      {{ saving ? 'Envoi…' : 'Confirmer le refus' }}
+    </button>
+  </div>
+</div>

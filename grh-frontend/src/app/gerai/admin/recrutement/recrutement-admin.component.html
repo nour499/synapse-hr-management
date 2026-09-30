@@ -1,0 +1,324 @@
+<div class="rec-page">
+
+  <!-- ── Header ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-user-search"></i></div>
+      <div>
+        <h1 class="page-title">Demandes de recrutement</h1>
+        <p class="page-sub">Traitez les besoins en recrutement soumis par les chefs d'équipe</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Error notice ─────────────────────────────── -->
+  @if (errorMsg) {
+    <div class="error-notice">
+      <i class="ti ti-alert-circle"></i>
+      <span>{{ errorMsg }}</span>
+      <button class="notice-close" (click)="clearError()"><i class="ti ti-x"></i></button>
+    </div>
+  }
+
+  <!-- ── Job created notice ────────────────────────── -->
+  @if (lastCreatedJob) {
+    <div class="job-notice">
+      <i class="ti ti-circle-check"></i>
+      <span>Offre <strong>{{ lastCreatedJob.titre }}</strong> publiée avec succès dans la liste des offres d'emploi.</span>
+      <button class="notice-close" (click)="dismissJobNotice()"><i class="ti ti-x"></i></button>
+    </div>
+  }
+
+  <!-- ── KPI strip ─────────────────────────────────── -->
+  <div class="kpi-strip">
+    <button class="kpi-card" [class.active]="filterStatut === ''" (click)="setStatut('')">
+      <i class="ti ti-clipboard-list kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.total }}</span><span class="kpi-lbl">Total</span></div>
+    </button>
+    <button class="kpi-card kpi-attente" [class.active]="filterStatut === 'EN_ATTENTE'" (click)="setStatut('EN_ATTENTE')">
+      <i class="ti ti-clock kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.enAttente }}</span><span class="kpi-lbl">En attente</span></div>
+    </button>
+    <button class="kpi-card kpi-conv" [class.active]="filterStatut === 'CONVERTIE'" (click)="setStatut('CONVERTIE')">
+      <i class="ti ti-briefcase kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.converties }}</span><span class="kpi-lbl">Converties en offre</span></div>
+    </button>
+    <button class="kpi-card kpi-rej" [class.active]="filterStatut === 'REJETEE'" (click)="setStatut('REJETEE')">
+      <i class="ti ti-circle-x kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.rejetees }}</span><span class="kpi-lbl">Rejetées</span></div>
+    </button>
+  </div>
+
+  <!-- ── Filters ───────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher par poste, chef, département…"
+             [value]="search" (input)="setSearch($any($event.target).value)" />
+    </div>
+  </div>
+
+  <!-- ── Table ─────────────────────────────────────── -->
+  @if (loading) {
+    <div class="loading-wrap">
+      <div class="spinner-border" style="color:#8B5CF6"></div>
+      <p>Chargement…</p>
+    </div>
+  } @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-user-search"></i></div>
+      <h3>Aucune demande trouvée</h3>
+      <p>Les chefs d'équipe pourront soumettre leurs besoins en recrutement ici.</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="rec-table">
+        <thead>
+          <tr>
+            <th>Poste demandé</th>
+            <th>Chef d'équipe</th>
+            <th>Niveau / Contrat</th>
+            <th>Postes</th>
+            <th>Urgence</th>
+            <th>Statut</th>
+            <th>Soumis le</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of filtered; track d.id) {
+            <tr [class.row-pending]="isPending(d)">
+
+              <!-- Poste -->
+              <td>
+                <div class="poste-cell">
+                  <span class="poste-titre">{{ d.titrePoste }}</span>
+                  <span class="poste-dept"><i class="ti ti-building"></i>{{ d.departement }}</span>
+                </div>
+              </td>
+
+              <!-- Chef -->
+              <td>
+                <div class="chef-cell">
+                  @if (d.chefPhoto) {
+                    <img [src]="d.chefPhoto" class="chef-avatar" [alt]="d.chefNom" />
+                  } @else {
+                    <div class="chef-initials">{{ initiales(d.chefNom) }}</div>
+                  }
+                  <div class="chef-name-wrap">
+                    <span class="chef-name" [class.chef-name-bold]="isPending(d)">{{ d.chefNom }}</span>
+                    @if (isPending(d)) {
+                      <span class="to-process-badge"><i class="ti ti-alert-triangle"></i> À traiter</span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Niveau / Contrat -->
+              <td>
+                <div class="badges-col">
+                  <span class="role-badge">{{ roleLabels[d.role] }}</span>
+                  <span class="type-badge">{{ typeLabels[d.typeContrat] }}</span>
+                </div>
+              </td>
+
+              <!-- Postes -->
+              <td>
+                <span class="postes-val"><i class="ti ti-users"></i> {{ d.nombrePostes }}</span>
+              </td>
+
+              <!-- Urgence -->
+              <td>
+                <span class="urgence-badge"
+                      [class.urg-normale]="d.urgence === 'NORMALE'"
+                      [class.urg-urgente]="d.urgence === 'URGENTE'"
+                      [class.urg-critique]="d.urgence === 'CRITIQUE'">
+                  <i class="ti ti-flame"></i>{{ urgenceLabels[d.urgence] }}
+                </span>
+              </td>
+
+              <!-- Statut -->
+              <td>
+                <span class="statut-badge"
+                      [class.s-attente]="d.statut === 'EN_ATTENTE'"
+                      [class.s-approuvee]="d.statut === 'APPROUVEE' || d.statut === 'CONVERTIE'"
+                      [class.s-rejetee]="d.statut === 'REJETEE'">
+                  <span class="s-dot"></span>{{ statutLabels[d.statut] }}
+                </span>
+              </td>
+
+              <!-- Date -->
+              <td><span class="date-val">{{ d.dateDemande | date:'dd/MM/yyyy' }}</span></td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button class="btn-action btn-view" title="Voir détails" (click)="openDetail(d)">
+                  <i class="ti ti-eye"></i>
+                </button>
+                @if (isPending(d)) {
+                  <button class="btn-action btn-approve" title="Approuver et publier l'offre" (click)="openApprove(d)">
+                    <i class="ti ti-circle-check"></i>
+                  </button>
+                  <button class="btn-action btn-reject" title="Rejeter" (click)="openReject(d)">
+                    <i class="ti ti-circle-x"></i>
+                  </button>
+                }
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="row-count">
+      <i class="ti ti-list"></i>
+      {{ filtered.length }} demande{{ filtered.length > 1 ? 's' : '' }}
+    </p>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DETAIL DRAWER
+══════════════════════════════════════════════════════ -->
+@if (detailItem) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon"><i class="ti ti-user-search"></i></div>
+        <div>
+          <h2 class="drawer-title">{{ detailItem.titrePoste }}</h2>
+          <p class="drawer-sub">{{ detailItem.departement }} · {{ detailItem.chefNom }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-info-circle"></i> Détails du besoin</div>
+        <div class="detail-grid">
+          <div class="detail-item"><span class="di-label">Niveau</span><span class="di-val">{{ roleLabels[detailItem.role] }}</span></div>
+          <div class="detail-item"><span class="di-label">Postes</span><span class="di-val">{{ detailItem.nombrePostes }}</span></div>
+          <div class="detail-item"><span class="di-label">Contrat</span><span class="di-val">{{ typeLabels[detailItem.typeContrat] }}</span></div>
+          <div class="detail-item">
+            <span class="di-label">Urgence</span>
+            <span class="urgence-badge" [class.urg-normale]="detailItem.urgence === 'NORMALE'"
+                  [class.urg-urgente]="detailItem.urgence === 'URGENTE'"
+                  [class.urg-critique]="detailItem.urgence === 'CRITIQUE'">
+              <i class="ti ti-flame"></i>{{ urgenceLabels[detailItem.urgence] }}
+            </span>
+          </div>
+          <div class="detail-item"><span class="di-label">Soumis le</span><span class="di-val">{{ detailItem.dateDemande | date:'dd/MM/yyyy' }}</span></div>
+          <div class="detail-item">
+            <span class="di-label">Statut</span>
+            <span class="statut-badge" [class.s-attente]="detailItem.statut === 'EN_ATTENTE'"
+                  [class.s-approuvee]="detailItem.statut === 'APPROUVEE' || detailItem.statut === 'CONVERTIE'"
+                  [class.s-rejetee]="detailItem.statut === 'REJETEE'">
+              <span class="s-dot"></span>{{ statutLabels[detailItem.statut] }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="ds-head"><i class="ti ti-message"></i> Justification du chef</div>
+        <p class="detail-text">{{ detailItem.justification }}</p>
+      </div>
+
+      @if (detailItem.commentaireRh) {
+        <div class="detail-section">
+          <div class="ds-head"><i class="ti ti-message-dots"></i> Réponse RH</div>
+          <div class="rh-comment">
+            <i class="ti ti-user-check"></i>
+            <div>
+              @if (detailItem.traiteePar) {
+                <p class="rh-by">
+                  {{ detailItem.traiteePar }}
+                  @if (detailItem.dateTraitement) { · {{ detailItem.dateTraitement | date:'dd/MM/yyyy' }} }
+                </p>
+              }
+              <p class="rh-msg">{{ detailItem.commentaireRh }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn-secondary" (click)="closeDetail()">Fermer</button>
+      @if (isPending(detailItem)) {
+        <button class="btn-reject-sm" (click)="openReject(detailItem)">
+          <i class="ti ti-circle-x"></i> Rejeter
+        </button>
+        <button class="btn-primary" (click)="openApprove(detailItem)">
+          <i class="ti ti-briefcase"></i> Approuver et publier
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     APPROVE CONFIRM
+══════════════════════════════════════════════════════ -->
+@if (approveTarget) {
+  <div class="modal-overlay" (click)="cancelApprove()"></div>
+  <div class="confirm-panel">
+    <div class="confirm-icon confirm-ok"><i class="ti ti-briefcase"></i></div>
+    <h3 class="confirm-title">Approuver et publier l'offre ?</h3>
+    <p class="confirm-msg">
+      La demande de <strong>{{ approveTarget.chefNom }}</strong> pour
+      <strong>{{ approveTarget.titrePoste }}</strong>
+      sera approuvée et une offre d'emploi sera automatiquement créée et publiée.
+    </p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" (click)="cancelApprove()" [disabled]="saving"><i class="ti ti-x"></i> Annuler</button>
+      <button class="btn-primary"   (click)="confirmApprove()" [disabled]="saving">
+        @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+        @else { <i class="ti ti-circle-check"></i> }
+        Approuver et publier
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     REJECT MODAL
+══════════════════════════════════════════════════════ -->
+@if (rejectTarget) {
+  <div class="modal-overlay" (click)="cancelReject()"></div>
+  <div class="modal-panel reject-modal">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon modal-icon-reject"><i class="ti ti-circle-x"></i></div>
+        <div>
+          <h2 class="modal-title">Rejeter la demande</h2>
+          <p class="modal-sub">{{ rejectTarget.titrePoste }} · {{ rejectTarget.chefNom }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="cancelReject()"><i class="ti ti-x"></i></button>
+    </div>
+    <form [formGroup]="rejectForm" (ngSubmit)="confirmReject()" novalidate class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Motif du rejet <span class="req">*</span></label>
+        <textarea class="field-input" rows="4" formControlName="motif"
+                  [class.has-error]="hasRejectError()"
+                  placeholder="Budget, timing, priorité stratégique…"></textarea>
+        @if (hasRejectError()) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Motif requis (5 caractères min)</small>
+        }
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="cancelReject()" [disabled]="saving"><i class="ti ti-x"></i> Annuler</button>
+        <button type="submit" class="btn-danger" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-circle-x"></i> }
+          Rejeter
+        </button>
+      </div>
+    </form>
+  </div>
+}

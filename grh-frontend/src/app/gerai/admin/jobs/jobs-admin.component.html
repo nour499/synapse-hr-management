@@ -1,0 +1,548 @@
+<div class="jobs-page">
+
+  <!-- ── Header ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-briefcase"></i></div>
+      <div>
+        <h1 class="page-title">Offres d'emploi</h1>
+        <p class="page-sub">Gérez les postes ouverts et le processus de recrutement</p>
+      </div>
+    </div>
+    <button class="btn-primary" (click)="openCreate()">
+      <i class="ti ti-plus"></i> Nouvelle offre
+    </button>
+  </div>
+
+  <!-- ── KPI strip ─────────────────────────────────── -->
+  <div class="kpi-strip">
+    <button class="kpi-card" [class.active]="filterStatut === ''" (click)="setStatut('')">
+      <i class="ti ti-briefcase kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.total }}</span><span class="kpi-lbl">Total offres</span></div>
+    </button>
+    <button class="kpi-card kpi-ouvert" [class.active]="filterStatut === 'OUVERT'" (click)="setStatut('OUVERT')">
+      <i class="ti ti-circle-check kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.ouverts }}</span><span class="kpi-lbl">Ouvertes</span></div>
+    </button>
+    <button class="kpi-card kpi-encours" [class.active]="filterStatut === 'EN_COURS'" (click)="setStatut('EN_COURS')">
+      <i class="ti ti-clock kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.enCours }}</span><span class="kpi-lbl">En cours</span></div>
+    </button>
+    <button class="kpi-card kpi-ferme" [class.active]="filterStatut === 'FERME'" (click)="setStatut('FERME')">
+      <i class="ti ti-circle-x kpi-ico"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.fermes }}</span><span class="kpi-lbl">Fermées</span></div>
+    </button>
+    <div class="kpi-card kpi-postes">
+      <i class="ti ti-users kpi-ico kpi-ico-violet"></i>
+      <div class="kpi-body"><span class="kpi-val">{{ kpi.postes }}</span><span class="kpi-lbl">Postes à pourvoir</span></div>
+    </div>
+  </div>
+
+  <!-- ── Filters ───────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher par titre, département, lieu…"
+             [value]="search" (input)="setSearch($any($event.target).value)" />
+    </div>
+    <select class="filter-select" [value]="filterType" (change)="setType($any($event.target).value)">
+      <option value="">Tous les contrats</option>
+      @for (t of allTypes; track t) {
+        <option [value]="t">{{ typeLabels[t] }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- ── Table ─────────────────────────────────────── -->
+  @if (loading) {
+  <app-skeleton-rows [rows]="6" [cols]="5" [withAvatar]="false" />
+} @else if (filtered.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="ti ti-briefcase"></i></div>
+      <h3>Aucune offre trouvée</h3>
+      <p>Créez une nouvelle offre ou modifiez vos filtres.</p>
+      <button class="btn-primary" (click)="openCreate()"><i class="ti ti-plus"></i> Nouvelle offre</button>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="jobs-table">
+        <thead>
+          <tr>
+            <th>Intitulé du poste</th>
+            <th>Statut</th>
+            <th>Date de publication</th>
+            <th>Niveau</th>
+            <th>Postes</th>
+            <th>Département</th>
+            <th>Type de contrat</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (j of paginated; track j.id) {
+            <tr [class.row-open]="j.statut === 'OUVERT'">
+
+              <!-- Titre -->
+              <td>
+                <div class="title-cell">
+                  <div class="job-icon-wrap">
+                    <i class="ti ti-briefcase"></i>
+                  </div>
+                  <div>
+                    <span class="job-title">{{ j.titre }}</span>
+                    @if (j.lieu) {
+                      <span class="job-lieu"><i class="ti ti-map-pin"></i>{{ j.lieu }}</span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Statut -->
+              <td>
+                <span class="statut-badge"
+                      [class.s-ouvert]="j.statut === 'OUVERT'"
+                      [class.s-encours]="j.statut === 'EN_COURS'"
+                      [class.s-ferme]="j.statut === 'FERME'"
+                      [class.s-attente]="j.statut === 'EN_ATTENTE'">
+                  <span class="s-dot"></span>
+                  {{ statusLabels[j.statut] }}
+                </span>
+              </td>
+
+              <!-- Date -->
+              <td>
+                <span class="date-val">{{ j.datePublication | date:'dd/MM/yyyy' }}</span>
+              </td>
+
+              <!-- Niveau -->
+              <td>
+                <span class="role-badge"
+                      [class.role-junior]="j.role === 'JUNIOR' || j.role === 'STAGIAIRE'"
+                      [class.role-senior]="j.role === 'SENIOR' || j.role === 'LEAD'"
+                      [class.role-manager]="j.role === 'MANAGER' || j.role === 'DIRECTEUR'">
+                  {{ roleLabels[j.role] }}
+                </span>
+              </td>
+
+              <!-- Postes -->
+              <td>
+                <span class="postes-badge">
+                  <i class="ti ti-users"></i> {{ j.postes }}
+                </span>
+              </td>
+
+              <!-- Département -->
+              <td>
+                <span class="dept-badge">{{ j.departement }}</span>
+              </td>
+
+              <!-- Type contrat -->
+              <td>
+                <span class="type-badge"
+                      [class.type-cdi]="j.typeContrat === 'CDI'"
+                      [class.type-cdd]="j.typeContrat === 'CDD'"
+                      [class.type-stage]="j.typeContrat === 'STAGE'"
+                      [class.type-free]="j.typeContrat === 'FREELANCE'"
+                      [class.type-alt]="j.typeContrat === 'ALTERNANCE'">
+                  {{ typeLabels[j.typeContrat] }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button class="btn-action btn-questions" title="Gérer les questions" (click)="openQuestions(j)">
+                  <i class="ti ti-list-check"></i>
+                </button>
+                <button class="btn-action btn-edit"   title="Modifier"   (click)="openEdit(j)">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <button class="btn-action btn-delete" title="Supprimer"  (click)="askDelete(j)">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginator [total]="filtered.length" [pageSize]="pageSize" [page]="page" (pageChange)="page=$event" />
+    </div>
+
+    <p class="row-count">
+      <i class="ti ti-briefcase"></i>
+      {{ filtered.length }} offre{{ filtered.length > 1 ? 's' : '' }}
+      @if (filtered.length < jobs.length) {
+        <span class="row-filtered"> sur {{ jobs.length }}</span>
+      }
+    </p>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     CREATE / EDIT MODAL
+══════════════════════════════════════════════════════ -->
+@if (editItem || isCreating) {
+  <div class="modal-overlay" (click)="closeForm()"></div>
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon"><i class="ti ti-briefcase"></i></div>
+        <div>
+          <h2 class="modal-title">{{ isCreating ? 'Nouvelle offre' : 'Modifier l\'offre' }}</h2>
+          @if (!isCreating && editItem) {
+            <p class="modal-sub">{{ editItem.titre }}</p>
+          }
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeForm()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submitForm()" novalidate class="modal-body">
+
+      <!-- Titre -->
+      <div class="field-group">
+        <label class="field-label">Intitulé du poste <span class="req">*</span></label>
+        <div class="input-icon-wrap">
+          <i class="ti ti-briefcase input-icon"></i>
+          <input type="text" class="field-input with-icon" formControlName="titre"
+                 [class.has-error]="hasError('titre')"
+                 placeholder="ex: Développeur Full-Stack" />
+        </div>
+        @if (hasError('titre')) {
+          <small class="field-error"><i class="ti ti-alert-circle"></i> Intitulé requis</small>
+        }
+      </div>
+
+      <!-- Statut + Date -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Statut <span class="req">*</span></label>
+          <div class="statut-grid">
+            @for (s of allStatuts; track s) {
+              <label class="statut-opt"
+                     [class.s-sel-ouvert]="form.get('statut')?.value === s && s === 'OUVERT'"
+                     [class.s-sel-encours]="form.get('statut')?.value === s && s === 'EN_COURS'"
+                     [class.s-sel-ferme]="form.get('statut')?.value === s && s === 'FERME'"
+                     [class.s-sel-attente]="form.get('statut')?.value === s && s === 'EN_ATTENTE'"
+                     [class.selected]="form.get('statut')?.value === s">
+                <input type="radio" formControlName="statut" [value]="s" hidden />
+                <span class="s-dot-sm"></span>{{ statusLabels[s] }}
+              </label>
+            }
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Date de publication <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-calendar input-icon"></i>
+            <input type="date" class="field-input with-icon" formControlName="datePublication"
+                   [class.has-error]="hasError('datePublication')" />
+          </div>
+          @if (hasError('datePublication')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Date requise</small>
+          }
+        </div>
+      </div>
+
+      <!-- Niveau + Postes -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Niveau <span class="req">*</span></label>
+          <select class="field-input" formControlName="role" [class.has-error]="hasError('role')">
+            @for (r of allRoles; track r) {
+              <option [value]="r">{{ roleLabels[r] }}</option>
+            }
+          </select>
+          @if (hasError('role')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Niveau requis</small>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label">Nombre de postes <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-users input-icon"></i>
+            <input type="number" class="field-input with-icon" formControlName="postes" min="1"
+                   [class.has-error]="hasError('postes')" />
+          </div>
+          @if (hasError('postes')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Valeur invalide</small>
+          }
+        </div>
+      </div>
+
+      <!-- Département + Lieu -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label class="field-label">Département <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-building input-icon"></i>
+            <input type="text" class="field-input with-icon" formControlName="departement"
+                   [class.has-error]="hasError('departement')"
+                   placeholder="ex: Informatique" />
+          </div>
+          @if (hasError('departement')) {
+            <small class="field-error"><i class="ti ti-alert-circle"></i> Département requis</small>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label">Lieu <span class="opt-tag">optionnel</span></label>
+          <div class="input-icon-wrap">
+            <i class="ti ti-map-pin input-icon"></i>
+            <input type="text" class="field-input with-icon" formControlName="lieu"
+                   placeholder="ex: Tunis" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Type de contrat -->
+      <div class="field-group">
+        <label class="field-label">Type de contrat <span class="req">*</span></label>
+        <div class="type-grid">
+          @for (t of allTypes; track t) {
+            <label class="type-opt" [class.selected]="form.get('typeContrat')?.value === t">
+              <input type="radio" formControlName="typeContrat" [value]="t" hidden />
+              {{ typeLabels[t] }}
+            </label>
+          }
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="field-group">
+        <div class="field-label-row">
+          <label class="field-label">Description <span class="opt-tag">optionnel</span></label>
+          <button type="button" class="btn-ai-gen" (click)="generateDescription()" [disabled]="generatingDesc">
+            @if (generatingDesc) { <span class="spinner-border spinner-border-sm"></span> }
+            @else { <i class="ti ti-sparkles"></i> }
+            Générer avec IA
+          </button>
+        </div>
+        <textarea class="field-input" rows="5" formControlName="description"
+                  placeholder="Missions, compétences requises…"></textarea>
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="saving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-device-floppy"></i> }
+          {{ isCreating ? 'Publier' : 'Enregistrer' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════
+     CONFIRM DELETE
+══════════════════════════════════════════════════════ -->
+<app-confirm-modal
+  [open]="deleteTarget !== null"
+  title="Supprimer cette offre ?"
+  [message]="deleteMessage"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()"
+/>
+
+<!-- ══════════════════════════════════════════════════
+     QUESTIONS PANEL (side drawer)
+══════════════════════════════════════════════════════ -->
+@if (questionsJob) {
+  <div class="modal-overlay" (click)="closeQuestions()"></div>
+  <div class="modal-panel modal-panel--wide">
+
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-icon modal-icon--blue"><i class="ti ti-list-check"></i></div>
+        <div>
+          <h2 class="modal-title">Questions de screening</h2>
+          <p class="modal-sub">{{ questionsJob.titre }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeQuestions()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body questions-body">
+
+      @if (loadingQuestions) {
+        <div class="q-loading"><span class="spinner-border spinner-border-sm"></span> Chargement…</div>
+      } @else {
+
+        <!-- ── SECTION 1 : Questions éliminatoires ─────────────── -->
+        <section class="q-section">
+          <div class="q-section-header q-section-header--killer">
+            <div class="q-section-icon"><i class="ti ti-shield-check"></i></div>
+            <div>
+              <h3>Questions éliminatoires</h3>
+              <p>Réponse incorrecte = candidature rejetée automatiquement</p>
+            </div>
+            <span class="q-count-badge">{{ killerQuestions.length }}</span>
+          </div>
+
+          @if (killerQuestions.length === 0) {
+            <p class="q-empty">Aucune question éliminatoire — tous les candidats passent cette étape.</p>
+          } @else {
+            <ul class="q-list">
+              @for (kq of killerQuestions; track kq.id; let i = $index) {
+                <li class="q-item q-item--killer">
+                  <div class="q-item-left">
+                    <span class="q-num">{{ i + 1 }}</span>
+                    <div class="q-item-body">
+                      <p class="q-text">{{ kq.question }}</p>
+                      <span class="q-answer-badge"
+                            [class.badge-yes]="kq.expectedAnswer === 'OUI'"
+                            [class.badge-no]="kq.expectedAnswer === 'NON'">
+                        Réponse attendue : {{ kq.expectedAnswer === 'OUI' ? 'Oui' : 'Non' }}
+                      </span>
+                    </div>
+                  </div>
+                  <button class="btn-action btn-delete btn-delete-sm" title="Supprimer"
+                          (click)="deleteKillerQuestion(kq.id)">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <!-- Add killer question form -->
+          <div class="q-add-form">
+            <h4 class="q-add-title"><i class="ti ti-plus"></i> Ajouter une question éliminatoire</h4>
+            <div class="q-add-row">
+              <input class="q-input q-input--grow" placeholder="Question (ex: Avez-vous le permis B ?)"
+                     [(ngModel)]="newKiller.question" />
+              <div class="q-yn-toggle">
+                <label class="q-yn-opt" [class.active]="newKiller.expectedAnswer === 'OUI'">
+                  <input type="radio" [(ngModel)]="newKiller.expectedAnswer" value="OUI" hidden />
+                  <i class="ti ti-check"></i> Oui
+                </label>
+                <label class="q-yn-opt" [class.active]="newKiller.expectedAnswer === 'NON'">
+                  <input type="radio" [(ngModel)]="newKiller.expectedAnswer" value="NON" hidden />
+                  <i class="ti ti-x"></i> Non
+                </label>
+              </div>
+              <button class="btn-primary btn-sm" (click)="addKillerQuestion()" [disabled]="savingQuestion">
+                @if (savingQuestion) { <span class="spinner-border spinner-border-sm"></span> }
+                @else { <i class="ti ti-plus"></i> Ajouter }
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── SECTION 2 : Questions de présélection ───────────── -->
+        <section class="q-section">
+          <div class="q-section-header q-section-header--screening">
+            <div class="q-section-icon q-section-icon--blue"><i class="ti ti-star"></i></div>
+            <div>
+              <h3>Questions de présélection</h3>
+              <p>Contribuent au score de matching du candidat (0 – 100)</p>
+            </div>
+            <span class="q-count-badge q-count-badge--blue">{{ screeningQuestions.length }}</span>
+          </div>
+
+          @if (screeningQuestions.length === 0) {
+            <p class="q-empty">Aucune question de présélection — tous les candidats auront un score de 0.</p>
+          } @else {
+            <ul class="q-list">
+              @for (sq of screeningQuestions; track sq.id; let i = $index) {
+                <li class="q-item">
+                  <div class="q-item-left">
+                    <span class="q-num q-num--blue">{{ i + 1 }}</span>
+                    <div class="q-item-body">
+                      <p class="q-text">{{ sq.question }}</p>
+                      <div class="q-meta-row">
+                        <span class="q-type-badge">{{ sqTypeLabel(sq.type) }}</span>
+                        <span class="q-weight-badge">Poids ×{{ sq.weight }}</span>
+                        @if (sq.correctAnswer) {
+                          <span class="q-answer-badge badge-yes">Attendu : {{ sq.correctAnswer }}</span>
+                        }
+                        @if (sq.options?.length > 0) {
+                          <span class="q-opts-badge">{{ sq.options.join(' · ') }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn-action btn-delete btn-delete-sm" title="Supprimer"
+                          (click)="deleteScreeningQuestion(sq.id)">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <!-- Add screening question form -->
+          <div class="q-add-form">
+            <h4 class="q-add-title"><i class="ti ti-plus"></i> Ajouter une question de présélection</h4>
+            <div class="q-add-row">
+              <input class="q-input q-input--grow" placeholder="Question (ex: Années d'expérience en Java ?)"
+                     [(ngModel)]="newScreening.question" />
+              <select class="q-select" [(ngModel)]="newScreening.type">
+                @for (t of sqTypes; track t.value) {
+                  <option [value]="t.value">{{ t.label }}</option>
+                }
+              </select>
+            </div>
+            @if (newScreening.type === 'SINGLE_CHOICE') {
+              <div class="q-add-row q-add-row--sub">
+                <input class="q-input q-input--grow" placeholder="Options séparées par des virgules (ex: 0-2 ans, 3-5 ans, 5+ ans)"
+                       [(ngModel)]="newScreening.options" />
+                <input class="q-input q-input--sm" placeholder="Bonne réponse"
+                       [(ngModel)]="newScreening.correctAnswer" />
+              </div>
+            }
+            @if (newScreening.type === 'YES_NO') {
+              <div class="q-add-row q-add-row--sub">
+                <div class="q-yn-toggle">
+                  <label class="q-yn-opt" [class.active]="newScreening.correctAnswer === 'OUI'">
+                    <input type="radio" [(ngModel)]="newScreening.correctAnswer" value="OUI" hidden />
+                    <i class="ti ti-check"></i> Oui
+                  </label>
+                  <label class="q-yn-opt" [class.active]="newScreening.correctAnswer === 'NON'">
+                    <input type="radio" [(ngModel)]="newScreening.correctAnswer" value="NON" hidden />
+                    <i class="ti ti-x"></i> Non
+                  </label>
+                </div>
+                <span class="q-help-text">Sélectionnez la réponse attendue</span>
+              </div>
+            }
+            @if (newScreening.type === 'NUMBER_SCALE') {
+              <div class="q-add-row q-add-row--sub">
+                <input type="number" class="q-input q-input--sm" placeholder="Valeur cible (ex: 5)"
+                       [(ngModel)]="newScreening.correctAnswer" />
+                <span class="q-help-text">Le score sera proportionnel à la valeur saisie vs. la valeur cible</span>
+              </div>
+            }
+            <div class="q-add-row q-add-row--sub">
+              <label class="q-weight-label">Poids (1–10) :</label>
+              <input type="number" class="q-input q-input--xs" min="1" max="10"
+                     [(ngModel)]="newScreening.weight" />
+              <button class="btn-primary btn-sm" (click)="addScreeningQuestion()" [disabled]="savingQuestion">
+                @if (savingQuestion) { <span class="spinner-border spinner-border-sm"></span> }
+                @else { <i class="ti ti-plus"></i> Ajouter }
+              </button>
+            </div>
+          </div>
+        </section>
+
+      }
+
+      @if (questionError) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ questionError }}</div>
+      }
+
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="closeQuestions()"><i class="ti ti-check"></i> Fermer</button>
+      </div>
+    </div>
+  </div>
+}

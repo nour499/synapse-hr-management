@@ -1,0 +1,155 @@
+// ══════════════════════════════════════════════════
+// NAV LEFT — SIDEBAR
+// ══════════════════════════════════════════════════
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.navbar-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Scrollable area ──────────────────────────────
+.nav-scroll {
+  flex: 1;
+  height: 100%;
+}
+
+// ── Nav list ─────────────────────────────────────
+.nav.coded-navbar {
+  padding: 10px 0 20px;
+  list-style: none;
+  margin: 0;
+}
+
+// ── Group caption label ──────────────────────────
+.nav-item.pcoded-menu-caption {
+  padding: 20px 20px 6px;
+  pointer-events: none;
+
+  label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin: 0;
+  }
+
+  &:first-child { padding-top: 10px; }
+}
+
+// ── Nav item ─────────────────────────────────────
+.nav-item {
+  list-style: none;
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-radius: 0 10px 10px 0;
+    margin-right: 12px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all .2s;
+    position: relative;
+
+    &:hover {
+      background: rgba(8, 145, 178, .08);
+      color: #0891B2;
+
+      .coded-micon i { color: #0891B2; }
+    }
+  }
+
+  // Active state
+  &.active > .nav-link,
+  .nav-link.active {
+    background: linear-gradient(90deg, rgba(8,145,178,.12), rgba(6,182,212,.06));
+    color: #0891B2;
+    font-weight: 700;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 4px;
+      border-radius: 0 4px 4px 0;
+      background: linear-gradient(180deg, #0891B2, #06B6D4);
+    }
+
+    .coded-micon i { color: #0891B2; }
+  }
+}
+
+// ── Icon ─────────────────────────────────────────
+.coded-micon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: transparent;
+  transition: background .2s;
+
+  i {
+    font-size: 18px;
+    color: #64748b;
+    pointer-events: none;
+    transition: color .2s;
+  }
+
+  .nav-link:hover &,
+  .nav-link.active & {
+    background: rgba(8,145,178,.1);
+    i { color: #0891B2; }
+  }
+}
+
+// ── Text ─────────────────────────────────────────
+.coded-mtext {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Déconnexion (pinned footer) ──────────────────
+.nav-logout-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #f1f5f9;
+  padding: 8px 0;
+
+  .logout-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-radius: 0 10px 10px 0;
+    margin-right: 12px;
+    color: #ef4444;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all .2s;
+
+    .coded-micon i { color: #ef4444; }
+
+    &:hover {
+      background: rgba(239,68,68,.08);
+      color: #dc2626;
+      .coded-micon i { color: #dc2626; }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+<app-navigation
+  class="coded-navbar pc-sidebar"
+  [ngClass]="{
+    'navbar-collapsed': navCollapsed,
+    horizontal: currentLayout === 'horizontal',
+    compact: currentLayout === 'compact',
+    'mob-open': navCollapsedMob
+  }"
+  (NavCollapsedMob)="navMobClick()"
+/>
+<app-nav-bar (NavCollapse)="this.navCollapsed = !this.navCollapsed" (NavCollapsedMob)="navMobClick()" />
+<div class="pc-container">
+  <div class="coded-wrapper">
+    <div class="coded-content">
+      <div class="coded-inner-content">
+        <app-breadcrumb />
+        <main id="main-content" class="main-body" role="main">
+          <div class="page-wrapper">
+            <router-outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+  <div class="pc-menu-overlay" (click)="closeMenu()" (keydown)="handleKeyDown($event)" tabindex="0"></div>
+</div>
+<footer class="pc-footer">
+  <div class="footer-wrapper container-fluid">
+    <div class="row">
+      <div class="col my-1">
+        <p class="m-0">
+          © 2026 SYNAPSE - Plateforme RH intelligente
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+<app-configuration />

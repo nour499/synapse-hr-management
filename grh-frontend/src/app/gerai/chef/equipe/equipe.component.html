@@ -1,0 +1,448 @@
+<div class="row">
+  <div class="col-sm-12">
+    <app-card cardTitle="Mon Équipe">
+
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">{{ membres.length }} membre(s) · {{ projets.length }} projet(s)</span>
+        <button class="btn btn-primary btn-sm" (click)="ouvrirModal()">
+          <i class="ti ti-user-plus me-1"></i> Affecter un membre
+        </button>
+      </div>
+
+      @if (loading) {
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <tbody>
+              @for (_ of [1,2,3,4]; track $index) {
+                <tr>
+                  <td><div class="d-flex align-items-center gap-2"><span class="sk sk-av"></span><span class="sk sk-md" style="width:130px"></span></div></td>
+                  <td><span class="sk sk-md" style="width:160px"></span></td>
+                  <td><span class="sk sk-pill"></span></td>
+                  <td><span class="sk sk-pill"></span></td>
+                  <td class="text-end d-flex gap-1 justify-content-end"><span class="sk sk-btn"></span><span class="sk sk-btn"></span><span class="sk sk-btn"></span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else if (error) {
+        <div class="alert alert-danger">{{ error }}</div>
+      } @else if (membres.length === 0) {
+        <div class="empty-team-state">
+          <i class="ti ti-users empty-team-icon"></i>
+          <h6>Aucun membre dans votre équipe</h6>
+          <p>
+            @if (projets.length === 0) {
+              Créez d'abord un projet, puis ajoutez des employés pour les voir ici.
+            } @else {
+              Ajoutez des employés à vos projets pour les voir apparaître ici.
+            }
+          </p>
+          @if (projets.length === 0) {
+            <button class="btn btn-primary btn-sm" (click)="naviguerVersProjets()">
+              <i class="ti ti-folder-plus me-1"></i>Créer un projet
+            </button>
+          } @else {
+            <button class="btn btn-primary btn-sm" (click)="ouvrirModal()">
+              <i class="ti ti-user-plus me-1"></i>Affecter un membre
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Membre</th>
+                <th>Email</th>
+                <th>Projet(s)</th>
+                <th>Statut</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of membres; track m.id) {
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="member-avatar-wrap">
+                      @if (m.photo) {
+                        <img class="member-photo" [src]="m.photo" [alt]="m.prenom" (error)="m.photo = undefined" />
+                      } @else {
+                        <div class="member-initials">{{ m.prenom.charAt(0) }}{{ m.nom.charAt(0) }}</div>
+                      }
+                    </div>
+                    <div>
+                      <div class="fw-semibold">{{ m.prenom }} {{ m.nom }}</div>
+                      <div class="text-muted small">{{ m.poste }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-muted">{{ m.email }}</td>
+                <td>
+                  <div class="projet-pills">
+                    @for (p of projetsDeMembre(m); track p.id) {
+                      <span class="projet-pill"
+                        [style.background]="p.couleur + '18'"
+                        [style.color]="p.couleur"
+                        [style.border-color]="p.couleur + '55'">
+                        {{ p.nom }}
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <span class="badge"
+                    [class.bg-success]="m.statut === 'ACTIF'"
+                    [class.bg-warning]="m.statut === 'CONGE'"
+                    [class.bg-secondary]="m.statut !== 'ACTIF' && m.statut !== 'CONGE'">
+                    {{ m.statut === 'ACTIF' ? 'Actif' : m.statut === 'CONGE' ? 'En congé' : (m.statut ?? 'Inconnu') }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-outline-primary btn-icon-sm me-1"
+                          title="Voir le profil" (click)="ouvrirProfilModal(m)">
+                    <i class="ti ti-user"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary btn-icon-sm me-1"
+                          title="Voir les demandes" (click)="voirDemandes(m)">
+                    <i class="ti ti-file-text"></i>
+                  </button>
+                  <button class="btn btn-outline-success btn-icon-sm"
+                          title="Évaluer" (click)="evaluerMembre(m)">
+                    <i class="ti ti-clipboard-check"></i>
+                  </button>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+    </app-card>
+  </div>
+</div>
+
+<!-- ── Modal Profil Employé ── -->
+@if (showProfilModal && membreSelectionne) {
+<div class="modal-backdrop-custom" (click)="fermerProfilModal()"></div>
+<div class="modal-custom modal-profil">
+  <div class="modal-custom-header">
+    <h5 class="mb-0"><i class="ti ti-user-circle me-2"></i>Profil employé</h5>
+    <button class="btn-close-modal" (click)="fermerProfilModal()">
+      <i class="ti ti-x"></i>
+    </button>
+  </div>
+
+  <div class="modal-custom-body">
+
+    <div class="profil-hero">
+      <div class="member-avatar-wrap member-avatar-lg">
+        @if (membreSelectionne.photo) {
+          <img class="member-photo" [src]="membreSelectionne.photo" [alt]="membreSelectionne.prenom"
+               (error)="membreSelectionne.photo = undefined" />
+        } @else {
+          <div class="member-initials">{{ membreSelectionne.prenom.charAt(0) }}{{ membreSelectionne.nom.charAt(0) }}</div>
+        }
+      </div>
+      <div class="profil-identity">
+        <h4 class="profil-name">{{ membreSelectionne.prenom }} {{ membreSelectionne.nom }}</h4>
+        <p class="profil-poste">{{ membreSelectionne.poste }}</p>
+        <span class="profil-statut-badge"
+          [class.badge-actif]="membreSelectionne.statut === 'ACTIF'"
+          [class.badge-conge]="membreSelectionne.statut === 'CONGE'"
+          [class.badge-inactif]="membreSelectionne.statut === 'INACTIF'">
+          {{ membreSelectionne.statut === 'ACTIF' ? 'Actif' : membreSelectionne.statut === 'CONGE' ? 'En congé' : 'Inactif' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="profil-sections">
+
+      <div class="profil-section">
+        <h6 class="section-title"><i class="ti ti-address-book me-1"></i>Contact</h6>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Email</span>
+            <span class="info-val">{{ membreSelectionne.email }}</span>
+          </div>
+          @if (membreSelectionne.telephone) {
+          <div class="info-item">
+            <span class="info-label">Téléphone</span>
+            <span class="info-val">{{ membreSelectionne.telephone }}</span>
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="profil-section">
+        <h6 class="section-title"><i class="ti ti-building me-1"></i>Informations RH</h6>
+        <div class="info-grid">
+          @if (membreSelectionne.departement) {
+          <div class="info-item">
+            <span class="info-label">Département</span>
+            <span class="info-val">{{ membreSelectionne.departement }}</span>
+          </div>
+          }
+          <div class="info-item">
+            <span class="info-label">Date d'embauche</span>
+            <span class="info-val">{{ membreSelectionne.dateEmbauche | date:'dd/MM/yyyy' }}</span>
+          </div>
+          @if (membreSelectionne.anciennete) {
+          <div class="info-item">
+            <span class="info-label">Ancienneté</span>
+            <span class="info-val">{{ membreSelectionne.anciennete }}</span>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Projets du membre -->
+      @if (projetsDeMembre(membreSelectionne).length > 0) {
+      <div class="profil-section">
+        <h6 class="section-title"><i class="ti ti-folders me-1"></i>Projets</h6>
+        <div class="projet-pills">
+          @for (p of projetsDeMembre(membreSelectionne); track p.id) {
+            <span class="projet-pill"
+              [style.background]="p.couleur + '18'"
+              [style.color]="p.couleur"
+              [style.border-color]="p.couleur + '55'">
+              {{ p.nom }}
+            </span>
+          }
+        </div>
+      </div>
+      }
+
+      <div class="profil-stats-row">
+        <div class="profil-stat-box">
+          <span class="stat-val">{{ membreSelectionne.congesRestants ?? '—' }}</span>
+          <span class="stat-lbl">Congés restants</span>
+        </div>
+        <div class="profil-stat-box">
+          <span class="stat-val">{{ membreSelectionne.tachesCompletes ?? '—' }}</span>
+          <span class="stat-lbl">Tâches terminées</span>
+        </div>
+      </div>
+
+      @if (membreSelectionne.competences && membreSelectionne.competences.length > 0) {
+      <div class="profil-section">
+        <h6 class="section-title"><i class="ti ti-tool me-1"></i>Compétences</h6>
+        <div class="competences-wrap">
+          @for (c of membreSelectionne.competences; track c) {
+            <span class="competence-chip">{{ c }}</span>
+          }
+        </div>
+      </div>
+      }
+
+    </div>
+
+    <div class="profil-footer">
+      <button class="btn btn-outline-secondary btn-sm" (click)="fermerProfilModal()">Fermer</button>
+      <button class="btn btn-outline-primary btn-sm" (click)="voirDemandes(membreSelectionne); fermerProfilModal()">
+        <i class="ti ti-file-text me-1"></i>Voir ses demandes
+      </button>
+    </div>
+
+  </div>
+</div>
+}
+
+<!-- ── Modal Ajouter Employé ── -->
+@if (showModal) {
+<div class="modal-backdrop-custom"
+     (click)="employeChoisi ? null : fermerModal()"></div>
+<div class="modal-custom">
+  <div class="modal-custom-header">
+    <div>
+      <h5 class="mb-0"><i class="ti ti-user-plus me-2"></i>Ajouter un membre à l'équipe</h5>
+      @if (modalEtape === 'select-project' && employeChoisi) {
+        <p class="modal-subtitle">
+          <i class="ti ti-user me-1"></i>
+          {{ employeChoisi.prenom }} {{ employeChoisi.nom }}
+        </p>
+      }
+      @if (modalEtape === 'confirm' && selectedProjet) {
+        <p class="modal-subtitle">
+          <span class="projet-dot" [style.background]="selectedProjet.couleur"></span>
+          {{ selectedProjet.nom }}
+        </p>
+      }
+    </div>
+    <button class="btn-close-modal" (click)="fermerModal()"><i class="ti ti-x"></i></button>
+  </div>
+
+  <div class="modal-custom-body">
+
+    <!-- ── Étape : Aucun projet ── -->
+    @if (modalEtape === 'no-project') {
+      <div class="no-project-state">
+        <div class="np-icon-wrap">
+          <i class="ti ti-folder-off"></i>
+        </div>
+        <h6 class="np-title">Aucun projet créé</h6>
+        <p class="np-desc">
+          Vous devez d'abord créer un projet avant de pouvoir ajouter des membres à votre équipe.
+        </p>
+        <div class="d-flex justify-content-center gap-2 mt-4">
+          <button class="btn btn-light btn-sm" (click)="fermerModal()">Annuler</button>
+          <button class="btn btn-primary btn-sm" (click)="naviguerVersProjets()">
+            <i class="ti ti-folder-plus me-1"></i>Créer un projet
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Étape 1 : Rechercher un employé ── -->
+    @if (modalEtape === 'search') {
+      <p class="search-hint">Recherchez l'employé que vous souhaitez ajouter à un projet.</p>
+
+      <div class="search-input-wrap">
+        <i class="ti ti-search search-icon"></i>
+        <input
+          type="text"
+          class="form-control search-input"
+          placeholder="Nom, prénom ou email…"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+          autocomplete="off" />
+        @if (searching) {
+          <span class="search-spinner"><i class="ti ti-loader-2 spin"></i></span>
+        }
+      </div>
+
+      @if (searchResults.length > 0) {
+        <ul class="search-dropdown">
+          @for (e of searchResults; track e.id) {
+            <li class="search-result-item" (click)="selectionnerEmploye(e)">
+              <div class="sri-avatar-wrap">
+                @if (e.photo) {
+                  <img class="sri-photo" [src]="e.photo" [alt]="e.prenom" (error)="e.photo = undefined" />
+                } @else {
+                  <div class="sri-avatar">{{ e.prenom.charAt(0) }}{{ e.nom.charAt(0) }}</div>
+                }
+              </div>
+              <div class="sri-info">
+                <span class="sri-name">{{ e.prenom }} {{ e.nom }}</span>
+                <span class="sri-meta">{{ e.poste ?? '—' }} · {{ e.departement ?? '—' }}</span>
+              </div>
+              <i class="ti ti-chevron-right sri-arrow"></i>
+            </li>
+          }
+        </ul>
+      } @else if (searchQuery.length >= 2 && !searching) {
+        <p class="search-empty">Aucun employé trouvé pour « {{ searchQuery }} »</p>
+      }
+
+      <div class="d-flex justify-content-end mt-4">
+        <button class="btn btn-light btn-sm" (click)="fermerModal()">Annuler</button>
+      </div>
+    }
+
+    <!-- ── Étape 2 : Sélectionner le projet ── -->
+    @if (modalEtape === 'select-project') {
+      @if (projetsDisponiblesPourEmploye().length === 0) {
+        <div class="text-center py-4 text-muted">
+          <i class="ti ti-check-circle" style="font-size:32px;color:#2ed8b6"></i>
+          <p class="mt-2 mb-0">
+            {{ employeChoisi?.prenom }} {{ employeChoisi?.nom }} fait déjà partie de tous vos projets.
+          </p>
+        </div>
+      } @else {
+        <p class="search-hint">
+          Sélectionnez le projet auquel ajouter
+          <strong>{{ employeChoisi?.prenom }} {{ employeChoisi?.nom }}</strong>.
+        </p>
+        <div class="projet-select-list">
+          @for (p of projetsDisponiblesPourEmploye(); track p.id) {
+            <div class="projet-select-card" (click)="selectionnerProjet(p)">
+              <div class="psc-color" [style.background]="p.couleur"></div>
+              <div class="psc-info">
+                <span class="psc-nom">{{ p.nom }}</span>
+                <span class="psc-meta">
+                  {{ (p.membres ?? []).length }} membre(s)
+                  <span class="psc-sep">·</span>
+                  {{ p.statut }}
+                </span>
+              </div>
+              <i class="ti ti-chevron-right psc-arrow"></i>
+            </div>
+          }
+        </div>
+      }
+      <div class="d-flex justify-content-between mt-4">
+        <button class="btn btn-light btn-sm" (click)="retourSelectionProjet()">
+          <i class="ti ti-arrow-left me-1"></i>Retour
+        </button>
+        <button class="btn btn-light btn-sm" (click)="fermerModal()">Annuler</button>
+      </div>
+    }
+
+    <!-- ── Étape 3 : Confirmation ── -->
+    @if (modalEtape === 'confirm') {
+      <div class="employe-preview">
+        <div class="ep-avatar-wrap">
+          @if (employeChoisi?.photo) {
+            <img class="ep-photo" [src]="employeChoisi!.photo" [alt]="employeChoisi!.prenom" (error)="employeChoisi!.photo = undefined" />
+          } @else {
+            <div class="ep-avatar">{{ employeChoisi!.prenom.charAt(0) }}{{ employeChoisi!.nom.charAt(0) }}</div>
+          }
+        </div>
+        <div class="ep-info">
+          <p class="ep-name">{{ employeChoisi!.prenom }} {{ employeChoisi!.nom }}</p>
+          <p class="ep-meta">{{ employeChoisi!.poste ?? '—' }} · {{ employeChoisi!.departement ?? '—' }}</p>
+          <p class="ep-email"><i class="ti ti-mail me-1"></i>{{ employeChoisi!.email }}</p>
+          @if (employeChoisi!.telephone) {
+            <p class="ep-tel"><i class="ti ti-phone me-1"></i>{{ employeChoisi!.telephone }}</p>
+          }
+        </div>
+        <button class="ep-change" (click)="reinitialiserRecherche()" title="Changer">
+          <i class="ti ti-pencil"></i>
+        </button>
+      </div>
+
+      <div class="statut-select-wrap mt-3">
+        <label class="form-label fw-semibold">Statut dans le projet</label>
+        <div class="statut-options">
+          <label class="statut-option" [class.selected]="statutAjouter === 'ACTIF'">
+            <input type="radio" name="statut" value="ACTIF" [(ngModel)]="statutAjouter" />
+            <i class="ti ti-circle-check text-success"></i> Actif
+          </label>
+          <label class="statut-option" [class.selected]="statutAjouter === 'CONGE'">
+            <input type="radio" name="statut" value="CONGE" [(ngModel)]="statutAjouter" />
+            <i class="ti ti-beach text-warning"></i> En congé
+          </label>
+          <label class="statut-option" [class.selected]="statutAjouter === 'INACTIF'">
+            <input type="radio" name="statut" value="INACTIF" [(ngModel)]="statutAjouter" />
+            <i class="ti ti-user-off text-secondary"></i> Inactif
+          </label>
+        </div>
+      </div>
+
+      @if (ajoutError) {
+        <p class="text-danger small mt-2"><i class="ti ti-alert-circle me-1"></i>{{ ajoutError }}</p>
+      }
+
+      <div class="d-flex justify-content-between mt-4">
+        <button class="btn btn-light btn-sm" (click)="retourConfirm()">
+          <i class="ti ti-arrow-left me-1"></i>Retour
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-light btn-sm" (click)="fermerModal()">Annuler</button>
+          <button class="btn btn-primary btn-sm" [disabled]="saving" (click)="confirmerAjout()">
+            @if (saving) {
+              <i class="ti ti-loader-2 spin me-1"></i>En cours…
+            } @else {
+              <i class="ti ti-user-plus me-1"></i>Confirmer l'ajout
+            }
+          </button>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>
+}

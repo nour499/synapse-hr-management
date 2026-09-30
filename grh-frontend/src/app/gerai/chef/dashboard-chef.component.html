@@ -1,0 +1,361 @@
+<div class="chef-dashboard">
+
+  <!-- ── Welcome Banner ── -->
+  <div class="chef-banner mb-4">
+    <div class="banner-left">
+      <div class="chef-badge">
+        <i class="ti ti-shield-check"></i>
+        <span>Chef d'équipe</span>
+      </div>
+      <h2 class="banner-name">
+        @if (userName) { {{ userName }} }
+        @else { <div class="skel-name"></div> }
+      </h2>
+      <p class="banner-sub">
+        @if (userEmail) { {{ userEmail }} }
+        @else { <div class="skel-email"></div> }
+      </p>
+    </div>
+    <div class="banner-stats">
+      <div class="banner-stat">
+        <span class="bstat-val">{{ membres.length }}</span>
+        <span class="bstat-lbl">Membres</span>
+      </div>
+      <div class="banner-divider"></div>
+      <div class="banner-stat">
+        <span class="bstat-val">{{ demandesEnAttente }}</span>
+        <span class="bstat-lbl">En attente</span>
+      </div>
+      <div class="banner-divider"></div>
+      <div class="banner-stat">
+        <span class="bstat-val">{{ tachesEnRetardCount }}</span>
+        <span class="bstat-lbl">En retard</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 1 : KPIs ── -->
+  <div class="row g-3 mb-4">
+
+    <!-- KPI 1 : Demandes en attente -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-amber cursor-pointer"
+        (click)="naviguerVersDemandesEnAttente()">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-clipboard-check"></i></div>
+        <div class="kpi-value">{{ demandesEnAttente }}</div>
+        <div class="kpi-label">Demandes à traiter</div>
+        <div class="kpi-tag"><i class="ti ti-urgent"></i> Validation requise</div>
+      </div>
+    </div>
+
+    <!-- KPI 2 : Tâches en retard -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-red cursor-pointer"
+        (click)="naviguerVers('/chef/taches')">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-alert-circle"></i></div>
+        <div class="kpi-value">{{ tachesEnRetardCount }}</div>
+        <div class="kpi-label">Tâches en retard</div>
+        <div class="kpi-tag"><i class="ti ti-clock"></i> Dépassé l'échéance</div>
+      </div>
+    </div>
+
+    <!-- KPI 3 : Absences aujourd'hui -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-navy cursor-pointer"
+        (click)="naviguerVers('/chef/equipe')">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-user-off"></i></div>
+        <div class="kpi-value">{{ absencesAujourdhui }}</div>
+        <div class="kpi-label">Absences aujourd'hui</div>
+        <div class="kpi-tag"><i class="ti ti-users"></i> {{ membresPresents }} / {{ membres.length }} présents</div>
+      </div>
+    </div>
+
+    <!-- KPI 4 : Projets à risque -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-violet cursor-pointer"
+        (click)="naviguerVers('/chef/projets')">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-alert-triangle"></i></div>
+        <div class="kpi-value">{{ projetsARisqueCount }}</div>
+        <div class="kpi-label">Projets à risque</div>
+        <div class="kpi-tag"><i class="ti ti-calendar-x"></i> Échéance proche ou retard</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Row 2 : Demandes à valider + Présence équipe ── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Demandes à valider -->
+    <div class="col-xl-4">
+      <div class="dash-card h-100">
+        <div class="card-head">
+          <h6 class="card-title-custom">
+            <i class="ti ti-clipboard-check me-2 text-warning"></i>
+            Demandes à valider
+          </h6>
+          <span class="pending-count">{{ demandesEnAttente }}</span>
+        </div>
+
+        @if (loading) {
+          <div class="text-center py-4 text-muted small">Chargement…</div>
+        } @else if (demandesAValider.length === 0) {
+          <div class="empty-state">
+            <i class="ti ti-circle-check"></i>
+            <p>Aucune demande en attente</p>
+          </div>
+        } @else {
+          <ul class="item-list">
+            @for (d of demandesAValider; track d.id) {
+              <li class="item-row cursor-pointer" (click)="naviguerVers('/chef/demandes/' + d.id)">
+                <div class="employe-avatar-sm">{{ d.employeInitiales }}</div>
+                <div class="item-info">
+                  <p class="item-name">{{ d.employePrenom }} {{ d.employeNom }}</p>
+                  <small class="item-date">
+                    <span class="type-tag">{{ d.typeLabel ?? d.type }}</span>
+                    · {{ d.dateCreation | date:'dd/MM/yyyy' }}
+                  </small>
+                </div>
+                <i class="ti ti-chevron-right text-muted"></i>
+              </li>
+            }
+          </ul>
+        }
+
+        <a class="see-all cursor-pointer" (click)="naviguerVersDemandesEnAttente()">
+          Toutes les demandes <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Présence équipe aujourd'hui -->
+    <div class="col-xl-8">
+      <div class="dash-card h-100">
+        <div class="card-head">
+          <h6 class="card-title-custom">
+            <i class="ti ti-users me-2 text-primary"></i>
+            Présence équipe aujourd'hui
+          </h6>
+          <div class="d-flex gap-2">
+            <span class="badge-present">{{ membresPresents }} présents</span>
+            @if (absencesAujourdhui > 0) {
+              <span class="badge-absent">{{ absencesAujourdhui }} absents</span>
+            }
+          </div>
+        </div>
+
+        @if (loading) {
+          <div class="text-center py-4 text-muted small">Chargement…</div>
+        } @else {
+          <div class="row g-2">
+            @for (m of membres; track m.id) {
+              <div class="col-lg-6 col-sm-6">
+                <div class="presence-row cursor-pointer" (click)="naviguerVers('/chef/equipe/' + m.id)">
+                  <div class="presence-avatar" [class.avatar-absent]="m.statut === 'CONGE'">
+                    {{ (m.prenom[0] + m.nom[0]).toUpperCase() }}
+                  </div>
+                  <div class="item-info">
+                    <p class="item-name">{{ m.prenom }} {{ m.nom }}</p>
+                    <small class="item-date">{{ m.poste }}</small>
+                  </div>
+                  <span class="statut-tag"
+                    [class.tag-actif]="m.statut === 'ACTIF'"
+                    [class.tag-conge]="m.statut === 'CONGE'"
+                    [class.tag-inactif]="m.statut === 'INACTIF'">
+                    {{ m.statut === 'ACTIF' ? 'Présent' : m.statut === 'CONGE' ? 'En congé' : 'Inactif' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <a class="see-all cursor-pointer mt-3 d-block" (click)="naviguerVers('/chef/equipe')">
+          Gérer l'équipe <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Ligne 3 : Indicateurs RH équipe ── -->
+  <div class="dash-card mb-4">
+    <div class="card-head mb-4">
+      <h6 class="card-title-custom">
+        <i class="ti ti-award me-2 icon-indigo"></i>
+        Indicateurs RH équipe
+      </h6>
+      <span class="count-badge">Données en temps réel</span>
+    </div>
+
+    <div class="perf-grid">
+
+      <!-- Demandes traitées -->
+      <div class="perf-card">
+        <div class="perf-icon pi-indigo">
+          <i class="ti ti-clipboard-check"></i>
+        </div>
+        <div class="perf-body">
+          <span class="perf-label">Demandes traitées</span>
+          <span class="perf-value">{{ demandesTraiteesCount }}<span class="perf-unit">/{{ totalDemandes }}</span></span>
+          <div class="perf-track">
+            <div class="perf-fill pf-indigo" [style.width.%]="tauxTraitementDemandes"></div>
+          </div>
+          <span class="perf-sub">{{ tauxTraitementDemandes }}% de taux de traitement</span>
+        </div>
+      </div>
+
+      <!-- Présence équipe -->
+      <div class="perf-card">
+        <div class="perf-icon pi-green">
+          <i class="ti ti-users"></i>
+        </div>
+        <div class="perf-body">
+          <span class="perf-label">Présence équipe</span>
+          <span class="perf-value">{{ membresPresents }}<span class="perf-unit">/{{ membres.length }}</span></span>
+          <div class="perf-track">
+            <div class="perf-fill pf-green" [style.width.%]="tauxPresenceEquipe"></div>
+          </div>
+          <span class="perf-sub">{{ tauxPresenceEquipe }}% présents aujourd'hui</span>
+        </div>
+      </div>
+
+      <!-- Tâches en retard -->
+      <div class="perf-card">
+        <div class="perf-icon pi-red">
+          <i class="ti ti-clock-exclamation"></i>
+        </div>
+        <div class="perf-body">
+          <span class="perf-label">Tâches en retard</span>
+          <span class="perf-value">{{ tachesEnRetardCount }}</span>
+          <div class="perf-track">
+            <div class="perf-fill pf-red"
+                 [style.width.%]="tachesEnRetardListe.length > 0 ? 100 : 0"></div>
+          </div>
+          <span class="perf-sub">Nécessitent attention</span>
+        </div>
+      </div>
+
+      <!-- Projets à risque -->
+      <div class="perf-card">
+        <div class="perf-icon pi-amber">
+          <i class="ti ti-alert-triangle"></i>
+        </div>
+        <div class="perf-body">
+          <span class="perf-label">Projets à risque</span>
+          <span class="perf-value">{{ projetsARisqueCount }}</span>
+          <div class="perf-track">
+            <div class="perf-fill pf-amber"
+                 [style.width.%]="projetsARisqueCount > 0 ? 100 : 0"></div>
+          </div>
+          <span class="perf-sub">Délais à surveiller</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Ligne 4 : Charge de travail + Tâches en retard ── -->
+  <div class="row g-3">
+
+    <!-- Charge de travail par membre -->
+    <div class="col-xl-6">
+      <div class="dash-card">
+        <div class="card-head mb-3">
+          <h6 class="card-title-custom">
+            <i class="ti ti-chart-bar me-2 text-info"></i>
+            Charge de travail
+          </h6>
+          <button class="add-btn" (click)="naviguerVers('/chef/taches')" title="Gérer les tâches">
+            <i class="ti ti-arrow-right"></i>
+          </button>
+        </div>
+
+        @if (loading) {
+          <div class="text-center py-4 text-muted small">Chargement…</div>
+        } @else if (chargeParMembre.length === 0) {
+          <div class="empty-state">
+            <i class="ti ti-circle-check"></i>
+            <p>Aucune tâche affectée</p>
+          </div>
+        } @else {
+          @for (c of chargeParMembre; track c.nom) {
+            <div class="charge-row mb-3">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="charge-avatar">{{ c.initiales }}</div>
+                <span class="charge-nom">{{ c.nom }}</span>
+                <span class="ms-auto charge-count">{{ c.tachesActives }} tâches</span>
+                @if (c.tachesEnRetard > 0) {
+                  <span class="retard-badge">{{ c.tachesEnRetard }} en retard</span>
+                }
+              </div>
+              <div class="charge-track">
+                <div class="charge-fill"
+                  [style.width.%]="(c.tachesActives / maxCharge) * 100"
+                  [class.fill-danger]="c.tachesEnRetard > 0"
+                  [class.fill-normal]="c.tachesEnRetard === 0">
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Tâches en retard -->
+    <div class="col-xl-6">
+      <div class="dash-card">
+        <div class="card-head mb-3">
+          <h6 class="card-title-custom">
+            <i class="ti ti-clock me-2 text-danger"></i>
+            Tâches en retard
+          </h6>
+          <span class="pending-count pending-count--danger">
+            {{ tachesEnRetardCount }}
+          </span>
+        </div>
+
+        @if (loading) {
+          <div class="text-center py-4 text-muted small">Chargement…</div>
+        } @else if (tachesEnRetardListe.length === 0) {
+          <div class="empty-state">
+            <i class="ti ti-circle-check"></i>
+            <p>Aucune tâche en retard</p>
+          </div>
+        } @else {
+          <ul class="item-list">
+            @for (t of tachesEnRetardListe; track t.id) {
+              <li class="item-row">
+                <div class="priority-stripe {{ t.prioriteColor }}"></div>
+                <div class="item-info">
+                  <p class="item-name">{{ t.titre }}</p>
+                  <small class="item-date">
+                    <i class="ti ti-user me-1"></i>{{ t.assigneNom ?? t.assigneA ?? '—' }}
+                    <span class="ms-2 text-danger fw-semibold">
+                      <i class="ti ti-clock me-1"></i>{{ t.echeance | date:'dd/MM/yyyy' }}
+                    </span>
+                  </small>
+                </div>
+                <span class="prio-tag {{ t.prioriteColor }}">{{ t.priorite }}</span>
+              </li>
+            }
+          </ul>
+        }
+
+        <a class="see-all cursor-pointer" (click)="naviguerVers('/chef/taches')">
+          Toutes les tâches <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  @if (loading) {
+    <div class="skel-wrap mt-3"><div class="skel-bar"></div></div>
+  }
+
+</div>

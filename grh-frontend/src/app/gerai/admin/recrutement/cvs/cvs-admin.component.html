@@ -1,0 +1,219 @@
+<div class="cvs-page">
+
+  <div class="page-header">
+    <div>
+      <h2><i class="ti ti-file-cv"></i> CV & Résumés</h2>
+      <p>{{ filtered.length }} profil(s) · {{ hasCv }} avec CV · {{ hasLinkedIn }} avec LinkedIn</p>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <i class="ti ti-search"></i>
+      <input [(ngModel)]="search" (ngModelChange)="applyFilter()" placeholder="Rechercher…" />
+    </div>
+    <select [(ngModel)]="filterDept" (ngModelChange)="applyFilter()">
+      <option value="">Tous les départements</option>
+      @for (d of departements; track d) {
+        <option [value]="d">{{ d }}</option>
+      }
+    </select>
+    <div class="toolbar-ai">
+      <button class="btn-batch-score" (click)="batchScore()" [disabled]="batchScoring || shortlisting">
+        @if (batchScoring) { <span class="spinner-border spinner-border-sm"></span> }
+        @else { <i class="ti ti-brain"></i> }
+        Scorer tous
+      </button>
+      <div class="shortlist-group">
+        <input type="number" class="threshold-input" [(ngModel)]="shortlistThreshold" min="1" max="100" />
+        <button class="btn-shortlist" (click)="autoShortlist()" [disabled]="shortlisting || batchScoring">
+          @if (shortlisting) { <span class="spinner-border spinner-border-sm"></span> }
+          @else { <i class="ti ti-star"></i> }
+          Auto-shortlist
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (batchResult) {
+    <div class="batch-banner">
+      <i class="ti ti-check"></i>
+      <strong>Scoring terminé</strong> — {{ batchResult.scored }}/{{ batchResult.total }} profils scorés
+      @if (batchResult.errors > 0) { · {{ batchResult.errors }} erreur(s) }
+      <button class="banner-close" (click)="batchResult = null">✕</button>
+    </div>
+  }
+  @if (shortlistResult) {
+    <div class="batch-banner batch-banner--shortlist">
+      <i class="ti ti-star-filled"></i>
+      <strong>{{ shortlistResult.promoted }}</strong> candidat(s) promu(s) en shortlist (≥ {{ shortlistThreshold }}%)
+      <button class="banner-close" (click)="shortlistResult = null">✕</button>
+    </div>
+  }
+
+  @if (loading) {
+    <div class="loading-state"><i class="ti ti-loader-2 spin"></i> Chargement…</div>
+  } @else {
+    <div class="cv-grid">
+      @for (c of filtered; track c.id) {
+        <div class="cv-card">
+          <div class="cv-top">
+            @if (c.photo) {
+              <img [src]="c.photo" [alt]="c.nom" class="avatar" />
+            } @else {
+              <span class="avatar-init">{{ initials(c) }}</span>
+            }
+            <div class="cv-identity">
+              <span class="cv-name">{{ c.prenom }} {{ c.nom }}</span>
+              <span class="cv-job">{{ c.jobTitre }}</span>
+              <span class="cv-dept"><i class="ti ti-building"></i> {{ c.departement }}</span>
+            </div>
+            <span class="statut-dot" [style.background]="statutColor(c.statut)" [title]="statutLabels[c.statut]"></span>
+          </div>
+
+          <div class="cv-meta">
+            @if (c.experience) {
+              <span class="meta-chip"><i class="ti ti-briefcase"></i> {{ c.experience }} an(s)</span>
+            }
+            @if (c.localisation) {
+              <span class="meta-chip"><i class="ti ti-map-pin"></i> {{ c.localisation }}</span>
+            }
+            @if (c.score) {
+              <span class="meta-chip score-chip" [ngClass]="scoreClass(c.score)">{{ c.score }}/100</span>
+            }
+          </div>
+
+          <div class="cv-competences">
+            @for (comp of c.competences.slice(0,4); track comp) {
+              <span class="comp-tag">{{ comp }}</span>
+            }
+            @if (c.competences.length > 4) {
+              <span class="comp-more">+{{ c.competences.length - 4 }}</span>
+            }
+          </div>
+
+          @if (c.noteRecruteur) {
+            <p class="cv-note">{{ c.noteRecruteur }}</p>
+          }
+
+          <div class="cv-links">
+            @if (c.cvUrl) {
+              <a [href]="c.cvUrl" target="_blank" class="link-btn link-cv">
+                <i class="ti ti-download"></i> Télécharger CV
+              </a>
+            } @else {
+              <label class="link-btn link-upload" [class.uploading]="uploading === c.id">
+                @if (uploading === c.id) {
+                  <i class="ti ti-loader-2 spin"></i> Envoi…
+                } @else {
+                  <i class="ti ti-upload"></i> Importer CV
+                }
+                <input type="file" accept=".pdf,.doc,.docx" hidden (change)="uploadCv(c, $event)" />
+              </label>
+            }
+            @if (c.linkedin) {
+              <a [href]="linkedinUrl(c.linkedin)" target="_blank" class="link-btn link-li">
+                <i class="ti ti-brand-linkedin"></i> LinkedIn
+              </a>
+            }
+            <button class="link-btn link-ai" (click)="scoreCandidate(c)"
+                    [disabled]="scoringId === c.id" [title]="'Analyser avec IA'">
+              @if (scoringId === c.id) {
+                <i class="ti ti-loader-2 spin"></i> Analyse…
+              } @else {
+                <i class="ti ti-sparkles"></i> Scorer IA
+              }
+            </button>
+          </div>
+        </div>
+      }
+      @if (filtered.length === 0) {
+        <div class="empty-state"><i class="ti ti-file-off"></i><p>Aucun profil trouvé</p></div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ── Score result modal ─────────────────────────────────────── -->
+@if (scoreModal) {
+  <div class="score-overlay" (click)="closeScoreModal()">
+    <div class="score-modal" (click)="$event.stopPropagation()">
+
+      <div class="score-modal__header">
+        <div class="score-modal__title">
+          <i class="ti ti-sparkles"></i>
+          Analyse IA — {{ scoreModal.candidate.prenom }} {{ scoreModal.candidate.nom }}
+        </div>
+        <button class="score-modal__close" (click)="closeScoreModal()">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <div class="score-modal__body">
+
+        <!-- Score gauge -->
+        <div class="score-gauge">
+          <div class="score-gauge__ring">
+            <svg viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" stroke="#e2e8f0" stroke-width="8" fill="none"/>
+              <circle cx="40" cy="40" r="34" stroke="currentColor" stroke-width="8" fill="none"
+                [attr.stroke-dasharray]="(scoreModal.result.score / 100) * 213.6 + ' 213.6'"
+                stroke-linecap="round" transform="rotate(-90 40 40)"/>
+            </svg>
+            <span class="score-gauge__value" [ngClass]="scoreClass(scoreModal.result.score)">
+              {{ scoreModal.result.score }}
+            </span>
+          </div>
+          <div class="score-gauge__meta">
+            <span class="score-niveau" [ngClass]="niveauClass(scoreModal.result.niveau)">
+              {{ scoreModal.result.niveau }}
+            </span>
+            <span class="score-poste">{{ scoreModal.candidate.jobTitre }}</span>
+            <p class="score-recommandation">{{ scoreModal.result.recommandation }}</p>
+          </div>
+        </div>
+
+        <!-- Columns: matched / missing -->
+        <div class="score-cols">
+          <div class="score-col score-col--match">
+            <h4><i class="ti ti-circle-check"></i> Compétences correspondantes</h4>
+            @if (scoreModal.result.competencesMatchees?.length) {
+              <ul>
+                @for (comp of scoreModal.result.competencesMatchees; track comp) {
+                  <li>{{ comp }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="empty-hint">Aucune compétence identifiée</p>
+            }
+          </div>
+          <div class="score-col score-col--miss">
+            <h4><i class="ti ti-circle-x"></i> Compétences manquantes</h4>
+            @if (scoreModal.result.competencesManquantes?.length) {
+              <ul>
+                @for (comp of scoreModal.result.competencesManquantes; track comp) {
+                  <li>{{ comp }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="empty-hint">Aucune lacune majeure</p>
+            }
+          </div>
+        </div>
+
+        <!-- Points forts -->
+        @if (scoreModal.result.pointsForts?.length) {
+          <div class="score-strengths">
+            <h4><i class="ti ti-star"></i> Points forts</h4>
+            <div class="score-tags">
+              @for (p of scoreModal.result.pointsForts; track p) {
+                <span class="strength-tag">{{ p }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

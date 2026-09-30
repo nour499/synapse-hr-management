@@ -1,0 +1,312 @@
+<div class="synapse-dashboard">
+
+  <!-- ── Welcome Banner ── -->
+  <div class="welcome-banner mb-4">
+    <div class="welcome-left">
+      <p class="welcome-greeting">Bonjour</p>
+      @if (userName) {
+        <h2 class="welcome-name">{{ userName }}</h2>
+        <p class="welcome-email">{{ userEmail }}</p>
+      } @else {
+        <div class="skel-name mb-2"></div>
+        <div class="skel-email"></div>
+      }
+    </div>
+    <div class="welcome-right d-flex flex-column align-items-end gap-2">
+      <button class="new-request-btn" (click)="naviguerVers('/employe/demandes/deposer')" type="button">
+        <i class="ti ti-plus"></i>
+        Nouvelle demande
+      </button>
+      <div class="date-chip">
+        <i class="ti ti-calendar-event"></i>
+        <span>{{ currentYear }} — Tableau de bord</span>
+      </div>
+      @if (prochaineTache) {
+        <div class="next-task-banner"
+             [class.next-task-late]="(joursAvantEcheance ?? 0) < 0"
+             (click)="naviguerVers('/employe/taches')">
+          <i class="ti ti-clock-hour-4"></i>
+          <span>
+            @if ((joursAvantEcheance ?? 0) < 0) { En retard : }
+            @else if ((joursAvantEcheance ?? 0) === 0) { Aujourd'hui : }
+            @else { Dans {{ joursAvantEcheance }}j : }
+            <strong>{{ prochaineTache.titre }}</strong>
+          </span>
+          <i class="ti ti-chevron-right ms-1"></i>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Row 1 : KPIs ── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Available Leaves -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-blue cursor-pointer"
+           (click)="naviguerVers('/employe/demandes')">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-beach"></i></div>
+        <div class="kpi-value">{{ congesRestants }}</div>
+        <div class="kpi-label">Available Leaves</div>
+        <div class="kpi-tag"><i class="ti ti-trending-up"></i> {{ congesPris }} taken · {{ congesTotal }} total</div>
+      </div>
+    </div>
+
+    <!-- Project Assigned -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-purple cursor-pointer"
+           (click)="naviguerVers('/employe/projets')">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-briefcase"></i></div>
+        <div class="kpi-value">{{ totalProjetsAssignes }}</div>
+        <div class="kpi-label">Project Assigned</div>
+        <div class="kpi-tag"><i class="ti ti-point-filled"></i> {{ projetsEnCours.length }} running</div>
+      </div>
+    </div>
+
+    <!-- Active Tasks -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-amber cursor-pointer"
+           (click)="naviguerVers('/employe/taches')">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-checklist"></i></div>
+        <div class="kpi-value">{{ tachesActives }}</div>
+        <div class="kpi-label">Tâches actives</div>
+        <div class="kpi-tag"><i class="ti ti-point-filled"></i> En cours</div>
+      </div>
+    </div>
+
+    <!-- Attendance Rate -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-green cursor-pointer">
+        <div class="kpi-glow"></div>
+        <div class="kpi-icon-wrap"><i class="ti ti-chart-arcs"></i></div>
+        <div class="kpi-value">{{ tauxPresence }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-label">Taux de présence</div>
+        <div class="kpi-tag"><i class="ti ti-circle-check"></i> Ce mois-ci</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Ligne 2 : Revue projets | Statut demandes | Mes tâches ── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Revue des projets en cours -->
+    <div class="col-xl-4 col-lg-6">
+      <div class="dash-card h-100">
+        <div class="card-head mb-3">
+          <h6 class="card-title-custom">Revue des projets en cours</h6>
+          <span class="count-badge">{{ projetsEnCours.length }}</span>
+        </div>
+
+        @if (loading) {
+          <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+        } @else if (projetsEnCours.length === 0) {
+          <div class="empty-state-sm">
+            <i class="ti ti-folder-off"></i>
+            <p>Aucun projet en cours</p>
+          </div>
+        } @else {
+          <div class="project-circles-sm">
+            @for (projet of projetsEnCours.slice(0, 4); track projet.id) {
+              <div class="project-circle-item cursor-pointer" (click)="naviguerVers('/employe/projets')">
+                <div class="circle-wrap circle-sm">
+                  <svg viewBox="0 0 36 36" class="circular-chart">
+                    <path class="circle-bg"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <path class="circle-fill"
+                          [style.stroke]="projet.couleur || '#6366F1'"
+                          [style.stroke-dasharray]="projet.progression + ' 100'"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  </svg>
+                  <div class="circle-value" [style.color]="projet.couleur || '#6366F1'">{{ projet.progression }}%</div>
+                </div>
+                <p class="circle-label">{{ projet.nom }}</p>
+                <span class="circle-tasks">{{ projet.tachesCompletees }}/{{ projet.totalTaches }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        <a class="see-all cursor-pointer mt-3" (click)="naviguerVers('/employe/projets')">
+          Voir tous <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Statut des demandes -->
+    <div class="col-xl-4 col-lg-6">
+      <div class="dash-card h-100">
+        <div class="card-head mb-3">
+          <h6 class="card-title-custom">Statut des demandes</h6>
+        </div>
+
+        <div class="ds-grid">
+          <div class="ds-item ds-pending cursor-pointer" (click)="naviguerVers('/employe/demandes')">
+            <div class="ds-icon"><i class="ti ti-clock"></i></div>
+            <div class="ds-count">{{ demandesEnAttente }}</div>
+            <div class="ds-label">En attente</div>
+          </div>
+          <div class="ds-item ds-approved cursor-pointer" (click)="naviguerVers('/employe/demandes')">
+            <div class="ds-icon"><i class="ti ti-check"></i></div>
+            <div class="ds-count">{{ demandesValidees }}</div>
+            <div class="ds-label">Validées</div>
+          </div>
+          <div class="ds-item ds-rejected cursor-pointer" (click)="naviguerVers('/employe/demandes')">
+            <div class="ds-icon"><i class="ti ti-x"></i></div>
+            <div class="ds-count">{{ demandesRefusees }}</div>
+            <div class="ds-label">Refusées</div>
+          </div>
+        </div>
+
+        <a class="see-all cursor-pointer mt-3" (click)="naviguerVers('/employe/demandes/deposer')">
+          Nouvelle demande <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Mes tâches -->
+    <div class="col-xl-4 col-lg-6">
+      <div class="dash-card h-100">
+        <div class="card-head">
+          <h6 class="card-title-custom">Mes tâches</h6>
+          <span class="count-badge">{{ tachesRecentes.length }} à faire</span>
+        </div>
+
+        @if (loading) {
+          <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-warning"></div></div>
+        } @else if (tachesRecentes.length === 0) {
+          <div class="empty-state-sm">
+            <i class="ti ti-circle-check text-success"></i>
+            <p>Tout est à jour !</p>
+          </div>
+        } @else {
+          <ul class="item-list">
+            @for (tache of tachesRecentes; track tache.id) {
+              <li class="item-row cursor-pointer" (click)="naviguerVers('/employe/taches')">
+                <div class="priority-stripe {{ tache.prioriteColor }}"></div>
+                <div class="item-info">
+                  <p class="item-name">{{ tache.titre }}</p>
+                  <small class="item-date">
+                    <i class="ti ti-briefcase me-1"></i>{{ tache.projet }}
+                    <span class="ms-2"><i class="ti ti-calendar me-1"></i>{{ tache.echeance | date:'dd/MM' }}</span>
+                  </small>
+                </div>
+                <span class="prio-tag {{ tache.prioriteColor }}">{{ tache.priorite }}</span>
+              </li>
+            }
+          </ul>
+        }
+
+        <a class="see-all cursor-pointer" (click)="naviguerVers('/employe/taches')">
+          Voir tout <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Ligne 3 : Métriques de performance | Tickets résolus ── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Métriques RH -->
+    <div class="col-xl-7 col-md-12">
+      <div class="dash-card h-100">
+        <div class="card-head mb-4">
+          <h6 class="card-title-custom">
+            <i class="ti ti-award me-2 icon-indigo"></i>
+            Mes indicateurs RH
+          </h6>
+          <span class="count-badge">Cette année</span>
+        </div>
+        <div class="perf-grid">
+          <div class="perf-card">
+            <div class="perf-icon pi-indigo"><i class="ti ti-checkbox"></i></div>
+            <div class="perf-body">
+              <span class="perf-label">Tâches complétées</span>
+              <span class="perf-value">{{ tachesTermineesCount }}</span>
+              <div class="perf-track"><div class="perf-fill pf-indigo" [style.width.%]="tauxCompletionTaches"></div></div>
+              <span class="perf-sub">{{ tauxCompletionTaches }}% de complétion</span>
+            </div>
+          </div>
+          <div class="perf-card">
+            <div class="perf-icon pi-green"><i class="ti ti-school"></i></div>
+            <div class="perf-body">
+              <span class="perf-label">Formations suivies</span>
+              <span class="perf-value">{{ formationsSuivies }}<span class="perf-unit">/{{ formationsTotal }}</span></span>
+              <div class="perf-track"><div class="perf-fill pf-green" [style.width.%]="formationsPct"></div></div>
+              <span class="perf-sub">{{ formationsPct }}% du plan de formation</span>
+            </div>
+          </div>
+          <div class="perf-card">
+            <div class="perf-icon pi-sky"><i class="ti ti-calendar-stats"></i></div>
+            <div class="perf-body">
+              <span class="perf-label">Taux de présence</span>
+              <span class="perf-value">{{ tauxPresence }}<span class="perf-unit">%</span></span>
+              <div class="perf-track"><div class="perf-fill pf-sky" [style.width.%]="tauxPresence"></div></div>
+              <span class="perf-sub">Présence enregistrée</span>
+            </div>
+          </div>
+          <div class="perf-card">
+            <div class="perf-icon pi-amber"><i class="ti ti-beach"></i></div>
+            <div class="perf-body">
+              <span class="perf-label">Congés pris</span>
+              <span class="perf-value">{{ congesPris }}<span class="perf-unit">/{{ congesTotal }}j</span></span>
+              <div class="perf-track"><div class="perf-fill pf-amber" [style.width.%]="congesTotal > 0 ? (congesPris / congesTotal * 100) : 0"></div></div>
+              <span class="perf-sub">{{ congesRestants }}j restants</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mes tâches — répartition réelle -->
+    <div class="col-xl-5 col-md-12">
+      <div class="dash-card h-100">
+        <div class="card-head mb-3">
+          <h6 class="card-title-custom">
+            <i class="ti ti-checklist me-2 icon-green"></i>
+            Mes tâches
+          </h6>
+          <span class="count-badge">{{ tachesTotales }} total</span>
+        </div>
+        <div class="task-stat-grid">
+          <div class="task-stat-item task-stat--total">
+            <span class="task-stat-value">{{ tachesTotales }}</span>
+            <span class="task-stat-label">Total assignées</span>
+          </div>
+          <div class="task-stat-item task-stat--done">
+            <span class="task-stat-value">{{ tachesTermineesCount }}</span>
+            <span class="task-stat-label">Complétées</span>
+          </div>
+          <div class="task-stat-item task-stat--active">
+            <span class="task-stat-value">{{ tachesActives }}</span>
+            <span class="task-stat-label">En cours</span>
+          </div>
+          <div class="task-stat-item task-stat--late">
+            <span class="task-stat-value">{{ tachesEnRetardCount }}</span>
+            <span class="task-stat-label">En retard</span>
+          </div>
+        </div>
+        @if (tachesTotales > 0) {
+          <div class="task-progress-bar mt-3">
+            <div class="task-progress-fill"
+                 [style.width.%]="tachesTotales > 0 ? (tachesTermineesCount / tachesTotales * 100) : 0">
+            </div>
+          </div>
+          <p class="task-progress-label">
+            {{ tachesTotales > 0 ? (tachesTermineesCount / tachesTotales * 100 | number:'1.0-0') : 0 }}% complétées
+          </p>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  @if (loading) {
+    <div class="skel-wrap mt-3"><div class="skel-bar"></div></div>
+  }
+
+</div>

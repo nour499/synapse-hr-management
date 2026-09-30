@@ -1,0 +1,186 @@
+<div class="emp-list-page">
+
+  <!-- ══════════════════════════════════════════════
+       PAGE HEADER
+  ══════════════════════════════════════════════════ -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-icon-wrap">
+        <i class="ti ti-users"></i>
+      </div>
+      <div>
+        <h1 class="page-title">Employés</h1>
+        <p class="page-sub">{{ employes.length }} collaborateur{{ employes.length !== 1 ? 's' : '' }} au total</p>
+      </div>
+    </div>
+    <button class="btn-add" (click)="addEmploye()">
+      <i class="ti ti-user-plus"></i>
+      Ajouter un employé
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       TOOLBAR (search + filter)
+  ══════════════════════════════════════════════════ -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <i class="ti ti-search search-icon"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Rechercher par nom, email, poste…"
+        [(ngModel)]="searchQuery" (ngModelChange)="page=1" />
+      @if (searchQuery) {
+        <button class="search-clear" (click)="searchQuery = ''">
+          <i class="ti ti-x"></i>
+        </button>
+      }
+    </div>
+
+    <select class="dept-filter" [(ngModel)]="filterDept" (ngModelChange)="page=1">
+      <option value="">Tous les départements</option>
+      @for (d of departments; track d) {
+        <option [value]="d">{{ d }}</option>
+      }
+    </select>
+
+    <span class="result-count">
+      {{ filtered.length }} résultat{{ filtered.length !== 1 ? 's' : '' }}
+    </span>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       TABLE
+  ══════════════════════════════════════════════════ -->
+  <div class="table-card">
+
+    @if (loading) {
+      <div class="table-skel">
+        @for (i of [1,2,3,4,5,6]; track i) {
+          <div class="skel-row">
+            <div class="sk sk-av"></div>
+            <div class="skel-row-body">
+              <div class="sk sk-line-md"></div>
+              <div class="sk sk-line-sm mt-1"></div>
+            </div>
+            <div class="sk sk-pill"></div>
+            <div class="sk sk-line-sm"></div>
+            <div class="skel-actions">
+              <div class="sk sk-btn"></div>
+              <div class="sk sk-btn"></div>
+              <div class="sk sk-btn"></div>
+            </div>
+          </div>
+        }
+      </div>
+
+    } @else if (filtered.length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon-wrap">
+          <i class="ti ti-users-off"></i>
+        </div>
+        <h3>Aucun employé trouvé</h3>
+        <p>Essayez de modifier vos filtres ou ajoutez un nouvel employé.</p>
+        <button class="btn-add" (click)="addEmploye()">
+          <i class="ti ti-user-plus"></i> Ajouter un employé
+        </button>
+      </div>
+
+    } @else {
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>Employé</th>
+            <th>Département</th>
+            <th>Poste</th>
+            <th>Date d'embauche</th>
+            <th>Contact</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of paginated; track e.id) {
+            <tr [class.row-deleting]="deletingId === e.id">
+
+              <!-- Avatar + nom -->
+              <td>
+                <div class="emp-cell">
+                  @if (e.photo) {
+                    <img [src]="e.photo" [alt]="e.prenom" class="emp-photo"
+                         (error)="$any($event.target).src='assets/images/user/avatar-1.jpg'" />
+                  } @else {
+                    <div class="emp-initials">{{ initiales(e) }}</div>
+                  }
+                  <div class="emp-info">
+                    <span class="emp-name">{{ e.prenom }} {{ e.nom }}</span>
+                    <span class="emp-email">{{ e.email }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Département -->
+              <td>
+                <span class="dept-badge" [style.color]="deptColor(e.departement)"
+                      [style.background]="deptColor(e.departement) + '18'">
+                  {{ e.departement ?? '—' }}
+                </span>
+              </td>
+
+              <!-- Poste -->
+              <td class="td-poste">{{ e.poste ?? '—' }}</td>
+
+              <!-- Date embauche -->
+              <td class="td-date">
+                {{ e.dateEmbauche ? (e.dateEmbauche | date:'dd/MM/yyyy') : '—' }}
+              </td>
+
+              <!-- Téléphone -->
+              <td class="td-tel">{{ e.telephone ?? '—' }}</td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button class="action-btn btn-profile" (click)="viewProfile(e.id)"
+                        title="Voir le profil">
+                  <i class="ti ti-eye"></i>
+                </button>
+                <button class="action-btn btn-edit" (click)="editEmploye(e.id)"
+                        title="Modifier">
+                  <i class="ti ti-pencil"></i>
+                </button>
+                <button class="action-btn btn-delete" (click)="askDelete(e)"
+                        [disabled]="deletingId === e.id"
+                        title="Supprimer">
+                  @if (deletingId === e.id) {
+                    <span class="spinner-border spinner-border-sm"></span>
+                  } @else {
+                    <i class="ti ti-trash"></i>
+                  }
+                </button>
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-paginator
+        [total]="filtered.length"
+        [pageSize]="pageSize"
+        [page]="page"
+        (pageChange)="page=$event"
+      />
+    }
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     CONFIRM DELETE MODAL
+══════════════════════════════════════════════════ -->
+<app-confirm-modal
+  [open]="deleteTarget !== null"
+  title="Supprimer l'employé ?"
+  [message]="deleteMessage"
+  [loading]="deletingId !== null"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()"
+/>

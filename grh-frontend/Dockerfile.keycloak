@@ -1,0 +1,4 @@
+FROM quay.io/keycloak/keycloak:26.5.5
+
+# Copie du thème personnalisé dans l'image
+COPY themes/mon-theme /opt/keycloak/themes/mon-theme

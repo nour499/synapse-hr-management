@@ -1,0 +1,564 @@
+<div class="dg-page">
+
+  <!-- ── Header ───────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-icon"><i class="ti ti-credit-card"></i></div>
+      <div>
+        <h1 class="page-title">Crédits — Décision DG</h1>
+        <p class="page-sub">Comité de validation des demandes de crédit employés</p>
+      </div>
+    </div>
+    @if (pending.length > 0) {
+      <div class="pending-badge">
+        <span class="dot"></span>
+        {{ pending.length }} demande{{ pending.length > 1 ? 's' : '' }} en attente
+      </div>
+    }
+  </div>
+
+  <!-- ── KPI strip ────────────────────────────────────── -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-icon--amber"><i class="ti ti-clock"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ kpi.enAttente }}</span>
+        <span class="kpi-lbl">En attente</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-icon--blue"><i class="ti ti-coins"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ kpi.montantAttente | number:'1.0-0' }}</span>
+        <span class="kpi-lbl">Montant en attente (TND)</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-icon--green"><i class="ti ti-circle-check"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ kpi.montantApprouve | number:'1.0-0' }}</span>
+        <span class="kpi-lbl">Montant approuvé (TND)</span>
+        <span class="kpi-sub">{{ kpi.totalApproved }} dossier(s)</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-icon--violet"><i class="ti ti-chart-pie"></i></div>
+      <div class="kpi-body">
+        @if (kpi.tauxApprobation !== null) {
+          <span class="kpi-val">{{ kpi.tauxApprobation }}%</span>
+          <span class="kpi-lbl">Taux d'approbation</span>
+          <span class="kpi-sub">{{ kpi.totalRejected }} refusé(s)</span>
+        } @else {
+          <span class="kpi-val">—</span>
+          <span class="kpi-lbl">Taux d'approbation</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ─────────────────────────────────────────── -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab === 'pending'" (click)="setTab('pending')">
+      <i class="ti ti-clock-hour-4"></i> En attente
+      @if (pending.length > 0) {
+        <span class="tab-badge">{{ pending.length }}</span>
+      }
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="setTab('history')">
+      <i class="ti ti-history"></i> Historique
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'stats'" (click)="setTab('stats')">
+      <i class="ti ti-chart-bar"></i> Statistiques
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       TAB : EN ATTENTE
+  ══════════════════════════════════════════════════════ -->
+  @if (activeTab === 'pending') {
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input placeholder="Rechercher un employé ou motif…" [(ngModel)]="searchPend" />
+      </div>
+    </div>
+
+    @if (loading) {
+      <div class="loading-state"><span class="spinner-border spinner-border-sm"></span> Chargement…</div>
+    } @else if (filteredPending.length === 0) {
+      <div class="empty-state">
+        <i class="ti ti-circle-check empty-icon"></i>
+        <p>Aucune demande de crédit en attente de décision.</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="credits-table">
+          <thead>
+            <tr>
+              <th>Employé</th>
+              <th>Montant</th>
+              <th>Durée</th>
+              <th>Motif</th>
+              <th>Date soumission</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of filteredPending; track d.id) {
+              <tr (click)="openDetail(d)">
+                <td>
+                  <div class="emp-cell">
+                    <div class="emp-avatar">{{ initials(d) }}</div>
+                    <div>
+                      <div class="emp-name">{{ d.employePrenom }} {{ d.employeNom }}</div>
+                      <div class="emp-id">#{{ d.employeId }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="amount-val">{{ d.amount | number:'1.0-0' }} TND</span></td>
+                <td><span class="duration-val">{{ d.durationMonths }} mois</span></td>
+                <td><span class="motif-cell" [title]="d.description">{{ d.description }}</span></td>
+                <td><span class="date-val">{{ d.dateCreation | date:'dd/MM/yyyy' }}</span></td>
+                <td>
+                  <div class="td-actions">
+                    <button class="btn-approve" (click)="openApprove(d, $event)">
+                      <i class="ti ti-check"></i> Approuver
+                    </button>
+                    <button class="btn-reject" (click)="openReject(d, $event)">
+                      <i class="ti ti-x"></i> Refuser
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       TAB : HISTORIQUE
+  ══════════════════════════════════════════════════════ -->
+  @if (activeTab === 'history') {
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input placeholder="Rechercher…" [(ngModel)]="searchHist" />
+      </div>
+      <select class="filter-select" [(ngModel)]="filterHist">
+        <option value="">Tous les statuts</option>
+        <option value="VALIDEE_DG">Approuvés</option>
+        <option value="REJETEE">Refusés</option>
+      </select>
+    </div>
+
+    @if (loading) {
+      <div class="loading-state"><span class="spinner-border spinner-border-sm"></span> Chargement…</div>
+    } @else if (filteredHistory.length === 0) {
+      <div class="empty-state">
+        <i class="ti ti-history empty-icon" style="color:#94A3B8"></i>
+        <p>Aucun historique de décision disponible.</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="credits-table">
+          <thead>
+            <tr>
+              <th>Employé</th>
+              <th>Demandé</th>
+              <th>Approuvé</th>
+              <th>Mensualité</th>
+              <th>Statut</th>
+              <th>Date décision</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of filteredHistory; track d.id) {
+              <tr (click)="openDetail(d)">
+                <td>
+                  <div class="emp-cell">
+                    <div class="emp-avatar">{{ initials(d) }}</div>
+                    <div>
+                      <div class="emp-name">{{ d.employePrenom }} {{ d.employeNom }}</div>
+                      <div class="emp-id">#{{ d.employeId }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="amount-val">{{ d.amount | number:'1.0-0' }} TND</span></td>
+                <td>
+                  @if (d.statut === 'VALIDEE_DG') {
+                    <span class="amount-app">{{ d.montantApprouve | number:'1.0-0' }} TND</span>
+                  } @else {
+                    <span style="color:#94A3B8">—</span>
+                  }
+                </td>
+                <td>
+                  @if (d.statut === 'VALIDEE_DG' && d.montantApprouve && d.nbTranches) {
+                    <span class="duration-val">
+                      {{ (d.montantApprouve / d.nbTranches) | number:'1.0-0' }} TND × {{ d.nbTranches }}
+                    </span>
+                  } @else {
+                    <span style="color:#94A3B8">—</span>
+                  }
+                </td>
+                <td>
+                  @if (d.statut === 'VALIDEE_DG') {
+                    <span class="statut-badge s-approved"><span class="s-dot"></span>Approuvé</span>
+                  } @else {
+                    <span class="statut-badge s-rejected"><span class="s-dot"></span>Refusé</span>
+                  }
+                </td>
+                <td><span class="date-val">{{ (d.dateValidationDg ?? d.dateCreation) | date:'dd/MM/yyyy' }}</span></td>
+                <td>
+                  <button class="btn-detail" title="Voir détail" (click)="openDetail(d); $event.stopPropagation()">
+                    <i class="ti ti-eye"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       TAB : STATISTIQUES
+  ══════════════════════════════════════════════════════ -->
+  @if (activeTab === 'stats') {
+    <div class="summary-row" style="margin-bottom:20px">
+      <div class="summary-item summary-item--green">
+        <div class="s-val">{{ kpi.totalApproved }}</div>
+        <div class="s-lbl">Dossiers approuvés</div>
+      </div>
+      <div class="summary-item summary-item--red">
+        <div class="s-val">{{ kpi.totalRejected }}</div>
+        <div class="s-lbl">Dossiers refusés</div>
+      </div>
+      <div class="summary-item summary-item--amber">
+        <div class="s-val">{{ kpi.enAttente }}</div>
+        <div class="s-lbl">En attente</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <!-- Monthly bar chart -->
+      <div class="stat-card">
+        <p class="stat-card-title"><i class="ti ti-chart-bar"></i> Décisions par mois</p>
+        @if (statsMonthly.length === 0) {
+          <p style="color:#94A3B8;font-size:13px;text-align:center;padding:20px">Pas encore de données</p>
+        } @else {
+          <div class="bar-chart">
+            @for (m of statsMonthly; track m.label) {
+              <div class="bar-row">
+                <span class="bar-label">{{ m.label }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill-a"
+                    [style.width.%]="statsMaxMonth > 0 ? (m.approved / statsMaxMonth * 100) : 0">
+                  </div>
+                  <div class="bar-fill-r"
+                    [style.width.%]="statsMaxMonth > 0 ? (m.rejected / statsMaxMonth * 100) : 0">
+                  </div>
+                </div>
+                <span class="bar-count">{{ m.approved + m.rejected }}</span>
+              </div>
+            }
+          </div>
+          <div style="display:flex;gap:14px;margin-top:12px;font-size:11px;color:#64748B">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#10B981;margin-right:4px"></span>Approuvés</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EF4444;margin-right:4px"></span>Refusés</span>
+          </div>
+        }
+      </div>
+
+      <!-- Motif breakdown -->
+      <div class="stat-card">
+        <p class="stat-card-title"><i class="ti ti-tag"></i> Répartition par motif</p>
+        @if (statsByMotif.length === 0) {
+          <p style="color:#94A3B8;font-size:13px;text-align:center;padding:20px">Pas encore de données</p>
+        } @else {
+          <div class="motif-list">
+            @for (m of statsByMotif; track m.motif) {
+              <div class="motif-row">
+                <span class="motif-dot" [style.background]="motifColor(m.motif)"></span>
+                <span class="motif-name">{{ m.motif }}</span>
+                <div class="motif-track">
+                  <div class="motif-bar"
+                    [style.width.%]="m.pct"
+                    [style.background]="motifColor(m.motif)">
+                  </div>
+                </div>
+                <span class="motif-pct">{{ m.pct }}%</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     DETAIL DRAWER
+══════════════════════════════════════════════════════ -->
+@if (detailItem) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <div class="drawer drawer--detail">
+
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon drawer-icon--amber"><i class="ti ti-credit-card"></i></div>
+        <div>
+          <p class="drawer-title">Détail de la demande</p>
+          <p class="drawer-sub">{{ detailItem.employePrenom }} {{ detailItem.employeNom }}</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="drawer-body">
+
+      <!-- Employee card -->
+      <div class="detail-emp-card">
+        <div class="detail-emp-avatar">{{ initials(detailItem) }}</div>
+        <div>
+          <p class="detail-emp-name">{{ detailItem.employePrenom }} {{ detailItem.employeNom }}</p>
+          <p class="detail-emp-id">Employé #{{ detailItem.employeId }}</p>
+        </div>
+        @if (detailItem.statut === 'VALIDEE_DG') {
+          <span class="statut-badge s-approved" style="margin-left:auto"><span class="s-dot"></span>Approuvé</span>
+        } @else if (detailItem.statut === 'REJETEE') {
+          <span class="statut-badge s-rejected" style="margin-left:auto"><span class="s-dot"></span>Refusé</span>
+        } @else {
+          <span class="statut-badge s-pending" style="margin-left:auto"><span class="s-dot"></span>En attente</span>
+        }
+      </div>
+
+      <!-- Loan details -->
+      <div class="detail-section">
+        <p class="detail-section-title">Détails du crédit</p>
+        <div class="detail-row">
+          <span class="dr-label">Montant demandé</span>
+          <span class="dr-amount">{{ detailItem.amount | number:'1.0-0' }} TND</span>
+        </div>
+        <div class="detail-row">
+          <span class="dr-label">Durée souhaitée</span>
+          <span class="dr-val">{{ detailItem.durationMonths }} mois</span>
+        </div>
+        <div class="detail-row">
+          <span class="dr-label">Date de soumission</span>
+          <span class="dr-val">{{ detailItem.dateCreation | date:'dd MMMM yyyy' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="dr-label">Motif</span>
+          <span class="dr-val">{{ motifLabel(detailItem.description ?? '') }}</span>
+        </div>
+        @if (detailItem.description) {
+          <div class="detail-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <span class="dr-label">Description</span>
+            <span class="dr-val" style="font-size:12px;color:#475569;font-weight:400">{{ detailItem.description }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Decision details (if already decided) -->
+      @if (detailItem.statut === 'VALIDEE_DG') {
+        <div class="detail-section">
+          <p class="detail-section-title">Décision DG — Approbation</p>
+          <div class="detail-row">
+            <span class="dr-label">Montant accordé</span>
+            <span class="dr-app">{{ detailItem.montantApprouve | number:'1.0-0' }} TND</span>
+          </div>
+          <div class="detail-row">
+            <span class="dr-label">Nombre de mensualités</span>
+            <span class="dr-val">{{ detailItem.nbTranches }} mois</span>
+          </div>
+          <div class="detail-row">
+            <span class="dr-label">Mensualité</span>
+            <span class="dr-val">
+              {{ (detailItem.montantApprouve! / detailItem.nbTranches!) | number:'1.2-2' }} TND
+            </span>
+          </div>
+          @if (detailItem.dateValidationDg) {
+            <div class="detail-row">
+              <span class="dr-label">Date de validation</span>
+              <span class="dr-val">{{ detailItem.dateValidationDg | date:'dd/MM/yyyy' }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Repayment schedule preview -->
+        @if (installmentRows.length > 0) {
+          <div class="detail-section">
+            <p class="detail-section-title">Échéancier (aperçu)</p>
+            <table class="installments-table">
+              <thead>
+                <tr>
+                  <th>Mensualité</th>
+                  <th>Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of installmentRows; track row.num) {
+                  <tr>
+                    <td>Mois {{ row.num }}</td>
+                    <td>{{ row.montant | number:'1.2-2' }} TND</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            @if ((detailItem.nbTranches ?? 0) > 6) {
+              <p class="more-rows">+ {{ (detailItem.nbTranches ?? 0) - 6 }} mensualités identiques</p>
+            }
+          </div>
+        }
+      }
+
+      @if (detailItem.statut === 'REJETEE' && detailItem.dgComment) {
+        <div class="detail-section">
+          <p class="detail-section-title">Motif du refus</p>
+          <div class="comment-box">{{ detailItem.dgComment }}</div>
+        </div>
+      }
+
+      @if (detailItem.statut !== 'VALIDEE_DG' && detailItem.dgComment) {
+        <div class="detail-section">
+          <p class="detail-section-title">Commentaire DG</p>
+          <div class="comment-box">{{ detailItem.dgComment }}</div>
+        </div>
+      }
+
+    </div>
+
+    <!-- Footer actions for pending items -->
+    @if (detailItem.statut !== 'VALIDEE_DG' && detailItem.statut !== 'REJETEE') {
+      <div class="drawer-footer">
+        <button class="btn-secondary" (click)="openReject(detailItem, $event)">
+          <i class="ti ti-x"></i> Refuser
+        </button>
+        <button class="btn-primary" (click)="openApprove(detailItem, $event)">
+          <i class="ti ti-check"></i> Approuver
+        </button>
+      </div>
+    } @else {
+      <div class="drawer-footer">
+        <button class="btn-secondary" (click)="closeDetail()"><i class="ti ti-x"></i> Fermer</button>
+      </div>
+    }
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     DECISION DRAWER — APPROVE
+══════════════════════════════════════════════════════ -->
+@if (decisionItem && isApproving) {
+  <div class="drawer-overlay" (click)="closeDecision()"></div>
+  <div class="drawer drawer--decision">
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon drawer-icon--green"><i class="ti ti-circle-check"></i></div>
+        <div>
+          <p class="drawer-title">Approuver le crédit</p>
+          <p class="drawer-sub">{{ decisionItem.employePrenom }} {{ decisionItem.employeNom }}
+            — {{ decisionItem.amount | number:'1.0-0' }} TND demandés</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeDecision()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="field-group">
+        <label class="field-label">Montant accordé (TND) <span class="req">*</span></label>
+        <input type="number" class="field-input" [formControl]="approveForm.controls.montantApprouve"
+               placeholder="Peut différer du montant demandé" min="1"
+               [class.has-error]="hasErr('approve','montantApprouve')" />
+        @if (hasErr('approve','montantApprouve')) {
+          <span class="field-error"><i class="ti ti-alert-circle"></i> Montant obligatoire (min. 1 TND)</span>
+        }
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Nombre de mensualités <span class="req">*</span></label>
+        <input type="number" class="field-input" [formControl]="approveForm.controls.nbTranches"
+               placeholder="Ex : 24" min="1" max="120"
+               [class.has-error]="hasErr('approve','nbTranches')" />
+        @if (hasErr('approve','nbTranches')) {
+          <span class="field-error"><i class="ti ti-alert-circle"></i> Durée obligatoire (1 à 120 mois)</span>
+        }
+        @if (montantTranche > 0) {
+          <div class="monthly-preview">
+            <i class="ti ti-calculator"></i>
+            Mensualité : <strong>{{ montantTranche | number:'1.2-2' }} TND / mois</strong>
+          </div>
+        }
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Commentaire <span style="font-weight:400;color:#94A3B8">(optionnel)</span></label>
+        <textarea class="field-input" rows="3" [formControl]="approveForm.controls.commentaire"
+                  placeholder="Conditions particulières, remarques…"></textarea>
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn-secondary" (click)="closeDecision()" [disabled]="saving">Annuler</button>
+      <button class="btn-primary" (click)="confirmApprove()" [disabled]="saving">
+        @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+        @else { <i class="ti ti-check"></i> }
+        Confirmer l'approbation
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     DECISION DRAWER — REJECT
+══════════════════════════════════════════════════════ -->
+@if (decisionItem && !isApproving) {
+  <div class="drawer-overlay" (click)="closeDecision()"></div>
+  <div class="drawer drawer--decision">
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <div class="drawer-icon drawer-icon--red"><i class="ti ti-circle-x"></i></div>
+        <div>
+          <p class="drawer-title">Refuser le crédit</p>
+          <p class="drawer-sub">{{ decisionItem.employePrenom }} {{ decisionItem.employeNom }}
+            — {{ decisionItem.amount | number:'1.0-0' }} TND demandés</p>
+        </div>
+      </div>
+      <button class="drawer-close" (click)="closeDecision()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="field-group">
+        <label class="field-label">Motif du refus <span class="req">*</span></label>
+        <textarea class="field-input" rows="4" [formControl]="rejectForm.controls.commentaire"
+                  placeholder="Expliquez brièvement le motif du refus…"
+                  [class.has-error]="hasErr('reject','commentaire')"></textarea>
+        @if (hasErr('reject','commentaire')) {
+          <span class="field-error"><i class="ti ti-alert-circle"></i> Motif obligatoire (min. 5 caractères)</span>
+        }
+      </div>
+
+      @if (errorMsg) {
+        <div class="alert-error"><i class="ti ti-alert-circle"></i> {{ errorMsg }}</div>
+      }
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn-secondary" (click)="closeDecision()" [disabled]="saving">Annuler</button>
+      <button class="btn-primary btn-primary--red" (click)="confirmReject()" [disabled]="saving">
+        @if (saving) { <span class="spinner-border spinner-border-sm"></span> }
+        @else { <i class="ti ti-x"></i> }
+        Confirmer le refus
+      </button>
+    </div>
+  </div>
+}

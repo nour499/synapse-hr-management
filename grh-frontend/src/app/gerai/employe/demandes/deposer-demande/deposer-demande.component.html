@@ -1,0 +1,517 @@
+<div class="card">
+  <div class="card-header">
+    <h5><i class="ti ti-clipboard-plus"></i> Déposer une nouvelle demande</h5>
+  </div>
+
+  <div class="card-body">
+    <form [formGroup]="form" (ngSubmit)="submit()">
+
+      <small class="text-muted d-block mb-3">
+        Les champs marqués <span class="required-star">*</span> sont obligatoires.
+      </small>
+
+      <!-- ── Type de demande ─────────────────────────── -->
+      <div class="mb-4">
+        <label class="form-label">Type de demande <span class="required-star">*</span></label>
+        <select class="form-select" formControlName="type"
+                [class.has-error]="hasError('type')">
+          <option value="">— Choisir un type —</option>
+          @for (t of typesConfig; track t.type) {
+            <option [value]="t.type">{{ t.label }}</option>
+          }
+        </select>
+        <app-field-error [control]="form.get('type')" [messages]="{ required: 'Veuillez sélectionner un type' }" />
+      </div>
+
+      <!-- ── CONGÉ ANNUEL : solde banner ────────────── -->
+      @if (isConge) {
+        <div class="solde-banner">
+          <div class="solde-banner-icon"><i class="ti ti-calendar-heart"></i></div>
+          <div class="solde-banner-body">
+            <span class="solde-banner-label">Solde de congés disponible</span>
+            <span class="solde-banner-value">
+              {{ congesRestants }} jour{{ congesRestants !== 1 ? 's' : '' }}
+            </span>
+          </div>
+        </div>
+
+        @if (depasseSolde) {
+          <div class="solde-warning solde-warning--blocking">
+            <i class="ti ti-alert-triangle"></i>
+            <div style="flex:1">
+              <strong>Solde insuffisant — confirmation requise</strong>
+              <p>
+                Il vous reste <strong>{{ congesRestants }} jour{{ congesRestants !== 1 ? 's' : '' }}</strong> de congé disponible.
+                Les <strong>{{ joursDepassement }} jour{{ joursDepassement !== 1 ? 's' : '' }}</strong> excédentaires
+                seront imputés sur votre solde de l'année prochaine.
+              </p>
+              <label style="display:flex;align-items:flex-start;gap:10px;margin-top:10px;cursor:pointer">
+                <input type="checkbox" style="margin-top:3px;accent-color:#EF4444"
+                       [checked]="soldeAcknowledged"
+                       (change)="soldeAcknowledged = !soldeAcknowledged" />
+                <span style="font-size:13px;font-weight:600;color:#B91C1C">
+                  Je prends acte du dépassement de solde et accepte que les jours excédentaires
+                  soient déduits de mon solde de congé de l'année prochaine.
+                </span>
+              </label>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- ── CONGÉ MALADIE : certificat obligatoire ─── -->
+      @if (isMaladie) {
+        <div class="cert-info-banner">
+          <i class="ti ti-stethoscope"></i>
+          <span>Un <strong>certificat médical</strong> est obligatoire pour soumettre
+            une demande de congé maladie.</span>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">
+            Certificat médical <span class="required-star">*</span>
+          </label>
+
+          <div class="cert-upload-wrap"
+               [class.has-error]="certError"
+               [class.has-file]="certificatMedical">
+            @if (!certificatMedical) {
+              <label class="cert-upload-label">
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                       (change)="onCertificatSelected($event)" hidden />
+                <i class="ti ti-upload"></i>
+                <span>Cliquez pour joindre le certificat</span>
+                <small>PDF, JPG, PNG — max 5 Mo</small>
+              </label>
+            } @else {
+              <div class="cert-file-preview">
+                <i class="ti ti-file-check"></i>
+                <span>{{ certificatMedical.name }}</span>
+                <button type="button" class="cert-remove-btn" (click)="removeCertificat()"
+                        title="Supprimer">
+                  <i class="ti ti-x"></i>
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (certError) {
+            <small class="field-error">
+              <i class="ti ti-alert-circle"></i> Le certificat médical est obligatoire
+            </small>
+          }
+        </div>
+      }
+
+      <!-- ── CRÉDIT : champs complets ─────────────── -->
+      @if (isCredit) {
+        <div class="credit-info-banner mb-3">
+          <i class="ti ti-info-circle"></i>
+          <span>Le montant demandé ne doit pas dépasser <strong>3× votre salaire mensuel brut</strong>.
+            Le Directeur Général prendra la décision finale et pourra ajuster le montant accordé.</span>
+        </div>
+
+        <!-- Montant + Durée -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Montant demandé (TND) <span class="required-star">*</span></label>
+            <input type="number" class="form-control" formControlName="montant"
+                   placeholder="Ex : 5 000" min="1" step="100"
+                   [class.has-error]="hasError('montant')" />
+            <app-field-error [control]="form.get('montant')"
+              [messages]="{ required: 'Montant obligatoire', min: 'Montant invalide' }" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Durée de remboursement (mois) <span class="required-star">*</span></label>
+            <input type="number" class="form-control" formControlName="dureeMois"
+                   placeholder="Ex : 24" min="1" max="120"
+                   [class.has-error]="hasError('dureeMois')" />
+            <app-field-error [control]="form.get('dureeMois')"
+              [messages]="{ required: 'Durée obligatoire', min: 'Minimum 1 mois', max: 'Maximum 120 mois' }" />
+          </div>
+        </div>
+
+        <!-- Mensualité estimée (calculée automatiquement) -->
+        <div class="mensualite-card mb-3">
+          <div class="mensualite-left">
+            <i class="ti ti-calculator"></i>
+            <div>
+              <span class="mensualite-label">Mensualité estimée</span>
+              <small class="mensualite-hint">Calcul indicatif — le montant final dépend de la décision DG</small>
+            </div>
+          </div>
+          <div class="mensualite-value">
+            @if (mensualite > 0) {
+              {{ mensualite | number:'1.0-0' }} <span>TND / mois</span>
+            } @else {
+              <span class="text-muted" style="font-size:13px;font-weight:400">
+                Renseignez le montant et la durée
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- Motif du prêt -->
+        <div class="mb-3">
+          <label class="form-label">Motif du prêt <span class="required-star">*</span></label>
+          <select class="form-select" formControlName="motifCredit"
+                  [class.has-error]="hasError('motifCredit')"
+                  (change)="motifCreditAutreError = false">
+            <option value="">— Pourquoi ce prêt ? —</option>
+            @for (m of creditMotifs; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+          <app-field-error [control]="form.get('motifCredit')"
+            [messages]="{ required: 'Veuillez sélectionner un motif' }" />
+        </div>
+
+        <!-- Précision motif libre -->
+        @if (isMotifCreditAutre) {
+          <div class="mb-3">
+            <label class="form-label">Précisez le motif <span class="required-star">*</span></label>
+            <input type="text" class="form-control" formControlName="motifCreditAutre"
+                   placeholder="Décrivez brièvement le motif de votre demande…"
+                   [class.has-error]="motifCreditAutreError"
+                   (input)="motifCreditAutreError = false" />
+            @if (motifCreditAutreError) {
+              <small class="field-error">
+                <i class="ti ti-alert-circle"></i> Veuillez préciser le motif
+              </small>
+            }
+          </div>
+        }
+
+        <!-- Mode de remboursement (acknowledgment) -->
+        <div class="mb-4">
+          <label class="remboursement-toggle">
+            <input type="checkbox" formControlName="remboursementAccepte" />
+            <div class="remboursement-body" [class.has-error]="hasError('remboursementAccepte')">
+              <div class="remboursement-icon"><i class="ti ti-receipt"></i></div>
+              <div class="remboursement-text">
+                <span class="remboursement-label">Mode de remboursement : <strong>prélèvement mensuel sur salaire</strong></span>
+                <small class="remboursement-hint">La mensualité sera déduite automatiquement de votre bulletin de paie jusqu'au remboursement complet</small>
+              </div>
+              <div class="remboursement-check"><i class="ti ti-check"></i></div>
+            </div>
+          </label>
+          @if (hasError('remboursementAccepte')) {
+            <small class="field-error mt-1 d-block">
+              <i class="ti ti-alert-circle"></i> Vous devez accepter les conditions de remboursement
+            </small>
+          }
+        </div>
+      }
+
+      <!-- ── FORMATION : champs spécifiques ───────── -->
+      @if (isFormation) {
+        <div class="alert-info mb-3" style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;padding:12px 16px;font-size:13px;color:#3730A3">
+          <i class="ti ti-school"></i>
+          Renseignez les informations de la formation souhaitée. Votre chef d'équipe puis les RH examineront la demande.
+        </div>
+
+        <!-- Titre + Organisme -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Intitulé de la formation <span class="required-star">*</span></label>
+            <input type="text" class="form-control" formControlName="titreFormation"
+                   placeholder="Ex : Formation Angular avancé"
+                   [class.has-error]="hasError('titreFormation')" />
+            <app-field-error [control]="form.get('titreFormation')"
+              [messages]="{ required: 'Intitulé obligatoire', minlength: '3 caractères minimum' }" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Organisme / prestataire <span class="required-star">*</span></label>
+            <input type="text" class="form-control" formControlName="organisme"
+                   placeholder="Ex : OpenClassrooms, Udemy, CEGOS…"
+                   [class.has-error]="hasError('organisme')" />
+            <app-field-error [control]="form.get('organisme')"
+              [messages]="{ required: 'Organisme obligatoire' }" />
+          </div>
+        </div>
+
+        <!-- Lieu + Mode -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Lieu <span class="optional-tag">optionnel</span></label>
+            <input type="text" class="form-control" formControlName="lieu"
+                   placeholder="Ex : Tunis, Paris, En ligne…" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Mode de formation <span class="required-star">*</span></label>
+            <select class="form-select" formControlName="modeFormation">
+              <option value="PRESENTIEL">Présentiel</option>
+              <option value="DISTANCIEL">Distanciel (en ligne)</option>
+              <option value="HYBRIDE">Hybride</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Budget + Durée + Date prévue -->
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Budget estimé (TND) <span class="optional-tag">optionnel</span></label>
+            <input type="number" class="form-control" formControlName="budget"
+                   placeholder="Ex : 1500" min="0" step="50"
+                   [class.has-error]="hasError('budget')" />
+            <app-field-error [control]="form.get('budget')" [messages]="{ min: 'Montant invalide' }" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Durée (jours) <span class="optional-tag">optionnel</span></label>
+            <input type="number" class="form-control" formControlName="dureeFormation"
+                   placeholder="Ex : 3" min="1" step="1" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Date prévue de début <span class="required-star">*</span></label>
+            <input type="date" class="form-control" formControlName="dateDebut"
+                   [class.has-error]="hasError('dateDebut')" />
+            <app-field-error [control]="form.get('dateDebut')" [messages]="{ required: 'Date requise' }" />
+          </div>
+        </div>
+      }
+
+      <!-- ── DOCUMENT ADMINISTRATIF ────────────── -->
+      @if (isDocument) {
+        <div class="doc-info-banner mb-3">
+          <i class="ti ti-file-certificate"></i>
+          <span>Votre demande sera traitée dans un délai de <strong>48 h à 72 h</strong> ouvrables.
+            Veillez à renseigner toutes les informations.</span>
+        </div>
+
+        <!-- Type de document + Nombre de copies -->
+        <div class="row">
+          <div class="col-md-8 mb-3">
+            <label class="form-label">Type de document <span class="required-star">*</span></label>
+            <select class="form-select" formControlName="typeDocument"
+                    [class.has-error]="hasError('typeDocument')">
+              <option value="">— Choisir un document —</option>
+              @for (d of docTypes; track d.id) {
+                <option [value]="d.key">{{ d.label }}</option>
+              }
+            </select>
+            <app-field-error [control]="form.get('typeDocument')"
+              [messages]="{ required: 'Veuillez choisir le type de document' }" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Nombre de copies <span class="required-star">*</span></label>
+            <input type="number" class="form-control" formControlName="nombreCopies"
+                   min="1" max="10" step="1"
+                   [class.has-error]="hasError('nombreCopies')" />
+            <app-field-error [control]="form.get('nombreCopies')"
+              [messages]="{ required: 'Obligatoire', min: 'Minimum 1', max: 'Maximum 10' }" />
+          </div>
+        </div>
+
+        <!-- Mois/Année (pour bulletin de paie uniquement) -->
+        @if (isBulletin) {
+          <div class="mb-3">
+            <label class="form-label">
+              Mois concerné <span class="required-star">*</span>
+            </label>
+            <input type="month" class="form-control" formControlName="moisBulletin"
+                   [class.has-error]="moisBulletinError"
+                   (change)="moisBulletinError = false" />
+            @if (moisBulletinError) {
+              <small class="field-error">
+                <i class="ti ti-alert-circle"></i> Veuillez sélectionner le mois concerné
+              </small>
+            }
+          </div>
+        }
+
+        <!-- Langue + Urgence -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Langue du document <span class="required-star">*</span></label>
+            <select class="form-select" formControlName="langueDocument">
+              <option value="FR">Français</option>
+              <option value="AR">Arabe</option>
+              <option value="EN">Anglais</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3 d-flex align-items-end">
+            <label class="urgent-toggle">
+              <input type="checkbox" formControlName="urgent" />
+              <div class="urgent-toggle-body">
+                <span class="urgent-toggle-icon"><i class="ti ti-alarm"></i></span>
+                <div>
+                  <span class="urgent-toggle-label">Demande urgente</span>
+                  <small class="urgent-toggle-hint">Traitement prioritaire par les RH</small>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Motif / Destinataire -->
+        <div class="mb-3">
+          <label class="form-label">Motif / Destinataire <span class="required-star">*</span></label>
+          <select class="form-select" formControlName="motifDocument"
+                  [class.has-error]="hasError('motifDocument')"
+                  (change)="motifAutreError = false">
+            <option value="">— Pour quel usage ? —</option>
+            @for (m of docMotifs; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+          <app-field-error [control]="form.get('motifDocument')"
+            [messages]="{ required: 'Veuillez indiquer le motif' }" />
+        </div>
+
+        <!-- Précision si motif = Autre -->
+        @if (isMotifAutre) {
+          <div class="mb-3">
+            <label class="form-label">Précisez le motif <span class="required-star">*</span></label>
+            <input type="text" class="form-control" formControlName="motifAutre"
+                   placeholder="Ex : Dossier de candidature, inscription universitaire…"
+                   [class.has-error]="motifAutreError"
+                   (input)="motifAutreError = false" />
+            @if (motifAutreError) {
+              <small class="field-error">
+                <i class="ti ti-alert-circle"></i> Veuillez préciser le motif
+              </small>
+            }
+          </div>
+        }
+      }
+
+      <!-- ── Dates (when required by type, except FORMATION which has its own) ── -->
+      @if (requiresDates && !isFormation) {
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Date de début <span class="required-star">*</span></label>
+            <input type="date" class="form-control" formControlName="dateDebut"
+                   [class.has-error]="hasError('dateDebut')" />
+            <app-field-error [control]="form.get('dateDebut')" [messages]="{ required: 'Date de début requise' }" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Date de fin <span class="required-star">*</span></label>
+            <input type="date" class="form-control" formControlName="dateFin"
+                   [class.has-error]="hasError('dateFin') || (form.hasError('dateRange') && form.get('dateFin')?.dirty)" />
+            <app-field-error [control]="form.get('dateFin')" [messages]="{ required: 'Date de fin requise' }" />
+            @if (!hasError('dateFin') && form.hasError('dateRange') && form.get('dateFin')?.dirty) {
+              <app-field-error [control]="form" [messages]="{ dateRange: 'La date de fin doit être après la date de début' }" />
+            }
+          </div>
+        </div>
+
+        @if (dureeJours > 0) {
+          <p class="duree-hint">
+            <i class="ti ti-clock"></i>
+            Durée : <strong>{{ dureeJours }} jour{{ dureeJours !== 1 ? 's' : '' }}</strong>
+          </p>
+        }
+
+        <!-- ── Disponibilité équipe ───────────────────── -->
+        <div style="margin-bottom:16px;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden">
+          <div style="background:#F8FAFC;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #E2E8F0">
+            <i class="ti ti-users" style="color:#6366F1;font-size:16px"></i>
+            <span style="font-size:13px;font-weight:600;color:#1E293B">Disponibilité équipe sur cette période</span>
+            @if (loadingTeam) {
+              <span style="font-size:11px;color:#94A3B8;margin-left:auto">Vérification…</span>
+            }
+          </div>
+          @if (!loadingTeam) {
+            @if (teamAbsences.length === 0) {
+              <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;font-size:13px;color:#10B981">
+                <i class="ti ti-check-circle" style="font-size:16px"></i>
+                Toute l'équipe est disponible sur cette période
+              </div>
+            } @else {
+              <div style="padding:10px 14px">
+                <p style="margin:0 0 8px;font-size:12px;color:#EF4444;font-weight:600">
+                  <i class="ti ti-alert-triangle"></i>
+                  {{ teamAbsences.length }} collègue{{ teamAbsences.length > 1 ? 's' : '' }} absent{{ teamAbsences.length > 1 ? 's' : '' }} sur cette période :
+                </p>
+                @for (a of teamAbsences; track a.employeId) {
+                  <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #F8FAFC">
+                    <div style="width:30px;height:30px;border-radius:50%;background:#6366F1;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">
+                      {{ a.prenom[0] }}{{ a.nom[0] }}
+                    </div>
+                    <div style="flex:1">
+                      <div style="font-size:13px;font-weight:600;color:#1E293B">{{ a.prenom }} {{ a.nom }}</div>
+                      <div style="font-size:11px;color:#64748B">
+                        {{ a.type }} · du {{ a.dateDebut }} au {{ a.dateFin }}
+                      </div>
+                    </div>
+                    <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px"
+                          [style.background]="a.type === 'MALADIE' ? '#FEE2E2' : '#EEF2FF'"
+                          [style.color]="a.type === 'MALADIE' ? '#EF4444' : '#6366F1'">
+                      {{ a.type }}
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- ── Description ───────────────────────────── -->
+      <div class="mb-4">
+        <label class="form-label">
+          @if (isDocument) {
+            Remarques complémentaires <span class="optional-tag">optionnel</span>
+          } @else {
+            Description <span class="required-star">*</span>
+          }
+        </label>
+        <textarea class="form-control" rows="3" formControlName="description"
+          [placeholder]="isDocument ? 'Informations complémentaires pour les RH…' : 'Décrivez votre demande…'"
+          [class.has-error]="hasError('description')"></textarea>
+        @if (!isDocument) {
+          <app-field-error [control]="form.get('description')"
+            [messages]="{ required: 'Description obligatoire', minlength: '10 caractères minimum' }" />
+        }
+      </div>
+
+      <!-- ── Pièces jointes optionnelles (hors maladie) -->
+      @if (!isMaladie) {
+        <div class="mb-4">
+          <label class="form-label">
+            Pièces jointes <span class="optional-tag">optionnel</span>
+          </label>
+          <input type="file" class="form-control" (change)="onFileSelected($event)" multiple />
+
+          @if (files.length > 0) {
+            <ul class="file-list mt-2">
+              @for (file of files; track file.name; let i = $index) {
+                <li>
+                  <i class="ti ti-paperclip"></i>
+                  <span>{{ file.name }}</span>
+                  <button type="button" class="file-remove-btn" (click)="removeFile(i)">
+                    <i class="ti ti-x"></i>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
+      <!-- ── Erreur globale ─────────────────────────── -->
+      @if (errorMsg) {
+        <div class="alert-error mb-3">
+          <i class="ti ti-alert-circle"></i>{{ errorMsg }}
+        </div>
+      }
+
+      <!-- ── Actions ────────────────────────────────── -->
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()" [disabled]="isSaving">
+          <i class="ti ti-x"></i> Annuler
+        </button>
+        <button type="submit" class="btn-submit"
+                [disabled]="isSaving || (depasseSolde && !soldeAcknowledged)">
+          @if (isSaving) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <i class="ti ti-send"></i>
+          }
+          Envoyer la demande
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
